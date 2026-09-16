@@ -1,0 +1,11 @@
+{
+  "description": "10 items: 7 from a single institutional source (70% concentration), dates dense in 1849-1851 and thin in 1846-1848, no item in Armenian or Greek despite both being declared 'expected' regional languages, plus 2 recorded access failures against a third source.",
+  "total_items": 10,
+  "dominant_source_share": 0.7,
+  "dense_period": [1849, 1851],
+  "thin_period": [1846, 1848],
+  "expected_languages": ["ottoman-turkish", "armenian", "greek"],
+  "missing_languages": ["armenian", "greek"],
+  "access_failures": 2,
+  "generator": "tests/fixtures/phase2_fixtures.py:build_skewed_corpus"
+}

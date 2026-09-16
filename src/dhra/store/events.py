@@ -24,6 +24,7 @@ EVENT_TYPES = frozenset(
         "item.excluded",
         "item.restored",
         "claim.assessed",
+        "access.failed",
         "model.invoked",
         "tool.invoked",
     }

@@ -1,0 +1,10 @@
+{
+  "description": "One wire dispatch reprinted with minor cuts/rewording across 10 further outlets (11 items total, all sharing one garbled proper noun -- 'Reshud' for 'Reshid' -- introduced once and copied verbatim by every reprint), plus 6 genuinely independent eyewitness/archival accounts of the same event that use the correct spelling or omit the name.",
+  "total_items": 17,
+  "reprint_family_size": 11,
+  "independent_accounts": 6,
+  "expected_witnesses_after_descent_clustering": 7,
+  "decisive_signal": "shared_error",
+  "decisive_signal_token": "reshud",
+  "generator": "tests/fixtures/phase2_fixtures.py:build_reprint_family"
+}

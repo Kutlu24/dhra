@@ -43,6 +43,7 @@ class Projection:
     exclusion_history: dict[str, list[Exclusion]] = field(default_factory=dict)
     claims: dict[str, ClaimAssessment] = field(default_factory=dict)
     claim_history: dict[str, list[ClaimAssessment]] = field(default_factory=dict)
+    access_failures: list[dict] = field(default_factory=list)
 
     def active_item_ids(self) -> list[str]:
         return sorted(i for i in self.items if i not in self.active_exclusions)
@@ -189,6 +190,16 @@ def fold(events: Iterable[dict]) -> Projection:
             )
             p.claims[assessment.claim_id] = assessment
             p.claim_history.setdefault(assessment.claim_id, []).append(assessment)
+
+        elif etype == "access.failed":
+            p.access_failures.append(
+                {
+                    "source_id": event["source_id"],
+                    "reason": event["reason"],
+                    "request": event.get("request"),
+                    "ts": event["ts"],
+                }
+            )
 
         # model.invoked / tool.invoked carry no corpus state -- they feed the
         # trace views only (dhra.trace), not the projection.

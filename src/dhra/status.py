@@ -112,6 +112,8 @@ def assess_claim(
     negating: list[Locator] | None = None,
     out_of_scope: bool = False,
     search_scope: str = "",
+    independence_confirmed: bool = False,
+    independence_note: str = "",
 ) -> ClaimAssessment:
     """Pure function: evidence sets in, status out. No search, no I/O.
 
@@ -128,8 +130,16 @@ def assess_claim(
          constructions (I7).
       5. Supporting locators from exactly one item -> E5 (single
          witness; count is unambiguous without running independence).
-      6. Supporting locators from >1 item -> E1 (attested). Never E2:
-         corroboration requires a passed independence check (I6, Phase 2).
+      6. Supporting locators from >1 item, `independence_confirmed=True`
+         -> E2 (corroborated). The caller (dhra.independence, Phase 2)
+         must have actually run the descent-clustering pipeline over
+         these exact supporting locators and found every pair
+         INDEPENDENT before passing this flag -- assess_claim itself
+         does no checking, it only records the argument (section 7.3:
+         "the independence argument is attached to the claim and
+         displayed with it").
+      7. Supporting locators from >1 item, independence not confirmed
+         -> E1 (attested). Never E2 by default (I6).
     """
     supporting = list(supporting or [])
     contradicting = list(contradicting or [])
@@ -189,12 +199,18 @@ def assess_claim(
     if len(distinct_items) == 1:
         status = Status.SINGLE_WITNESS
         note = "One source in the corpus attests this claim; reliability unestablished."
+    elif independence_confirmed:
+        status = Status.CORROBORATED
+        note = (
+            f"Corroborated by {len(distinct_items)} source(s), checked pairwise "
+            f"and found independent (no shared descent). {independence_note}".strip()
+        )
     else:
         status = Status.ATTESTED
         note = (
             f"Attested by {len(distinct_items)} source(s) in the corpus. "
             "Not assigned as corroborated (E2): independence between these "
-            "sources has not been checked (Phase 2)."
+            "sources has not been checked."
         )
 
     return ClaimAssessment(

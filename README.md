@@ -12,11 +12,69 @@ unless shown wrong). Open design questions not yet resolved:
 path from source to claim shorter to travel and easier to audit — never
 shorter to travel at the cost of being harder to audit.
 
-## Status: Phase 1 (Evidence)
+## Status: Phase 2 (Critique)
 
-Phase 1 implemented per spec section 6 (below). Phase 0 (Foundations) — the
-event-sourced store everything else sits on — is unchanged and still
-passes its own exit test; see `tests/acceptance/test_phase0.py`.
+Phase 2 implemented per spec section 6 (below). Phases 0 and 1 are
+unchanged and still pass their own exit tests.
+
+- `src/dhra/independence.py` — the independence engine (section 7.3):
+  recall-oriented candidate grouping (exact Jaccard over word 3-shingles,
+  not MinHash — see [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-2)
+  #9), pairwise alignment (stdlib `difflib`), descent signal extraction
+  (shared rare/error tokens — section 7.3's "single strongest available
+  signal" — plus shared idiosyncratic phrasing), union-find cluster
+  formation, and the three-way verdict
+  (`INDEPENDENT`/`SHARED_DESCENT`/`UNDETERMINED`). `dedupe_by_descent()`
+  is the "37 passages, 11 share a descent, count as one" collapse
+  (section 18).
+- `src/dhra/status.py` — extended: `assess_claim(independence_confirmed=...)`
+  is the only path to `Status.CORROBORATED` (E2), and it's only ever set
+  by `DHRARepo.assess_claim_with_independence()`, which actually ran the
+  descent-clustering pipeline first. I6 now holds by *proof*, not by
+  omission.
+- `src/dhra/repo.py` — `assess_claim_with_independence()`: runs descent
+  clustering over a claim's supporting locators, excludes
+  non-representative cluster members reversibly
+  (`ExclusionReason.DESCENT_CLUSTER_MEMBER`), collapses the supporting
+  set, and only claims E2 when every remaining distinct-item pair was
+  actually verdicted independent. `record_access_failure()`: a source
+  that was tried and refused/failed is itself now an event (section
+  9.2/11.4), feeding the bias report below.
+- `src/dhra/bias.py` — `compute_bias_report()`: source concentration,
+  period coverage gaps, expected-but-absent languages, and access
+  failures, each a real, computed warning over the projection.
+- `src/dhra/aggregate.py` — `aggregate_by_source()`: one real, drillable
+  corpus map (items grouped by acquisition source, each bucket carrying
+  its `item_ids`), with a `BiasReport` as a **mandatory** field of the
+  response — there is no code path that returns aggregate data without
+  one, which is how "shown *before* first aggregate results" (section
+  12) is enforced without a UI/session layer to sequence it in yet.
+- `src/dhra/disconfirm.py` — `disconfirm_search()`: runs
+  caller-supplied refutation-oriented queries through the real search
+  pipeline and reports whether anything refuting turned up. Query
+  *generation* is explicitly the model's job (section 10) and isn't
+  built here yet — same gap as claim-evidence-finding in
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-2) #11.
+
+**Exit test** (`tests/acceptance/test_phase2.py`): the seeded
+`reprint_family` fixture (17 items: 11 reprints of one wire dispatch
+sharing one garbled proper noun, plus 6 genuinely independent accounts)
+collapses to exactly 7 witnesses, with the shared-error signal — the
+actual garbled token — cited as the cluster's basis; the `skewed_corpus`
+fixture (dominant source, uneven period coverage, an entirely absent
+expected language, 2 access failures) produces a bias report carrying
+all four findings as a mandatory part of the same response as the
+aggregate data, never as a separate, skippable step. Plus E2 shown
+reachable end-to-end (two genuinely independent accounts corroborate a
+claim) and confirmed unreachable for the reprint family alone (collapses
+to E5, not E2 — the whole point of the fixture).
+
+```bash
+pip install -e ".[dev]"
+pytest tests/acceptance/test_phase2.py
+```
+
+## Phase 1 (Evidence)
 
 - `src/dhra/transcribe.py` — pluggable `Transcriber` protocol. Real,
   working backends: `ManualTranscriber` (text), `TeiTranscriber` (TEI
@@ -111,10 +169,13 @@ pytest tests/acceptance/test_phase0.py
 
 ## Not yet built
 
-Phase 2 onward (independence testing/descent clustering, bias report,
-disconfirmation search, corpus maps; then the tool layer + MCP; then
-drafting/export) — see spec section 6 and the build order in section 17.
-All three of Phase 1's own open questions
-([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved-1) #6–8) are resolved;
-#8 (E3/dependents `needs_review` cascade) is explicitly deferred to be
-built *as part of* Phase 2, not before it.
+Phase 3 onward (source registry + permissions + MCP server/clients,
+Zotero/TEI interchange, orthographic variant expansion, calendar
+handling; then Phase 4's monitoring/drafting/collaboration/methods
+export) — see spec section 6 and the build order in section 17. Within
+what's built so far: Phase 1's #8 (E3/dependents `needs_review` cascade)
+is still open, and Phase 2 has its own four open questions
+([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-2) #9–12) —
+none block the Phase 2 exit test, but #9 (Jaccard vs. the spec-named
+MinHash) and #10 (placeholder reference lexicon) matter before this runs
+against a real archival corpus rather than fixtures.

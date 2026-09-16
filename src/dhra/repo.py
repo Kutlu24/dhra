@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dhra.corpus import CorpusVersion, corpus_version_at
+from dhra.independence import DescentCluster, IndependenceVerdict, PairVerdict, cluster_by_descent, dedupe_by_descent
 from dhra.models import ExclusionReason, Locator, Quality, ResolvedPassage
 from dhra.status import ClaimAssessment, assess_claim, check_monotonicity
 from dhra.store.blobs import BlobStore
@@ -337,13 +338,20 @@ class DHRARepo:
         negating: list[Locator] | None = None,
         out_of_scope: bool = False,
         search_scope: str = "",
+        independence_confirmed: bool = False,
+        independence_note: str = "",
         task: str | None = None,
     ) -> ClaimAssessment:
         """Status is assigned per claim, never per document (rule 1), by
         deterministic code over evidence the caller has already decided
         on -- the model may propose candidates but never assigns status
         itself (section 10). Rejects a status rise that isn't backed by
-        strictly new evidence (rule 2); a fall is always allowed (rule 3)."""
+        strictly new evidence (rule 2); a fall is always allowed (rule 3).
+
+        `independence_confirmed` must only be set by a caller that has
+        actually run the descent-clustering pipeline over `supporting`
+        (see `assess_claim_with_independence` below) -- passing it
+        without doing that check is how I6 gets violated."""
         version = self.corpus_version()
         previous = self.get_claim_assessment(claim_id)
         new = assess_claim(
@@ -355,6 +363,8 @@ class DHRARepo:
             negating=negating,
             out_of_scope=out_of_scope,
             search_scope=search_scope,
+            independence_confirmed=independence_confirmed,
+            independence_note=independence_note,
         )
         check_monotonicity(previous, new)
 
@@ -390,6 +400,85 @@ class DHRARepo:
 
     def claim_history(self, claim_id: str) -> list[ClaimAssessment]:
         return list(self.projection().claim_history.get(claim_id, []))
+
+    # --- independence / descent clustering (section 7.3, Phase 2) -----------
+
+    def assess_claim_with_independence(
+        self,
+        *,
+        claim_id: str,
+        claim_text: str,
+        supporting: list[Locator],
+        actor: str = "independence_engine",
+        task: str | None = None,
+    ) -> tuple[ClaimAssessment, list[DescentCluster], list[PairVerdict]]:
+        """Runs the real descent-clustering pipeline over `supporting`
+        before assessing the claim: reprint-family duplicates collapse to
+        their representative (section 18's "37 passages, 11 share a
+        descent, count as one"), non-representative members are excluded
+        reversibly (`ExclusionReason.DESCENT_CLUSTER_MEMBER`), and E2 is
+        only used when every remaining distinct-item pair was actually
+        checked and verdicted INDEPENDENT -- never on textual similarity
+        or co-occurrence alone (section 7.3)."""
+        projection = self.projection()
+        texts: dict[str, str] = {}
+        for loc in supporting:
+            rep = projection.representations[loc.rep_id]
+            texts[loc.item_id] = rep.text
+        candidates = sorted(texts.items())
+
+        clusters, verdicts = cluster_by_descent(candidates)
+
+        for cluster in clusters:
+            for member in cluster.members:
+                if member == cluster.representative:
+                    continue
+                if member in projection.active_exclusions:
+                    continue
+                self.exclude_item(item_id=member, reason=ExclusionReason.DESCENT_CLUSTER_MEMBER, actor=actor, task=task)
+
+        deduped = dedupe_by_descent(supporting, clusters)
+        distinct_items = sorted({loc.item_id for loc in deduped})
+
+        independence_confirmed = False
+        independence_note = ""
+        if len(distinct_items) > 1:
+            verdict_map: dict[tuple[str, str], PairVerdict] = {}
+            for v in verdicts:
+                verdict_map[(v.a, v.b)] = v
+                verdict_map[(v.b, v.a)] = v
+            checked_notes = []
+            all_independent = True
+            for i in range(len(distinct_items)):
+                for j in range(i + 1, len(distinct_items)):
+                    pair = verdict_map.get((distinct_items[i], distinct_items[j]))
+                    if pair is None or pair.verdict != IndependenceVerdict.INDEPENDENT:
+                        all_independent = False
+                        continue
+                    checked_notes.append(f"{distinct_items[i]}~{distinct_items[j]} (jaccard {pair.similarity:.2f})")
+            independence_confirmed = all_independent
+            if checked_notes:
+                independence_note = "Independent pairs checked: " + "; ".join(checked_notes) + "."
+
+        assessment = self.assess_claim(
+            claim_id=claim_id,
+            claim_text=claim_text,
+            supporting=deduped,
+            independence_confirmed=independence_confirmed,
+            independence_note=independence_note,
+            task=task,
+        )
+        return assessment, clusters, verdicts
+
+    # --- access failures (section 11.4 methods export; bias reporting) ------
+
+    def record_access_failure(self, *, source_id: str, reason: str, request: dict | None = None, task: str | None = None) -> None:
+        """Section 9.2/11.4: "where terms prohibit automated access, the
+        correct behaviour is to say so ... never to route around it."
+        This records that a source was tried and refused/failed -- no
+        item exists (nothing was acquired), so there is no blob to
+        store; the failure itself is the event."""
+        self.events.append("access.failed", source_id=source_id, reason=reason, request=request, task=task)
 
     # --- reads ---------------------------------------------------------------
 

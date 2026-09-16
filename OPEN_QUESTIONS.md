@@ -98,4 +98,54 @@ All three resolved 2026-09-17 (AskUserQuestion, before starting Phase 2).
    expensive to unpick). `dhra.status.weakest()` exists as the
    aggregation primitive it will need. Blocks Phase 2's "flags dependent
    interpretations" on status demotion (section 7.2 rule 3) — build it
-   as part of that work, not before.
+   as part of that work, not before. **Still not built** — Phase 2
+   shipped independence testing, descent clustering, bias reporting and
+   disconfirmation search without needing it (see #9 below); it remains
+   open for whenever status demotion on a *dependent* claim is actually
+   exercised.
+
+# Open questions (Phase 2)
+
+Not yet put to the researcher — flagged here per section 0 rule 6
+rather than decided silently, same as the earlier rounds.
+
+9. **Shingle similarity instead of MinHash.** Section 16 names
+   `datasketch` MinHash for candidate generation. `dhra.independence`
+   implements exact Jaccard similarity over word 3-shingles instead — no
+   new dependency, exactly reproducible, and MinHash's approximation
+   solves a "sketch a huge set cheaply" problem this project doesn't
+   have yet at interactive, single-researcher corpus sizes. Revisit if
+   candidate-generation cost over a large corpus ever actually matters.
+
+10. **Reference lexicon is a placeholder.** The shared-error signal
+    (section 7.3, "rare or absent from a reference lexicon") uses
+    `independence.COMMON_WORDS`, a ~150-word hand-written list, not a
+    real dictionary/frequency list. It was enough to correctly separate
+    the reprint_family fixture's shared garbled token from ordinary
+    shared vocabulary (verified: `tests/acceptance/test_phase2.py`), but
+    a real corpus will have rare-but-legitimate words this list doesn't
+    know about, risking false shared-error signals. Needs a real
+    wordlist (or frequency-based "rare in this corpus" measure instead
+    of a fixed lexicon) before this runs against real archival material.
+
+11. **Disconfirmation queries are caller-supplied, not model-generated.**
+    `disconfirm_search()` runs `negated_queries` the caller already
+    wrote, the same caller-supplies-the-judgement-call pattern as
+    `assess_claim`. Section 10 explicitly allows the model to "propose
+    ... disconfirmation strategies" — but there is no LLM-calling layer
+    in this repo yet (see #7's same gap for candidate-locator-finding),
+    so nothing here turns a claim into refutation-oriented queries
+    automatically. Needed once Phase 3's tool layer exists and something
+    is actually calling a model.
+
+12. **"Corpus maps" scoped to one aggregate.** Section 6 lists "corpus
+    maps with drill-down to passage" (plural, and section 8.4 names
+    frequency bars, topic clusters, network nodes, timeline bands).
+    `dhra.aggregate` implements exactly one: `aggregate_by_source`,
+    grouping active items by acquisition source, each bucket carrying
+    its `item_ids` for drill-down. This satisfies the structural
+    invariant that matters for the exit test (a bias report is always
+    attached, every bucket is attributable to real items) without
+    building a visualisation layer that has no UI to sit in yet. More
+    map types are straightforward to add the same way once there's a
+    reason (a UI, or a specific research question) to render one.

@@ -11,9 +11,11 @@ from pathlib import Path
 
 from dhra.corpus import CorpusVersion, corpus_version_at
 from dhra.models import ExclusionReason, Locator, Quality, ResolvedPassage
+from dhra.status import ClaimAssessment, assess_claim, check_monotonicity
 from dhra.store.blobs import BlobStore
 from dhra.store.events import EventLog
 from dhra.store.projection import Projection, fold
+from dhra.transcribe import ManualTranscriber, PdfToTextTranscriber, TeiTranscriber, Transcriber
 from dhra.ulid import new_ulid
 
 
@@ -175,6 +177,183 @@ class DHRARepo:
         """Single-action reversal (I5). Emits a compensating event; the
         excluding event is never edited or removed (I4)."""
         self.events.append("item.restored", item_id=item_id, actor=actor, task=task)
+
+    # --- ingestion: acquire + transcribe in one call (section 6, Phase 1) ---
+
+    def _ingest(
+        self,
+        data: bytes,
+        *,
+        transcriber: Transcriber,
+        media_type: str,
+        source_id: str,
+        method: str,
+        access_basis: str,
+        licence_id: str | None = None,
+        redistributable: bool | None = None,
+        original_reference: str | None = None,
+        task: str | None = None,
+    ) -> tuple[str, str]:
+        item_id = self.acquire_item(
+            data,
+            source_id=source_id,
+            method=method,
+            access_basis=access_basis,
+            media_type=media_type,
+            licence_id=licence_id,
+            redistributable=redistributable,
+            original_reference=original_reference,
+            task=task,
+        )
+        result = transcriber.transcribe(data)
+        rep_id = self.create_representation(
+            item_id=item_id,
+            kind="transcription",
+            producer=result.producer,
+            producer_version=result.producer_version,
+            text=result.text,
+            quality=result.quality,
+            task=task,
+        )
+        return item_id, rep_id
+
+    def ingest_text(
+        self,
+        text: str,
+        *,
+        source_id: str,
+        access_basis: str = "public_domain",
+        licence_id: str | None = None,
+        redistributable: bool | None = None,
+        original_reference: str | None = None,
+        task: str | None = None,
+    ) -> tuple[str, str]:
+        return self._ingest(
+            text.encode("utf-8"),
+            transcriber=ManualTranscriber(),
+            media_type="text/plain",
+            source_id=source_id,
+            method="manual_upload",
+            access_basis=access_basis,
+            licence_id=licence_id,
+            redistributable=redistributable,
+            original_reference=original_reference,
+            task=task,
+        )
+
+    def ingest_pdf(
+        self,
+        data: bytes,
+        *,
+        source_id: str,
+        access_basis: str = "public_domain",
+        licence_id: str | None = None,
+        redistributable: bool | None = None,
+        original_reference: str | None = None,
+        task: str | None = None,
+    ) -> tuple[str, str]:
+        return self._ingest(
+            data,
+            transcriber=PdfToTextTranscriber(),
+            media_type="application/pdf",
+            source_id=source_id,
+            method="download",
+            access_basis=access_basis,
+            licence_id=licence_id,
+            redistributable=redistributable,
+            original_reference=original_reference,
+            task=task,
+        )
+
+    def ingest_tei(
+        self,
+        data: bytes,
+        *,
+        source_id: str,
+        access_basis: str = "public_domain",
+        licence_id: str | None = None,
+        redistributable: bool | None = None,
+        original_reference: str | None = None,
+        task: str | None = None,
+    ) -> tuple[str, str]:
+        return self._ingest(
+            data,
+            transcriber=TeiTranscriber(),
+            media_type="application/tei+xml",
+            source_id=source_id,
+            method="download",
+            access_basis=access_basis,
+            licence_id=licence_id,
+            redistributable=redistributable,
+            original_reference=original_reference,
+            task=task,
+        )
+
+    # --- epistemic status (section 7) ----------------------------------------
+
+    def assess_claim(
+        self,
+        *,
+        claim_id: str,
+        claim_text: str,
+        supporting: list[Locator] | None = None,
+        contradicting: list[Locator] | None = None,
+        negating: list[Locator] | None = None,
+        out_of_scope: bool = False,
+        search_scope: str = "",
+        task: str | None = None,
+    ) -> ClaimAssessment:
+        """Status is assigned per claim, never per document (rule 1), by
+        deterministic code over evidence the caller has already decided
+        on -- the model may propose candidates but never assigns status
+        itself (section 10). Rejects a status rise that isn't backed by
+        strictly new evidence (rule 2); a fall is always allowed (rule 3)."""
+        version = self.corpus_version()
+        previous = self.get_claim_assessment(claim_id)
+        new = assess_claim(
+            claim_id=claim_id,
+            claim_text=claim_text,
+            corpus_version=version.manifest_hash,
+            supporting=supporting,
+            contradicting=contradicting,
+            negating=negating,
+            out_of_scope=out_of_scope,
+            search_scope=search_scope,
+        )
+        check_monotonicity(previous, new)
+
+        def _loc_dicts(locs: tuple[Locator, ...]) -> list[dict]:
+            return [
+                {
+                    "item_id": loc.item_id,
+                    "rep_id": loc.rep_id,
+                    "start": loc.start,
+                    "end": loc.end,
+                    "page": loc.page,
+                    "iiif_region": loc.iiif_region,
+                }
+                for loc in locs
+            ]
+
+        self.events.append(
+            "claim.assessed",
+            claim_id=new.claim_id,
+            claim_text=new.claim_text,
+            status=new.status.value,
+            supporting=_loc_dicts(new.supporting),
+            contradicting=_loc_dicts(new.contradicting),
+            negating=_loc_dicts(new.negating),
+            note=new.note,
+            corpus_version=new.corpus_version,
+            task=task,
+        )
+        return new
+
+    def get_claim_assessment(self, claim_id: str) -> ClaimAssessment | None:
+        return self.projection().claims.get(claim_id)
+
+    def claim_history(self, claim_id: str) -> list[ClaimAssessment]:
+        return list(self.projection().claim_history.get(claim_id, []))
 
     # --- reads ---------------------------------------------------------------
 

@@ -20,6 +20,7 @@ DISCRETIONARY_TYPES = frozenset(
         "item.excluded",
         "item.restored",
         "assertion.preference_set",
+        "claim.assessed",
     }
 )
 

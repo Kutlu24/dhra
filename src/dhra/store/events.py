@@ -23,6 +23,7 @@ EVENT_TYPES = frozenset(
         "assertion.preference_set",
         "item.excluded",
         "item.restored",
+        "claim.assessed",
         "model.invoked",
         "tool.invoked",
     }

@@ -21,9 +21,11 @@ from dhra.models import (
     Exclusion,
     ExclusionReason,
     Item,
+    Locator,
     Quality,
     Representation,
 )
+from dhra.status import ClaimAssessment, Status
 
 
 @dataclass
@@ -39,6 +41,8 @@ class Projection:
     assertion_preferences: dict[tuple[str, str], str] = field(default_factory=dict)
     active_exclusions: dict[str, Exclusion] = field(default_factory=dict)
     exclusion_history: dict[str, list[Exclusion]] = field(default_factory=dict)
+    claims: dict[str, ClaimAssessment] = field(default_factory=dict)
+    claim_history: dict[str, list[ClaimAssessment]] = field(default_factory=dict)
 
     def active_item_ids(self) -> list[str]:
         return sorted(i for i in self.items if i not in self.active_exclusions)
@@ -134,8 +138,6 @@ def fold(events: Iterable[dict]) -> Projection:
 
         elif etype == "assertion.added":
             loc_raw = event.get("evidence_locator")
-            from dhra.models import Locator
-
             locator = Locator(**loc_raw) if loc_raw else None
             assertion = Assertion(
                 assertion_id=event["assertion_id"],
@@ -170,6 +172,23 @@ def fold(events: Iterable[dict]) -> Projection:
 
         elif etype == "item.restored":
             p.active_exclusions.pop(event["item_id"], None)
+
+        elif etype == "claim.assessed":
+            def _locators(raw: list[dict]) -> tuple[Locator, ...]:
+                return tuple(Locator(**loc) for loc in raw)
+
+            assessment = ClaimAssessment(
+                claim_id=event["claim_id"],
+                claim_text=event["claim_text"],
+                status=Status(event["status"]),
+                supporting=_locators(event.get("supporting", [])),
+                contradicting=_locators(event.get("contradicting", [])),
+                negating=_locators(event.get("negating", [])),
+                note=event["note"],
+                corpus_version=event["corpus_version"],
+            )
+            p.claims[assessment.claim_id] = assessment
+            p.claim_history.setdefault(assessment.claim_id, []).append(assessment)
 
         # model.invoked / tool.invoked carry no corpus state -- they feed the
         # trace views only (dhra.trace), not the projection.

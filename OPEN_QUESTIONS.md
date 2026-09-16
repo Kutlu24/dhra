@@ -52,3 +52,49 @@ are now resolved (2026-09-16, AskUserQuestion) — kept here as the record of
    history from the export alone, without needing `events.jsonl`. Treated
    as a harmless superset of what was asked for, not a violation of
    "do not add features" (section 0.5).
+
+# Open questions (Phase 1)
+
+6. **Image OCR backend not wired.** Section 6's Phase 1 ingestion list is
+   "PDF/image/text/TEI". Text (`ManualTranscriber`), TEI
+   (`TeiTranscriber`), and PDF text-layer extraction (`PdfToTextTranscriber`,
+   shelling out to the real, already-installed system `pdftotext`) are
+   real and tested. Image ingestion is **not** wired to a real OCR
+   backend: this environment has no `tesseract` binary (verified with
+   `which tesseract` — not found; `pdftotext` was found and is used for
+   real). The `Transcriber` protocol (`dhra.transcribe`) is designed so a
+   `TesseractTranscriber` slots in the same way `PdfToTextTranscriber`
+   does, once a researcher has Tesseract (or Kraken, per section 16)
+   installed. Per section 0 rule 4 ("prefer refusing to guessing"), this
+   was left unbuilt rather than faked with mocked OCR output. **Ask the
+   researcher whether/when to install Tesseract** before manuscript image
+   ingestion (the actual eventual target, per section 16) is needed.
+
+7. **What a "claim" is, structurally.** The spec's epistemic status
+   (section 7) is explicitly "assigned per claim, not per document," but
+   never defines a `Claim` entity/table — only the `Status` vocabulary
+   and assignment rules. **Decision (implementation default, not yet
+   confirmed with the researcher): a claim is (claim_id, claim_text) +
+   explicit evidence-locator sets the caller already decided on**
+   (`DHRARepo.assess_claim(claim_id, claim_text, supporting=[...],
+   contradicting=[...], negating=[...])`), persisted as `claim.assessed`
+   events. This keeps status assignment pure/deterministic code over
+   evidence, matching section 10's rule that the model may never assign
+   status or resolve a contradiction itself — but it means nothing here
+   currently *finds* candidate supporting/contradicting locators for a
+   claim automatically (that would need query expansion + a relevance
+   classifier, arguably Phase 1's `/evidence/compare` endpoint, not yet
+   built). **Ask before Phase 2** (which needs claims as an input to
+   independence testing / disconfirmation search).
+
+8. **E3 (INFERRED) and dependents/`needs_review` cascade not built.**
+   Section 7.2 rule 5 ("E3 shows its premises... chains longer than
+   three steps are decomposed") and section 5.2 ("any stored claim whose
+   supporting items were affected is flagged `needs_review`") describe
+   real features. `dhra.status.weakest()` exists as the aggregation
+   primitive they'd need, but no `assess_inference()` or dependents graph
+   is built yet — deliberately, per rule 5 ("do not add features"): nothing
+   in the Phase 1 exit test requires them, and building a half-working
+   version now risked being wrong in a way that's expensive to unpick
+   later. Needed before Phase 2's "flags dependent interpretations" on
+   status demotion (section 7.2 rule 3) is real.

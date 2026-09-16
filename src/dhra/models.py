@@ -152,3 +152,17 @@ class ResolvedPassage:
     text: str
     page: str | None
     iiif_region: str | None
+
+
+# --- 8.1 Locator-bound search result -----------------------------------------
+
+
+@dataclass(frozen=True)
+class Passage:
+    """A search result. `rationale` must be stated in terms a researcher
+    can dispute -- never an opaque score alone (section 8.1)."""
+
+    locator: Locator
+    text: str  # exact match to Locator.resolve().text -- verified by the response contract
+    score: float
+    rationale: str

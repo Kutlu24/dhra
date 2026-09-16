@@ -12,7 +12,57 @@ unless shown wrong). Open design questions not yet resolved:
 path from source to claim shorter to travel and easier to audit — never
 shorter to travel at the cost of being harder to audit.
 
-## Status: Phase 0 (Foundations)
+## Status: Phase 1 (Evidence)
+
+Phase 1 implemented per spec section 6 (below). Phase 0 (Foundations) — the
+event-sourced store everything else sits on — is unchanged and still
+passes its own exit test; see `tests/acceptance/test_phase0.py`.
+
+- `src/dhra/transcribe.py` — pluggable `Transcriber` protocol. Real,
+  working backends: `ManualTranscriber` (text), `TeiTranscriber` (TEI
+  XML, stdlib `xml.etree`), `PdfToTextTranscriber` (shells out to the
+  real system `pdftotext`). Image OCR (Tesseract/Kraken) is **not**
+  wired — no OCR binary is installed/verified in this environment; see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-1) #6.
+- `src/dhra/index.py` — literal, case-insensitive full-text search over
+  representations via SQLite FTS5, rebuilt from the projection on every
+  query (disposable, like `derived.db`). No orthographic variant
+  expansion (section 8.2 is Phase 3 per the spec's own build order).
+- `src/dhra/evidence.py` — `search()`: turns index hits into
+  locator-bound `Passage`s with a stated rationale (section 8.1); a
+  zero-hit result is qualified by the legibility of what was searched
+  (mean character confidence, unreadable/below-quality exclusion counts)
+  rather than an unqualified "no mentions found" (section 8.3).
+- `src/dhra/response.py` — the two-channel `Response` contract (section
+  10.1): `narrative` is rejected when `evidence` is empty (I10); every
+  `Passage` is verbatim-checked against its stored representation before
+  the response is built, raising (not warning) on mismatch (I2).
+- `src/dhra/status.py` — the epistemic engine (section 7): `Status`
+  E1–E8, `assess_claim()` (pure function, evidence sets → status — the
+  model never assigns status itself, per section 10), the E6
+  not-rendered-as-denial linter (I7), and a monotonicity guard rejecting
+  a status rise unless the evidence set actually grew (rule 2). E2
+  (CORROBORATED) is structurally unreachable in Phase 1 — there is no
+  independence engine yet (that's Phase 2), so I6 holds by omission, not
+  by a stub.
+- `src/dhra/repo.py` — extended with `ingest_text`/`ingest_pdf`/
+  `ingest_tei` (acquire + transcribe in one call) and
+  `assess_claim`/`get_claim_assessment`/`claim_history`.
+
+**Exit test** (`tests/acceptance/test_phase1.py`): traceability and
+quotation fidelity both 100% across an adversarial text battery (smart
+quotes, ligatures, soft hyphens, combining diacritics, RTL Arabic script);
+absence-discipline passes (quality-qualified, non-denial E6). Plus the
+section 13.2 claim-status tests that don't need Phase 2 (monotonicity,
+demotion-on-contradiction, E2 unreachable) and real PDF/TEI ingestion
+tests (`pdftotext` actually invoked, not mocked).
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+## Phase 0 (Foundations)
 
 Implemented per spec section 6:
 
@@ -53,13 +103,16 @@ walkable representation chains, `Locator` resolving-or-raising).
 
 ```bash
 pip install -e ".[dev]"
-pytest
+pytest tests/acceptance/test_phase0.py
 ```
 
 ## Not yet built
 
-Everything from Phase 1 onward (evidence/retrieval, the epistemic engine,
-critique/independence testing, the tool layer + MCP, drafting/export) —
-see spec section 6 and the build order in section 17. Do not start Phase 1
-until the Phase 0 exit test above is the thing being trusted, not just
-passing once.
+Phase 2 onward (independence testing/descent clustering, bias report,
+disconfirmation search, corpus maps; then the tool layer + MCP; then
+drafting/export) — see spec section 6 and the build order in section 17.
+Also open within Phase 1 itself: image OCR, and the claim/inference/
+dependents machinery noted in
+[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-1) #6–8. Do
+not start Phase 2 until those are resolved and the Phase 1 exit test is
+trusted, not just passing once.

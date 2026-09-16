@@ -172,10 +172,10 @@ pytest tests/acceptance/test_phase0.py
 Phase 3 onward (source registry + permissions + MCP server/clients,
 Zotero/TEI interchange, orthographic variant expansion, calendar
 handling; then Phase 4's monitoring/drafting/collaboration/methods
-export) — see spec section 6 and the build order in section 17. Within
-what's built so far: Phase 1's #8 (E3/dependents `needs_review` cascade)
-is still open, and Phase 2 has its own four open questions
-([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-2) #9–12) —
-none block the Phase 2 exit test, but #9 (Jaccard vs. the spec-named
-MinHash) and #10 (placeholder reference lexicon) matter before this runs
-against a real archival corpus rather than fixtures.
+export) — see spec section 6 and the build order in section 17. All of
+Phase 2's own open questions are resolved
+([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved-2) #9–12); #10
+(placeholder reference lexicon) and #11 (no model-generated
+disconfirmation queries yet) are explicitly deferred until real
+archival material and Phase 3's tool layer exist, respectively. Still
+open from Phase 1: #8, the E3/dependents `needs_review` cascade.

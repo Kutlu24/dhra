@@ -55,46 +55,47 @@ are now resolved (2026-09-16, AskUserQuestion) — kept here as the record of
 
 # Open questions (Phase 1)
 
-6. **Image OCR backend not wired.** Section 6's Phase 1 ingestion list is
-   "PDF/image/text/TEI". Text (`ManualTranscriber`), TEI
-   (`TeiTranscriber`), and PDF text-layer extraction (`PdfToTextTranscriber`,
-   shelling out to the real, already-installed system `pdftotext`) are
-   real and tested. Image ingestion is **not** wired to a real OCR
-   backend: this environment has no `tesseract` binary (verified with
-   `which tesseract` — not found; `pdftotext` was found and is used for
-   real). The `Transcriber` protocol (`dhra.transcribe`) is designed so a
-   `TesseractTranscriber` slots in the same way `PdfToTextTranscriber`
-   does, once a researcher has Tesseract (or Kraken, per section 16)
-   installed. Per section 0 rule 4 ("prefer refusing to guessing"), this
-   was left unbuilt rather than faked with mocked OCR output. **Ask the
-   researcher whether/when to install Tesseract** before manuscript image
-   ingestion (the actual eventual target, per section 16) is needed.
+All three resolved 2026-09-17 (AskUserQuestion, before starting Phase 2).
 
-7. **What a "claim" is, structurally.** The spec's epistemic status
-   (section 7) is explicitly "assigned per claim, not per document," but
-   never defines a `Claim` entity/table — only the `Status` vocabulary
-   and assignment rules. **Decision (implementation default, not yet
-   confirmed with the researcher): a claim is (claim_id, claim_text) +
+## Resolved
+
+6. **Image OCR backend** (user chose "şimdi tesseract kur ve bağla" —
+   install and wire it now, rather than deferring). Tesseract 5.3.4 was
+   installed by the user (`sudo apt-get install -y tesseract-ocr`, run in
+   their own terminal — this session's/harness's non-interactive shell
+   cannot supply a sudo password itself, confirmed by two failed
+   attempts). `TesseractTranscriber` (`dhra.transcribe`) now shells out
+   to the real binary, same pattern as `PdfToTextTranscriber`:
+   `producer="tesseract"`, `producer_version` from `tesseract --version`,
+   and `Quality.mean_char_confidence` computed from real per-word
+   confidences in tesseract's TSV output (documented in `Quality.notes`
+   as a word-level approximation, since the CLI doesn't expose true
+   per-character confidence). Wired into `DHRARepo.ingest_image()`.
+   Tested against a real generated image
+   (`tests/fixtures/ocr_sample.png`, regenerable via
+   `tests/fixtures/generate_ocr_sample.py`), not a mock. Only `eng`
+   language data is installed in this environment — Ottoman/Arabic-script
+   manuscript material needs its own trained data (Kraken/Transkribus,
+   per section 16) installed separately; that remains unbuilt and is not
+   blocking Phase 2.
+
+7. **What a "claim" is, structurally** (user confirmed: keep the current
+   implementation). **Decision: a claim is (claim_id, claim_text) +
    explicit evidence-locator sets the caller already decided on**
    (`DHRARepo.assess_claim(claim_id, claim_text, supporting=[...],
    contradicting=[...], negating=[...])`), persisted as `claim.assessed`
-   events. This keeps status assignment pure/deterministic code over
-   evidence, matching section 10's rule that the model may never assign
-   status or resolve a contradiction itself — but it means nothing here
-   currently *finds* candidate supporting/contradicting locators for a
-   claim automatically (that would need query expansion + a relevance
-   classifier, arguably Phase 1's `/evidence/compare` endpoint, not yet
-   built). **Ask before Phase 2** (which needs claims as an input to
-   independence testing / disconfirmation search).
+   events. Phase 2's independence-testing/descent-clustering pipeline
+   will call this with the locators it finds — no structural change
+   needed. Still true: nothing here *finds* candidate locators for a
+   claim automatically; that stays out of scope (query expansion + a
+   relevance classifier would be needed, and the model still may never
+   assign status itself, per section 10).
 
-8. **E3 (INFERRED) and dependents/`needs_review` cascade not built.**
-   Section 7.2 rule 5 ("E3 shows its premises... chains longer than
-   three steps are decomposed") and section 5.2 ("any stored claim whose
-   supporting items were affected is flagged `needs_review`") describe
-   real features. `dhra.status.weakest()` exists as the aggregation
-   primitive they'd need, but no `assess_inference()` or dependents graph
-   is built yet — deliberately, per rule 5 ("do not add features"): nothing
-   in the Phase 1 exit test requires them, and building a half-working
-   version now risked being wrong in a way that's expensive to unpick
-   later. Needed before Phase 2's "flags dependent interpretations" on
-   status demotion (section 7.2 rule 3) is real.
+8. **E3 (INFERRED) and dependents/`needs_review` cascade** (user
+   confirmed: build during Phase 2, when the independence-testing/status-
+   demotion scenario that actually needs it exists, rather than
+   pre-building a version now that risks being wrong in a way that's
+   expensive to unpick). `dhra.status.weakest()` exists as the
+   aggregation primitive it will need. Blocks Phase 2's "flags dependent
+   interpretations" on status demotion (section 7.2 rule 3) — build it
+   as part of that work, not before.

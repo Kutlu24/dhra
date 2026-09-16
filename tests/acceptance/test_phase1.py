@@ -130,6 +130,20 @@ def test_ingest_tei_extracts_text_element(repo):
     assert rep.producer == "tei_extract"
 
 
+def test_ingest_image_extracts_text_via_real_tesseract(repo):
+    from pathlib import Path
+
+    image_bytes = (Path(__file__).parent.parent / "fixtures" / "ocr_sample.png").read_bytes()
+    item_id, rep_id = repo.ingest_image(image_bytes, source_id="ocr_fixture")
+    rep = repo.projection().representations[rep_id]
+    assert "Hello DHRA OCR" in rep.text
+    assert rep.producer == "tesseract"
+    assert rep.producer_version  # mandatory, and must reflect the real installed tool
+    assert rep.quality is not None
+    assert rep.quality.mean_char_confidence is not None
+    assert 0.0 <= rep.quality.mean_char_confidence <= 1.0
+
+
 # --- Absence discipline (section 13.2) -------------------------------------
 
 

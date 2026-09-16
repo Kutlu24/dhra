@@ -15,7 +15,13 @@ from dhra.status import ClaimAssessment, assess_claim, check_monotonicity
 from dhra.store.blobs import BlobStore
 from dhra.store.events import EventLog
 from dhra.store.projection import Projection, fold
-from dhra.transcribe import ManualTranscriber, PdfToTextTranscriber, TeiTranscriber, Transcriber
+from dhra.transcribe import (
+    ManualTranscriber,
+    PdfToTextTranscriber,
+    TeiTranscriber,
+    TesseractTranscriber,
+    Transcriber,
+)
 from dhra.ulid import new_ulid
 
 
@@ -282,6 +288,36 @@ class DHRARepo:
             media_type="application/tei+xml",
             source_id=source_id,
             method="download",
+            access_basis=access_basis,
+            licence_id=licence_id,
+            redistributable=redistributable,
+            original_reference=original_reference,
+            task=task,
+        )
+
+    def ingest_image(
+        self,
+        data: bytes,
+        *,
+        source_id: str,
+        media_type: str = "image/png",
+        lang: str = "eng",
+        access_basis: str = "public_domain",
+        licence_id: str | None = None,
+        redistributable: bool | None = None,
+        original_reference: str | None = None,
+        task: str | None = None,
+    ) -> tuple[str, str]:
+        """OCR via the real system `tesseract` binary. `lang` must be one
+        of `tesseract --list-langs`; only `eng` is installed in this
+        environment (see OPEN_QUESTIONS.md #6 -- manuscript-script OCR
+        needs its own trained data, not assumed present)."""
+        return self._ingest(
+            data,
+            transcriber=TesseractTranscriber(lang=lang),
+            media_type=media_type,
+            source_id=source_id,
+            method="manual_upload",
             access_basis=access_basis,
             licence_id=licence_id,
             redistributable=redistributable,

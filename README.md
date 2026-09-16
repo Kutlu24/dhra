@@ -21,9 +21,12 @@ passes its own exit test; see `tests/acceptance/test_phase0.py`.
 - `src/dhra/transcribe.py` — pluggable `Transcriber` protocol. Real,
   working backends: `ManualTranscriber` (text), `TeiTranscriber` (TEI
   XML, stdlib `xml.etree`), `PdfToTextTranscriber` (shells out to the
-  real system `pdftotext`). Image OCR (Tesseract/Kraken) is **not**
-  wired — no OCR binary is installed/verified in this environment; see
-  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-1) #6.
+  real system `pdftotext`), `TesseractTranscriber` (shells out to the
+  real system `tesseract`, including real per-word confidence scoring).
+  Only `eng` language data is installed — Ottoman/Arabic-script
+  manuscript OCR needs its own trained data (Kraken/Transkribus, per
+  section 16), not yet installed; see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved-1) #6.
 - `src/dhra/index.py` — literal, case-insensitive full-text search over
   representations via SQLite FTS5, rebuilt from the projection on every
   query (disposable, like `derived.db`). No orthographic variant
@@ -111,8 +114,7 @@ pytest tests/acceptance/test_phase0.py
 Phase 2 onward (independence testing/descent clustering, bias report,
 disconfirmation search, corpus maps; then the tool layer + MCP; then
 drafting/export) — see spec section 6 and the build order in section 17.
-Also open within Phase 1 itself: image OCR, and the claim/inference/
-dependents machinery noted in
-[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-1) #6–8. Do
-not start Phase 2 until those are resolved and the Phase 1 exit test is
-trusted, not just passing once.
+All three of Phase 1's own open questions
+([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved-1) #6–8) are resolved;
+#8 (E3/dependents `needs_review` cascade) is explicitly deferred to be
+built *as part of* Phase 2, not before it.

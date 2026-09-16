@@ -3,19 +3,23 @@
 Per `docs/DHRA_BUILD_SPEC.md` section 0.5/0.6: things noted here rather than
 silently decided or silently built beyond spec.
 
-1. **"Active representation" selection rule.** The spec's corpus manifest
-   (section 5.2) includes "their active representation ids" per item but
-   never defines how the active one is chosen when an item has several
-   (e.g. a transcription plus a later translation, or two competing
-   transcriptions from different tools). Phase 0 implements the simplest
-   possible rule — **most recently created representation for that item**
-   (`Projection.active_representation_id`) — purely so the manifest has
-   *something* deterministic to hash. This is almost certainly wrong for
-   Phase 1 (a translation should not silently become "the" representation
-   over its source transcription) and needs a real answer, probably a
-   `kind`-scoped notion of "active per kind" plus an explicit
-   researcher-settable preference (mirroring `assertion.preference_set`).
-   **Ask before Phase 1 retrieval depends on this.**
+## Resolved
+
+1. **"Active representation" selection rule** (asked 2026-09-16, user chose
+   "hepsi active, seçim retrieval'a bırakılsın"). The spec's corpus
+   manifest (section 5.2) includes representation ids per item but never
+   defines how one is chosen when an item has several (e.g. a
+   transcription plus a later translation, or two competing
+   transcriptions from different tools). **Decision: no single "active"
+   representation at the corpus-versioning layer.** Every representation
+   of every included item is part of the corpus version
+   (`CorpusVersion.rep_ids`, `Projection.representation_ids_for`); which
+   one a given retrieval prefers for a given purpose is entirely a
+   Phase 1 retrieval/ranking decision, out of scope for `dhra.corpus`.
+   Implemented in `corpus_version_from_projection` — no per-item
+   collapsing happens before Phase 1 exists to make that call correctly.
+
+## Open
 
 2. **`Locator.resolve()`.** The spec sketches it as a bound method
    (`section 4.6`). Implemented instead as `DHRARepo.resolve(locator)`,

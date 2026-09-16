@@ -25,9 +25,12 @@ README_TEMPLATE = """\
 This directory is a complete, self-contained record of one corpus version.
 It can be reconstructed and audited without the DHRA application:
 
-- `manifest.json` -- the corpus version: included item ids, active
-  representation per item, active exclusions, assertion preferences, and
-  `manifest_hash` (sha256 of the canonical manifest).
+- `manifest.json` -- the corpus version: included item ids, every
+  representation id attached to each included item (there is no single
+  "the" representation -- all of an item's representations are part of
+  the corpus version; a retrieval layer picks among them per query),
+  active exclusions, assertion preferences, and `manifest_hash` (sha256
+  of the canonical manifest).
 - `items.jsonl` -- one JSON object per acquired item (one line each),
   including its `blob_sha256`.
 - `blobs/<sha256[0:2]>/<sha256>` -- the original bytes of every item

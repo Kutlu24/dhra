@@ -1,8 +1,13 @@
 """Corpus versioning -- DHRA_BUILD_SPEC.md section 5.2.
 
 A corpus version is an immutable manifest: the set of included item ids,
-their active representation ids, the active exclusion set, and the
-assertion-preference set. Its id is the hash of the manifest.
+the representation ids attached to them, the active exclusion set, and
+the assertion-preference set. Its id is the hash of the manifest.
+
+Representations have no single "active" one at this layer (resolved per
+OPEN_QUESTIONS.md: all of an included item's representations are part of
+the corpus version; which one a given retrieval should prefer is a
+Phase 1 ranking decision, not something corpus versioning arbitrates).
 
 `corpus_version_at` is a pure function: fold events up to `seq`, no I/O
 beyond reading the log. Every search result, aggregate, claim and export
@@ -23,7 +28,7 @@ from dhra.store.projection import Projection, fold
 class CorpusVersion:
     seq: int
     item_ids: tuple[str, ...]
-    active_rep_ids: tuple[tuple[str, str], ...]  # (item_id, rep_id), sorted
+    rep_ids: tuple[tuple[str, str], ...]  # (item_id, rep_id) -- every representation of every included item, sorted
     exclusions: tuple[tuple[str, str], ...]  # (item_id, reason), sorted
     assertion_preferences: tuple[tuple[str, str, str], ...]  # (item_id, predicate, assertion_id)
     manifest_hash: str
@@ -32,7 +37,7 @@ class CorpusVersion:
         return {
             "seq": self.seq,
             "item_ids": list(self.item_ids),
-            "active_rep_ids": [list(pair) for pair in self.active_rep_ids],
+            "rep_ids": [list(pair) for pair in self.rep_ids],
             "exclusions": [list(pair) for pair in self.exclusions],
             "assertion_preferences": [list(triple) for triple in self.assertion_preferences],
         }
@@ -45,11 +50,11 @@ def _hash_manifest(manifest_without_hash: dict) -> str:
 
 def corpus_version_from_projection(projection: Projection) -> CorpusVersion:
     item_ids = tuple(projection.active_item_ids())
-    active_rep_ids = tuple(
+    rep_ids = tuple(
         sorted(
             (item_id, rep_id)
-            for item_id in projection.items
-            if (rep_id := projection.active_representation_id(item_id)) is not None
+            for item_id in item_ids
+            for rep_id in projection.representation_ids_for(item_id)
         )
     )
     exclusions = tuple(
@@ -61,7 +66,7 @@ def corpus_version_from_projection(projection: Projection) -> CorpusVersion:
     manifest = {
         "seq": projection.last_seq,
         "item_ids": list(item_ids),
-        "active_rep_ids": [list(pair) for pair in active_rep_ids],
+        "rep_ids": [list(pair) for pair in rep_ids],
         "exclusions": [list(pair) for pair in exclusions],
         "assertion_preferences": [list(triple) for triple in assertion_preferences],
     }
@@ -69,7 +74,7 @@ def corpus_version_from_projection(projection: Projection) -> CorpusVersion:
     return CorpusVersion(
         seq=projection.last_seq,
         item_ids=item_ids,
-        active_rep_ids=active_rep_ids,
+        rep_ids=rep_ids,
         exclusions=exclusions,
         assertion_preferences=assertion_preferences,
         manifest_hash=manifest_hash,

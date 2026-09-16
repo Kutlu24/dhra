@@ -194,6 +194,24 @@ def test_representation_requires_producer_version(repo):
         )
 
 
+def test_corpus_version_keeps_all_representations_active(repo):
+    """OPEN_QUESTIONS.md #1: a translation must not silently replace its
+    source transcription as 'the' representation -- both stay part of the
+    corpus version; picking between them is a Phase 1 retrieval concern."""
+    item_a, rep_a, _item_b = _seed_two_items(repo)
+    rep_translation = repo.create_representation(
+        item_id=item_a,
+        kind="translation",
+        producer="claude-sonnet-5",
+        producer_version="2026-09",
+        text="tilki",
+        parent_rep_id=rep_a,
+    )
+    version = repo.corpus_version()
+    reps_for_a = {rep_id for (item_id, rep_id) in version.rep_ids if item_id == item_a}
+    assert reps_for_a == {rep_a, rep_translation}
+
+
 def test_representation_chain_is_walkable_to_blob(repo):
     item_a, rep_a, _item_b = _seed_two_items(repo)
     rep_translation = repo.create_representation(

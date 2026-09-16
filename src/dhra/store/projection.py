@@ -43,9 +43,13 @@ class Projection:
     def active_item_ids(self) -> list[str]:
         return sorted(i for i in self.items if i not in self.active_exclusions)
 
-    def active_representation_id(self, item_id: str) -> str | None:
-        reps = self.reps_by_item.get(item_id) or []
-        return reps[-1] if reps else None
+    def representation_ids_for(self, item_id: str) -> list[str]:
+        """All representations for `item_id`, oldest first. There is no
+        single 'the active one' at this layer -- resolved (per the
+        OPEN_QUESTIONS.md decision) means every representation coexists;
+        which one to show for a given purpose is a Phase 1 retrieval/
+        ranking decision, not a corpus-versioning one."""
+        return list(self.reps_by_item.get(item_id) or [])
 
     def representation_chain(self, rep_id: str) -> list[Representation]:
         """Walk parent_rep_id back to the blob. Raises if the chain is broken."""

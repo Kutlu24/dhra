@@ -28,7 +28,10 @@ Implemented per spec section 6:
   in-memory `Projection`, plus `materialise_sqlite()` to build a disposable
   `derived.db` from it.
 - `src/dhra/corpus.py` — `corpus_version_at(seq)`: immutable, hashed corpus
-  manifests (I8).
+  manifests (I8). No single "active" representation per item — every
+  representation of an included item is part of the corpus version;
+  Phase 1 retrieval picks among them per query (resolved in
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved)).
 - `src/dhra/trace.py` — the three-level activity trace (section 11.3).
 - `src/dhra/export.py` — `export_corpus()` writes a self-describing,
   flat export; `reconstruct_from_export()` rebuilds state from it using

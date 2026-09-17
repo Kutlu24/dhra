@@ -490,6 +490,22 @@ class DHRARepo:
     def deny_approval(self, *, tool: str, summary: str, reason: str, actor: str, task: str | None = None) -> None:
         self.events.append("approval.denied", tool=tool, summary=summary, reason=reason, actor=actor, task=task)
 
+    def log_tool_invocation(self, *, tool: str, purpose: str, parameters: dict | None = None, task: str | None = None) -> None:
+        """READ-class tools take no approval checkpoint but are still
+        "fully logged" (section 9.1) -- this is that log. Also what
+        section 11.4's methods export means by "the full query set"."""
+        self.events.append("tool.invoked", tool=tool, purpose=purpose, parameters=parameters or {}, task=task)
+
+    def log_model_invocation(self, *, model: str, purpose: str, prompt_sha256: str | None = None, parameters: dict | None = None, task: str | None = None) -> None:
+        """Section 5.1: "Every model.invoked event records model identity,
+        version, purpose, prompt hash and parameters -- this is what makes
+        the disclosure in the methods statement honest." Not called
+        anywhere in this repo yet -- there is no LLM-calling layer built
+        (see OPEN_QUESTIONS.md #7/#11/#14) -- but the event type and this
+        wrapper exist so the methods export has somewhere real to read
+        from once one is."""
+        self.events.append("model.invoked", model=model, purpose=purpose, prompt_sha256=prompt_sha256, parameters=parameters or {}, task=task)
+
     # --- reads ---------------------------------------------------------------
 
     def projection(self, seq: int | None = None) -> Projection:

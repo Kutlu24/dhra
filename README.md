@@ -12,10 +12,61 @@ unless shown wrong). Open design questions not yet resolved:
 path from source to claim shorter to travel and easier to audit — never
 shorter to travel at the cost of being harder to audit.
 
-## Status: Phase 3 (Environment)
+## Status: Phase 4 (Practice) — all four spec phases now implemented
 
-Phase 3 implemented per spec section 6 (below). Phases 0-2 are unchanged
-and still pass their own exit tests.
+Phase 4 implemented per spec section 6 (below). Phases 0-3 are unchanged
+and still pass their own exit tests. This is the spec's last phase
+(section 17's build order ends here); what's left is the open questions
+in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md), not another phase.
+
+- `src/dhra/methods_export.py` + `dhra.export`'s `methods_statement.json`
+  — section 11.4's methods export, assembled entirely from real
+  event-log state: corpus version/hash, acquisition sources with
+  dates/access/licence, the transformation chain with tool versions,
+  selection-criteria counts, exclusion summary by reason, the full query
+  set actually run (`DHRARepo.log_tool_invocation`, now wired into
+  `evidence.search`), model identities/versions/purposes (real, and
+  truthfully empty — no LLM-calling layer exists yet), and limitations
+  drawn from the bias report. Included in every `export_corpus()` bundle
+  and read back by `reconstruct_from_export()`, same stdlib-only
+  reconstruction path as everything else (I12).
+- `src/dhra/drafting.py` — drafting under approval (`PermissionClass.PREPARE`):
+  create/approve/reject, ephemeral and non-reproducible (section 10.2).
+  No send/submit/publish function exists anywhere in the module — section
+  15's anti-requirement ("automatic sending, submitting or publishing of
+  anything") holds structurally, not just by convention, and is checked
+  as such in the tests.
+- `src/dhra/annotation.py` — comment threads on any target (item, claim,
+  ...), addition/resolution as events. "Shared" means what local-first
+  actually gives for free (the event log is the shared medium) — no
+  account/permissions system; see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-4) #19.
+- `src/dhra/monitoring.py` — saved queries, re-run on demand
+  (`check_monitor`/`check_monitors`), reporting only genuinely new
+  matches since the last check. No scheduler/daemon (#20) — there is
+  nowhere honest for one to live in a local-first prototype.
+- **Not built: "teaching support"** (#18) — the spec names it as a Phase
+  4 deliverable but never elaborates what it means anywhere else in the
+  document; guessing at a data model/UI for it would violate section 0
+  rule 4 ("prefer refusing to guessing"). Needs a real answer from the
+  researcher.
+
+**Exit test** (`tests/acceptance/test_phase4.py`): "a generated methods
+statement contains everything Section 11.4 requires and round-trips
+through the export test" — verified field-by-field against a realistic
+seeded corpus (two sources, one excluded item, one access failure, two
+real queries run), and verified to survive `export_corpus` →
+`reconstruct_from_export` with matching `corpus_version` and a clean
+checksum/manifest-hash pass.
+
+```bash
+pip install -e ".[dev]"
+pytest tests/acceptance/test_phase4.py
+```
+
+## Phase 3 (Environment)
+
+Phases 0-3's own sections below are unchanged from before Phase 4.
 
 - `src/dhra/permissions.py` — `PermissionClass` (READ/PREPARE/ASK/ACT,
   section 9.1), `ApprovalRequired` carrying exact specifics (not "access
@@ -232,15 +283,24 @@ pip install -e ".[dev]"
 pytest tests/acceptance/test_phase0.py
 ```
 
-## Not yet built
+## What's left
 
-Phase 4: monitoring, drafting under approval, shared corpora with
-annotation threads, methods-statement export, teaching support — see
-spec section 6 and the build order in section 17. Phase 3 has five open
-questions of its own
-([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-3)
-#13-17); #15 (redistribution restriction recorded but not yet enforced)
-matters most before export/sharing (Phase 4) exists, since that is
-exactly the path it needs to gate. Still open from earlier phases: #8
-(E3/dependents `needs_review` cascade), #10 (placeholder reference
-lexicon), #11 (no model-generated disconfirmation queries yet).
+All four spec phases (section 17's build order) are implemented. What
+remains is the open-questions list in
+[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) — 20 items across the four
+phases, all but one (#18, "teaching support") a real, working default
+that was either confirmed with the researcher or reasoned and recorded
+rather than silently assumed. The ones most worth reading before relying
+on this against real archival material:
+
+- **#18** — "teaching support" (Phase 4) isn't built at all; the spec
+  never says what it means.
+- **#15** — redistribution restriction is recorded on every `Item` but
+  nothing reads it yet, because nothing has needed to share/export to
+  a third party for real yet.
+- **#10** — the shared-error reference lexicon is a ~150-word
+  placeholder; matters once this runs against a real corpus.
+- **#19** — "shared corpora" has no account/permissions system, only
+  "the event log is the shared medium."
+- **#8** — status demotion doesn't yet flag dependent claims as
+  `needs_review`.

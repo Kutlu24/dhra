@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 
 from dhra.corpus import corpus_version_at
+from dhra.methods_export import build_methods_statement
 from dhra.store.blobs import BlobStore
 from dhra.store.events import EventLog
 from dhra.store.projection import fold
@@ -47,6 +48,12 @@ It can be reconstructed and audited without the DHRA application:
   later reversed.
 - `events.jsonl` -- verbatim copy of the underlying event log up to this
   version's `seq`, for anyone who does want to replay it.
+- `methods_statement.json` -- section 11.4's methods export: corpus
+  definition/version, acquisition sources with dates/access/licence,
+  the transformation chain with tool versions, selection-criteria
+  counts, exclusion summary by reason, the full query set actually run,
+  model identities/versions/purposes (real and truthfully empty if no
+  model was ever invoked), and limitations drawn from the bias report.
 
 To reconstruct: read `items.jsonl`, verify each blob against its file in
 `blobs/`, then attach representations/assertions/exclusions by
@@ -59,7 +66,7 @@ and none is promised to be reproducible even if it existed.
 """
 
 
-def export_corpus(store_root: str | Path, out_dir: str | Path, seq: int | None = None) -> Path:
+def export_corpus(store_root: str | Path, out_dir: str | Path, seq: int | None = None, *, expected_languages: set[str] | None = None) -> Path:
     store_root = Path(store_root)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -73,6 +80,12 @@ def export_corpus(store_root: str | Path, out_dir: str | Path, seq: int | None =
 
     (out_dir / "manifest.json").write_text(
         json.dumps({**version.to_manifest_dict(), "manifest_hash": version.manifest_hash}, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    methods_statement = build_methods_statement(event_log, expected_languages=expected_languages, seq=seq)
+    (out_dir / "methods_statement.json").write_text(
+        json.dumps(methods_statement.to_dict(), indent=2, sort_keys=True, ensure_ascii=False),
         encoding="utf-8",
     )
 
@@ -216,6 +229,9 @@ def reconstruct_from_export(export_dir: str | Path) -> dict:
     recomputed_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     manifest_hash_ok = recomputed_hash == manifest["manifest_hash"]
 
+    methods_statement_path = export_dir / "methods_statement.json"
+    methods_statement = json.loads(methods_statement_path.read_text(encoding="utf-8")) if methods_statement_path.exists() else None
+
     return {
         "manifest": manifest,
         "manifest_hash_ok": manifest_hash_ok,
@@ -224,4 +240,5 @@ def reconstruct_from_export(export_dir: str | Path) -> dict:
         "assertions": assertions,
         "exclusions": exclusions,
         "checksum_errors": checksum_errors,
+        "methods_statement": methods_statement,
     }

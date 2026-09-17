@@ -214,3 +214,40 @@ Not yet put to the researcher — flagged here per section 0 rule 6.
     Claude API skill's note on this exact gap for other integrations).
     Fine for now (export a DHRA item as Zotero-shaped JSON, hand it to
     Zotero's own importer); revisit if live two-way sync is wanted.
+
+# Open questions (Phase 4)
+
+18. **"Teaching support" not built at all.** Section 6 lists it as a
+    Phase 4 deliverable, but nothing else in the 621-line spec elaborates
+    what it concretely means — no data model, no test, no API surface
+    entry, no UI requirement mentions it. Building something here would
+    be guessing against section 0 rule 4 ("prefer refusing to guessing"),
+    not implementing the spec. **Needs a real answer from the
+    researcher**: anonymised/synthetic example corpora for classroom use?
+    Assignment templates that walk students through the epistemic
+    engine? A restricted "training mode" that blocks real acquisition
+    (`PermissionClass.ACT`-style hard block on `dhra.zenodo`) so a class
+    can't accidentally hit a real archive's rate limit? Left entirely
+    unbuilt rather than guessed.
+
+19. **"Shared corpora" has no account/permissions system.**
+    `dhra.annotation` makes the event log itself the shared medium (two
+    researchers pointing DHRA at the same `store/` directory already see
+    each other's annotations) rather than building real multi-user
+    accounts/sharing permissions — consistent with Phase 0's #4
+    (concurrent writers deferred to "whenever this actually runs behind
+    an MCP server" — which now exists, `dhra.mcp_server`, but still
+    single-writer-safe only). This is honest for "one researcher's
+    laptop, maybe synced" but not for genuine multi-writer concurrent
+    use. Needs a real answer (who is "the researcher" when two people's
+    clients write to the same store at once?) before this is actually
+    shared in the sense the spec probably means.
+
+20. **Monitoring has no scheduler.** `check_monitor`/`check_monitors` are
+    plain functions the researcher (or an orchestrator) calls whenever
+    they want — deliberately, since a background daemon has nowhere
+    honest to live in a local-first, no-institutional-infrastructure
+    prototype (section 16). If "monitoring" is meant to mean something
+    that runs unattended (a cron job, a scheduled agent run), that is a
+    deployment/orchestration decision outside this repo, not something
+    `dhra.monitoring` should silently promise it's doing.

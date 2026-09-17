@@ -23,6 +23,9 @@ DISCRETIONARY_TYPES = frozenset(
         "claim.assessed",
         "approval.granted",
         "approval.denied",
+        "draft.approved",
+        "draft.rejected",
+        "annotation.resolved",
     }
 )
 

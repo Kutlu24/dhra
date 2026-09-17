@@ -37,9 +37,11 @@ def _find_span(text: str, query: str) -> tuple[int, int] | None:
 
 
 def search(repo: DHRARepo, query: str, *, task: str | None = None, limit: int = 20, variants: list[str] | None = None) -> Response:
+    variants = variants or []
+    repo.log_tool_invocation(tool="search_evidence", purpose="evidence_search", parameters={"query": query, "variants": variants, "limit": limit}, task=task)
+
     projection = repo.projection()
     version = repo.corpus_version()
-    variants = variants or []
 
     index_path = repo.root / "index" / "fts.db"
     build_index(projection, index_path)

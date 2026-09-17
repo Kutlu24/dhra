@@ -28,6 +28,13 @@ EVENT_TYPES = frozenset(
         "approval.granted",
         "approval.denied",
         "approval.consumed",
+        "draft.created",
+        "draft.approved",
+        "draft.rejected",
+        "annotation.added",
+        "annotation.resolved",
+        "monitor.saved",
+        "monitor.checked",
         "model.invoked",
         "tool.invoked",
     }

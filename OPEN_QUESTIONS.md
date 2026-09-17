@@ -158,3 +158,59 @@ every one confirmed as-built, no code changes.
     `date` assertions to test it against) are straightforward to add the
     same way once there's a reason (a UI, or a specific research
     question) to render one.
+
+# Open questions (Phase 3)
+
+Not yet put to the researcher — flagged here per section 0 rule 6.
+
+13. **Approvals are event-sourced pre-approval, not MCP's native
+    elicitation protocol.** The `mcp` SDK (2.x) has a real mid-call
+    interactive-input mechanism (`InputRequiredResult` /
+    `ElicitRequest`) that could drive `PermissionClass.ASK` directly
+    through the live protocol. `dhra.permissions` instead checks the
+    event log for a matching, unconsumed `approval.granted` event before
+    an ASK-class tool body runs — simpler to test (no session/transport
+    needed, `MCPServer.call_tool` can be exercised directly, as the
+    Phase 3 tests do), but means an agent has to be told to call
+    `grant_approval` as a separate step rather than the client's own UI
+    popping an approval prompt mid-call. Revisit once this actually runs
+    behind a live MCP client (Claude Code/Desktop) where elicitation's
+    UX would matter.
+
+14. **"MCP clients for external archives" built as one HTTP client
+    behind an MCP server, not an MCP-to-MCP client.** Section 6 lists
+    "MCP clients for external archives" as separate from "MCP server
+    exposing the tool layer." Zenodo has no MCP server of its own to be
+    a *client* of, so `dhra.zenodo` is a real HTTP client (`requests`,
+    real rate-limited, permission-gated calls to `zenodo.org/api`)
+    wrapped as one tool (`request_zenodo_acquisition`) on DHRA's *own*
+    MCP server. If a future target archive does expose an MCP server,
+    "MCP client" would mean something more literal — the interpretation
+    here is specific to Zenodo not having one.
+
+15. **Redistribution restriction is recorded, not yet enforced.**
+    `Item.acquisition.redistributable` is set correctly from the source
+    registry (verified live against Zenodo — see
+    `test_live_zenodo_acquisition_end_to_end`), but nothing reads it yet
+    to actually block anything, because export (`dhra.export`) and
+    "shared corpora" (section 9.3, Phase 4) don't check it. Needs wiring
+    once either of those paths is built, so a non-redistributable item
+    can't leak into an export bundle meant for someone else.
+
+16. **Rumi and regnal calendars unsupported.** `dhra.calendar` converts
+    Gregorian, Julian and (tabular/civil) Hijri via the `convertdate`
+    library — real, tested math, not hand-rolled. Rumi (the Ottoman
+    fiscal calendar) and regnal dating need period-specific epoch/
+    correction tables this project doesn't have; `convert_date_claim`
+    returns those `DateClaim`s unconverted rather than approximating.
+    Needed if/when Ottoman fiscal-year-dated material is actually
+    ingested.
+
+17. **Zotero interchange is local JSON-shape mapping only.**
+    `dhra.interchange.zotero` maps DHRA `Assertion`s to/from Zotero's
+    item JSON shape entirely offline — no OAuth, no live sync against
+    a researcher's actual Zotero library. That would need credential
+    handling this project has no vault/secrets story for yet (see the
+    Claude API skill's note on this exact gap for other integrations).
+    Fine for now (export a DHRA item as Zotero-shaped JSON, hand it to
+    Zotero's own importer); revisit if live two-way sync is wanted.

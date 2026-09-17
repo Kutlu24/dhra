@@ -12,10 +12,75 @@ unless shown wrong). Open design questions not yet resolved:
 path from source to claim shorter to travel and easier to audit — never
 shorter to travel at the cost of being harder to audit.
 
-## Status: Phase 2 (Critique)
+## Status: Phase 3 (Environment)
 
-Phase 2 implemented per spec section 6 (below). Phases 0 and 1 are
-unchanged and still pass their own exit tests.
+Phase 3 implemented per spec section 6 (below). Phases 0-2 are unchanged
+and still pass their own exit tests.
+
+- `src/dhra/permissions.py` — `PermissionClass` (READ/PREPARE/ASK/ACT,
+  section 9.1), `ApprovalRequired` carrying exact specifics (not "access
+  external archive?" but the real summary), and event-sourced
+  pre-approval (`approval.granted`/`approval.consumed`/`approval.denied`
+  events) rather than MCP's native elicitation protocol — see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-3) #13.
+- `src/dhra/source_registry.py` + [`config/sources.yaml`](config/sources.yaml)
+  — real registry entry for Zenodo, in the spec's own YAML shape,
+  including its actually-published rate limit (60 req/min, verified
+  against `developers.zenodo.org` on 2026-09-17).
+- `src/dhra/rate_limit.py` — a hard, blocking sliding-window limiter
+  (`test_rate_limit_hard`, section 13.3): it raises, it does not warn
+  and proceed.
+- `src/dhra/zenodo.py` — real HTTP client (`requests`) for the Zenodo
+  API, rate-limited and identified (`User-Agent`) on every call,
+  wrapped as one `PermissionClass.ASK` tool
+  (`acquire_from_zenodo`/`request_zenodo_acquisition`) that records
+  every licence constraint on the resulting `Item` (I11) — never
+  assumed from the registry alone.
+- `src/dhra/mcp_server.py` — the tool layer exposed over the real `mcp`
+  SDK (`mcp.server.mcpserver.MCPServer`; note the v1→v2 `FastMCP`
+  rename, see the module docstring): `search_evidence`,
+  `get_corpus_version`, `request_zenodo_acquisition`, `grant_approval`,
+  `deny_approval`.
+- `src/dhra/calendar.py` — real Gregorian/Julian/Hijri conversion via
+  the `convertdate` library (not hand-rolled arithmetic), day/month/year
+  precision producing either `converted_iso` or a `range_start`/
+  `range_end` pair, never a bare ISO date from partial precision.
+  Rumi/regnal calendars are left unconverted (no lookup tables yet).
+- `src/dhra/interchange/` — `tei.py` (export, completing the round trip
+  with `dhra.transcribe.TeiTranscriber`'s import direction) and
+  `zotero.py` (export/import against Zotero's item JSON shape, offline —
+  no live API sync).
+- `src/dhra/evidence.py` — `search(..., variants=[...])`: orthographic
+  variant expansion, caller-supplied, shown via
+  `Response.variant_expansion` (never silent), each matching passage's
+  rationale naming which spelling actually matched (section 8.2's own
+  example, almost verbatim: "matched via orthographic variant 'shewed'").
+
+**Exit test** (`tests/acceptance/test_phase3.py`): "a real acquisition
+run against a real archive completes within published rate limits, with
+permission checkpoints honoured and every licence constraint recorded
+per item" — `test_live_zenodo_acquisition_end_to_end` (skipped by
+default; network/external-service dependent) was run for real against
+the live Zenodo API on 2026-09-17 and passed: real record
+`10.5281/zenodo.6164620`, real `cc-by-4.0` licence recorded, approval
+checkpoint actually enforced first. Run it yourself with:
+
+```bash
+pip install -e ".[dev]"
+DHRA_LIVE_NETWORK_TESTS=1 pytest tests/acceptance/test_phase3.py -k live -v
+```
+
+Everything else in `test_phase3.py` (permissions, rate limiting,
+calendar math, interchange, MCP tool wiring) runs by default, no network
+needed.
+
+```bash
+pytest tests/acceptance/test_phase3.py
+```
+
+## Phase 2 (Critique)
+
+Phases 0-2's own sections below are unchanged from before Phase 3.
 
 - `src/dhra/independence.py` — the independence engine (section 7.3):
   recall-oriented candidate grouping (exact Jaccard over word 3-shingles,
@@ -169,13 +234,13 @@ pytest tests/acceptance/test_phase0.py
 
 ## Not yet built
 
-Phase 3 onward (source registry + permissions + MCP server/clients,
-Zotero/TEI interchange, orthographic variant expansion, calendar
-handling; then Phase 4's monitoring/drafting/collaboration/methods
-export) — see spec section 6 and the build order in section 17. All of
-Phase 2's own open questions are resolved
-([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#resolved-2) #9–12); #10
-(placeholder reference lexicon) and #11 (no model-generated
-disconfirmation queries yet) are explicitly deferred until real
-archival material and Phase 3's tool layer exist, respectively. Still
-open from Phase 1: #8, the E3/dependents `needs_review` cascade.
+Phase 4: monitoring, drafting under approval, shared corpora with
+annotation threads, methods-statement export, teaching support — see
+spec section 6 and the build order in section 17. Phase 3 has five open
+questions of its own
+([`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-phase-3)
+#13-17); #15 (redistribution restriction recorded but not yet enforced)
+matters most before export/sharing (Phase 4) exists, since that is
+exactly the path it needs to gate. Still open from earlier phases: #8
+(E3/dependents `needs_review` cascade), #10 (placeholder reference
+lexicon), #11 (no model-generated disconfirmation queries yet).

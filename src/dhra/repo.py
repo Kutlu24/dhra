@@ -480,6 +480,16 @@ class DHRARepo:
         store; the failure itself is the event."""
         self.events.append("access.failed", source_id=source_id, reason=reason, request=request, task=task)
 
+    # --- tool-layer approvals (section 9.1) ----------------------------------
+
+    def grant_approval(self, *, tool: str, summary: str, details: dict | None = None, actor: str, task: str | None = None) -> None:
+        """Scoped to this exact (tool, summary) action, never to the
+        session (section 9.1); consumed on first matching use."""
+        self.events.append("approval.granted", tool=tool, summary=summary, details=details or {}, actor=actor, task=task)
+
+    def deny_approval(self, *, tool: str, summary: str, reason: str, actor: str, task: str | None = None) -> None:
+        self.events.append("approval.denied", tool=tool, summary=summary, reason=reason, actor=actor, task=task)
+
     # --- reads ---------------------------------------------------------------
 
     def projection(self, seq: int | None = None) -> Projection:

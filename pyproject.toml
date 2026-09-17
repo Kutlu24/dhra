@@ -7,7 +7,12 @@ name = "dhra"
 version = "0.0.1"
 description = "Digital Humanities Research Agent -- local-first, provenance-first corpus/evidence system"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "mcp>=1.0",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "convertdate>=2.5",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

@@ -1,0 +1,23 @@
+# Source registry -- DHRA_BUILD_SPEC.md section 9.2.
+# Loaded via dhra.source_registry.load_registry(). The tool layer checks
+# every field here before every request (dhra.zenodo, dhra.rate_limit).
+
+- id: zenodo
+  name: Zenodo (CERN)
+  access: api
+  # Published limits (developers.zenodo.org, checked 2026-09-17):
+  # 60 requests/minute, 2000 requests/hour for unauthenticated access.
+  # The 60/minute figure is the binding constraint in practice.
+  rate_limit: { requests: 60, per_seconds: 60 }
+  identify_as: "DHRA/0.1 (research prototype; contact: kutluhn.yilmaz@gmail.com)"
+  bulk_download: prohibited
+  redistribution: prohibited
+  tdm_basis: licensed
+  robots_respected: true
+  notes: >
+    Public REST API, no authentication required for public records.
+    Per-record/per-file retrieval permitted; systematic bulk download of
+    the whole repository is not what this registration covers. Actual
+    redistribution rights depend on each record's own declared licence
+    (checked per item at acquisition time, not assumed from this
+    default) -- see Item.acquisition.licence_id/redistributable.

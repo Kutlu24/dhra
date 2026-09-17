@@ -21,6 +21,8 @@ DISCRETIONARY_TYPES = frozenset(
         "item.restored",
         "assertion.preference_set",
         "claim.assessed",
+        "approval.granted",
+        "approval.denied",
     }
 )
 

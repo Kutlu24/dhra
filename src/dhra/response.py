@@ -32,6 +32,7 @@ class Response:
     trace: TraceSummary
     corpus_version: str
     absence_note: str | None = None  # section 8.3 quality-qualified absence; deterministic, not model prose
+    variant_expansion: tuple[str, ...] = ()  # section 8.2: shown, not silent
 
 
 def verify_verbatim(repo: DHRARepo, passage: Passage) -> None:
@@ -54,6 +55,7 @@ def build_response(
     corpus_version: str,
     narrative: str | None = None,
     absence_note: str | None = None,
+    variant_expansion: tuple[str, ...] = (),
 ) -> Response:
     if narrative is not None and not evidence:
         raise NarrativeWithoutEvidenceError("narrative is rejected when evidence is empty (I10)")
@@ -67,4 +69,5 @@ def build_response(
         trace=trace,
         corpus_version=corpus_version,
         absence_note=absence_note,
+        variant_expansion=variant_expansion,
     )

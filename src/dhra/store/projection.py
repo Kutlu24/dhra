@@ -44,6 +44,9 @@ class Projection:
     claims: dict[str, ClaimAssessment] = field(default_factory=dict)
     claim_history: dict[str, list[ClaimAssessment]] = field(default_factory=dict)
     access_failures: list[dict] = field(default_factory=list)
+    pending_approvals: list[dict] = field(default_factory=list)  # granted, not yet consumed
+    approval_log_granted: list[dict] = field(default_factory=list)
+    approval_log_denied: list[dict] = field(default_factory=list)
 
     def active_item_ids(self) -> list[str]:
         return sorted(i for i in self.items if i not in self.active_exclusions)
@@ -200,6 +203,20 @@ def fold(events: Iterable[dict]) -> Projection:
                     "ts": event["ts"],
                 }
             )
+
+        elif etype == "approval.granted":
+            record = {"tool": event["tool"], "summary": event["summary"], "details": event.get("details"), "actor": event["actor"], "ts": event["ts"]}
+            p.pending_approvals.append(record)
+            p.approval_log_granted.append(record)
+
+        elif etype == "approval.denied":
+            p.approval_log_denied.append({"tool": event["tool"], "summary": event["summary"], "reason": event.get("reason"), "actor": event["actor"], "ts": event["ts"]})
+
+        elif etype == "approval.consumed":
+            for i, pending in enumerate(p.pending_approvals):
+                if pending["tool"] == event["tool"] and pending["summary"] == event["summary"]:
+                    del p.pending_approvals[i]
+                    break
 
         # model.invoked / tool.invoked carry no corpus state -- they feed the
         # trace views only (dhra.trace), not the projection.

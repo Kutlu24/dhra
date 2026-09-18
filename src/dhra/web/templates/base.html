@@ -67,8 +67,8 @@
   nav .icon { width: 1.1em; text-align: center; opacity: .85; }
   .corpus-version { font-size: .68rem; color: var(--text-muted); font-family: ui-monospace, monospace; margin-top: 1.5rem;
     padding-top: 1rem; border-top: 1px solid var(--border); word-break: break-all; }
-  .lang-switch { display: flex; gap: .2rem; margin-top: .9rem; font-family: var(--font-ui); font-size: .74rem; font-weight: 700;
-    background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: .2rem; width: fit-content; }
+  .lang-switch { display: flex; gap: .2rem; margin: .7rem 0 1.1rem; font-family: var(--font-ui); font-size: .74rem; font-weight: 700;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: .2rem; width: fit-content; }
   .lang-switch a { color: var(--text-muted); text-decoration: none; padding: .3rem .6rem; border-radius: 6px; letter-spacing: .03em; }
   .lang-switch a:hover { background: var(--accent-soft); color: var(--accent); }
   .lang-switch a.active { color: #fff; background: var(--accent); }
@@ -143,6 +143,9 @@
 <body>
 <aside>
   <div class="wordmark"><img src="/static/logo.svg" alt="" width="52" height="52"> DHRA</div>
+  <div class="lang-switch">
+    {% for code in languages %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
+  </div>
   <p class="tagline">{{ t('app.tagline') | safe }}</p>
   <nav>
     <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> {{ t('nav.search') }}</a>
@@ -157,9 +160,6 @@
     <a href="/tutorial" class="{{ 'active' if active == 'tutorial' }}"><span class="icon">&#128218;</span> {{ t('nav.tutorial') }}</a>
   </nav>
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
-  <div class="lang-switch">
-    {% for code in languages %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
-  </div>
 </aside>
 <main class="{{ 'wide' if wide else '' }}">
 {% if demo_banner is defined and demo_banner %}

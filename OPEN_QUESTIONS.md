@@ -89,7 +89,13 @@ All three resolved 2026-09-17 (AskUserQuestion, before starting Phase 2).
    needed. Still true: nothing here *finds* candidate locators for a
    claim automatically; that stays out of scope (query expansion + a
    relevance classifier would be needed, and the model still may never
-   assign status itself, per section 10).
+   assign status itself, per section 10). **Update 2026-09-18:**
+   `dhra.peer_review.review_paper` now does the adjacent thing for a
+   paper under review — the model proposes candidate claims + short
+   literal search phrases, real `evidence.search()` finds whatever the
+   corpus actually has — but it stops at a draft report; turning a
+   candidate into an assessed claim (`assess_claim`) is still a manual,
+   separate step, unchanged.
 
 8. **E3 (INFERRED) and dependents/`needs_review` cascade** (user
    confirmed: build during Phase 2, when the independence-testing/status-
@@ -138,11 +144,13 @@ every one confirmed as-built, no code changes.
     `disconfirm_search()` runs `negated_queries` the caller already
     wrote, the same caller-supplies-the-judgement-call pattern as
     `assess_claim`. Section 10 explicitly allows the model to "propose
-    ... disconfirmation strategies" — but there is no LLM-calling layer
-    in this repo yet (see #7's same gap for candidate-locator-finding).
-    **Needed once Phase 3's tool layer exists** and something is
-    actually calling a model; a rule-based negation stopgap now would
-    give false confidence without being real disconfirmation.
+    ... disconfirmation strategies". **Update 2026-09-18: the LLM-calling
+    layer this needed now exists** (`dhra.llm`, GLM/OpenAI-compatible —
+    see the new section below) but `disconfirm_search` itself hasn't
+    been wired to it yet; `dhra.research_assistant`/`dhra.peer_review`
+    were built first as the concrete asks. Wiring
+    `disconfirm_search`'s query generation to `dhra.llm` the same way is
+    the natural next step, not yet done.
 
 12. **"Corpus maps" scoped to one aggregate** (user confirmed: keep it
     at one for now). Section 6 lists "corpus maps with drill-down to
@@ -217,18 +225,17 @@ Not yet put to the researcher — flagged here per section 0 rule 6.
 
 # Open questions (Phase 4)
 
-18. **"Teaching support" not built at all.** Section 6 lists it as a
-    Phase 4 deliverable, but nothing else in the 621-line spec elaborates
-    what it concretely means — no data model, no test, no API surface
-    entry, no UI requirement mentions it. Building something here would
-    be guessing against section 0 rule 4 ("prefer refusing to guessing"),
-    not implementing the spec. **Needs a real answer from the
-    researcher**: anonymised/synthetic example corpora for classroom use?
-    Assignment templates that walk students through the epistemic
-    engine? A restricted "training mode" that blocks real acquisition
-    (`PermissionClass.ACT`-style hard block on `dhra.zenodo`) so a class
-    can't accidentally hit a real archive's rate limit? Left entirely
-    unbuilt rather than guessed.
+18. **"Teaching support"** (user confirmed 2026-09-18, prompted by a
+    real Discord discussion among historians about what they'd want from
+    an "AI research agent"): exam question drafting and a first-pass,
+    per-criterion rubric reading of student work — both built,
+    `dhra.teaching`. Both `PermissionClass.PREPARE`-shaped: the model
+    drafts, the instructor reviews and decides; `assess_paper_against_rubric`
+    explicitly never assigns a grade (checked in
+    `tests/acceptance/test_llm_features.py`). **Not built**: anonymised/
+    synthetic example corpora for classroom use, and a restricted
+    "training mode" blocking real acquisition for a class — neither was
+    asked for, don't build them speculatively.
 
 19. **"Shared corpora" has no account/permissions system.**
     `dhra.annotation` makes the event log itself the shared medium (two
@@ -272,3 +279,51 @@ Not yet put to the researcher — flagged here per section 0 rule 6.
     via `dhra.mcp_server` right now, not the web UI. A human
     "here's exactly what would be requested — approve?" button belongs
     here per section 9.1's own framing, but wasn't built in this pass.
+
+# Open questions (LLM features — dhra.llm, research_assistant, teaching, peer_review)
+
+Added 2026-09-18, prompted by a real Discord discussion (Adrian, Tobias
+Hodel and others) about what historians want from an "agentic AI" —
+mapped there directly onto DHRA's existing design; three concrete
+decisions were confirmed with the researcher before building (GLM as
+the model, teaching support's scope, peer review's narrow scope). What's
+still open:
+
+24. **No real GLM endpoint to test against yet.** `dhra.llm.LLMClient`
+    is verified against the real OpenAI-compatible request/response
+    shape GLM's API actually uses (checked against `docs.z.ai` before
+    writing it, not assumed) via a fake `requests.Session` in
+    `tests/acceptance/test_llm_features.py` — this proves the
+    request-building and response-parsing logic is correct, not that
+    Adrian's eventual Uni Bern hosting behaves identically. **Needs a
+    live smoke test once that hosting exists**, the same gap
+    `test_live_zenodo_acquisition_end_to_end` records for a different
+    real backend (and unlike Zenodo, there is no public fallback
+    endpoint to test against in the meantime — GLM's public Z.AI API is
+    a different deployment than a self-hosted one, and self-hosting is
+    the researcher's actual stated intent).
+
+25. **`disconfirm_search` not yet wired to `dhra.llm`.** See #11 above —
+    `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review` were
+    built as the concretely-requested features; disconfirmation-query
+    generation is the same shape of problem and should follow the same
+    pattern (`log_and_complete` + a system prompt), just not done yet.
+
+26. **`dhra.peer_review`'s literal-search limitation is real, not just
+    disclosed.** A claim only surfaces candidate evidence when the
+    corpus happens to share some of its exact wording (section 8.2's
+    orthographic-variant expansion, still Phase-3-scoped and unbuilt for
+    real archival text, would help here) — silence in the report is
+    "no textual overlap", not "unsupported". Stated in the report text
+    itself (not hidden) but worth surfacing here too: this makes
+    `review_paper` most useful for corpora that plausibly quote or
+    closely paraphrase the paper's claims, not a general fact-check.
+
+27. **None of `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review`
+    are wired into `dhra.cli`, `dhra.web`, or `dhra.mcp_server` yet.**
+    Built and tested as library functions only, consistent with how
+    every earlier phase started (Phase 0's modules predate the CLI/web
+    UI by a long way) — but there is no `dhra suggest-questions`
+    command, no "Draft exam questions" button, no MCP tool for any of
+    this yet. Needs real GLM credentials to be worth wiring end-to-end
+    (see #24) rather than exposing a surface nothing can actually call.

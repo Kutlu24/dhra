@@ -78,7 +78,7 @@ vanilla JS, no frontend framework (section 16).
 
 ```bash
 pip install -e ".[dev]"
-python -m dhra.web path/to/store --port 8420
+dhra web --store path/to/store --port 8420
 # then open http://127.0.0.1:8420
 ```
 
@@ -86,11 +86,56 @@ Covers search, locator/provenance detail (with inline image display and
 annotation threads), claim assessment (a plain-text `item_id,rep_id,start,end`
 per line for evidence locators — a real, working v1, not yet a
 click-to-select UI), exclusions, the source aggregate + bias report, and the
-decision trace. Not built: a UI for triggering `dhra.zenodo` acquisitions
-(the MCP server already covers agent-driven acquisition; a human "approve
-this request" button is future work), and there is no account/session
-system — same caveat as `dhra.annotation`'s "the event log is the shared
-medium" (OPEN_QUESTIONS.md #19).
+decision trace, plus an in-app `/tutorial` walkthrough pairing every feature
+with its terminal equivalent. Not built: a UI for triggering `dhra.zenodo`
+acquisitions (the MCP server already covers agent-driven acquisition; a
+human "approve this request" button is future work), and there is no
+account/session system — same caveat as `dhra.annotation`'s "the event log
+is the shared medium" (OPEN_QUESTIONS.md #19).
+
+## Terminal interface
+
+Everything the web UI does, scriptable, against the same store
+(`--store`, or `DHRA_STORE_DIR`):
+
+```bash
+dhra search "your query"
+dhra ingest --source-id "my_archive" --text "..."
+dhra claims assess my-claim --text "..." --supporting item_id,rep_id,start,end
+dhra aggregate
+dhra exclusions list
+dhra trace
+```
+
+## Research-assistant features (LLM-backed)
+
+`dhra.research_assistant`, `dhra.teaching`, `dhra.peer_review` — built
+2026-09-18 after a real discussion among historians (Adrian, Tobias Hodel
+and others) about what they'd want from an "agentic AI", mapped onto
+DHRA's existing design. The model (GLM, OpenAI-compatible, meant to be
+self-hosted on university infrastructure — `dhra.llm`) only ever
+*proposes*; deterministic code still does the real work and every call
+is logged (`model.invoked` events, feeding the methods export):
+
+- **`suggest_research_questions`** — runs a real `evidence.search()`,
+  shows the model only those real excerpts, stores its suggestions as a
+  reviewable `Draft`. Refuses to run with no evidence to reason from.
+- **`draft_exam_questions` / `assess_paper_against_rubric`** — exam
+  question drafts and a first-pass, per-criterion rubric reading (never
+  a grade) from course material, both `PermissionClass.PREPARE` drafts
+  for the instructor to approve or edit.
+- **`review_paper`** — extracts candidate claims from a paper (a
+  proposal) and finds real candidate evidence for each via literal
+  corpus search (deterministic) — never assigns an epistemic status
+  itself; that stays a separate, manual `assess_claim` step, per section
+  10's boundary.
+
+No real GLM endpoint exists yet to call (Adrian's hosting is still
+pending) — `dhra.llm.LLMClient` is tested against the real
+OpenAI-compatible request/response shape via a fake session, not a live
+endpoint; see [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-llm-features--dhrallm-research_assistant-teaching-peer_review)
+#24. None of these three modules are wired into the CLI/web UI/MCP
+server yet (#27) — real credentials first.
 
 ## Phase 3 (Environment)
 

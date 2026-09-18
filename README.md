@@ -131,12 +131,33 @@ export):
   itself; that stays a separate, manual `assess_claim` step, per section
   10's boundary.
 
-No real GLM endpoint exists yet to call (the researcher's free-tier
-Z.AI API key is still pending) — `dhra.llm.LLMClient` is tested against the real
-OpenAI-compatible request/response shape via a fake session, not a live
-endpoint; see [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-llm-features--dhrallm-research_assistant-teaching-peer_review)
-#24. None of these three modules are wired into the CLI/web UI/MCP
-server yet (#27) — real credentials first.
+Live as of 2026-09-18 on the demo deployment (a free-tier Z.AI API key,
+`glm-4.5-flash` — `glm-4.6` is a paid model and 429s on a free key, see
+[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-llm-features--dhrallm-research_assistant-teaching-peer_review)
+#24). A real backend failure (bad key, rate limit, timeout) degrades to
+evidence-only with a plain warning rather than crashing the request —
+`dhra.llm.LLMClient.complete` wraps `requests` failures as `LLMError`,
+which every caller here and in `dhra.chat` catches. None of these three
+modules are wired into the CLI/MCP server yet (#27) — only the web UI.
+
+## Literature watch (external, OpenAlex)
+
+`dhra.literature_watch`, `/updates`, `dhra watch ...` — saved keyword
+queries re-run on demand against [OpenAlex](https://openalex.org)'s
+open, keyless works API, reporting publications not seen on a previous
+check. No scheduler/daemon (local-first, section 16): a check runs when
+the researcher clicks **Check now** or invokes `dhra watch check`
+themselves — from their own cron, if they want real periodicity — never
+a background process pretending to watch continuously. `PermissionClass.READ`:
+this only ever surfaces public bibliographic metadata (title, authors,
+date, DOI, link), never ingests anything into the corpus.
+
+```
+dhra watch add "Ottoman manuscripts"
+dhra watch check
+dhra watch candidates
+dhra watch dismiss <work_id>
+```
 
 ## Phase 3 (Environment)
 

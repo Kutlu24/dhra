@@ -16,6 +16,15 @@ from pathlib import Path
 
 from dhra.aggregate import aggregate_by_source
 from dhra.evidence import search as evidence_search
+from dhra.literature_watch import (
+    LiteratureWatchError,
+    add_watch_query,
+    check_for_updates,
+    dismiss_candidate,
+    list_candidates,
+    list_watch_queries,
+    remove_watch_query,
+)
 from dhra.models import Locator
 from dhra.repo import DHRARepo
 from dhra.status import Status
@@ -196,6 +205,59 @@ def cmd_trace(args: argparse.Namespace) -> None:
             print(f"  seq={d['seq']} {d['type']}")
 
 
+def cmd_watch_add(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    watch_id = add_watch_query(repo, query_text=args.query, actor=args.actor)
+    print(f"added watch {watch_id}: {args.query!r}")
+
+
+def cmd_watch_list(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    for q in list_watch_queries(repo):
+        print(f"{q.watch_id}  {q.query_text!r}  (added by {q.actor})")
+
+
+def cmd_watch_check(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    try:
+        new_candidates = check_for_updates(repo)
+    except LiteratureWatchError as exc:
+        raise SystemExit(f"literature watch check failed: {exc}")
+    if not new_candidates:
+        print("no new matches")
+        return
+    for c in new_candidates:
+        authors = ", ".join(c.authors) if c.authors else "(no listed authors)"
+        print(f"{c.work_id}  {c.title}")
+        print(f"  {authors}" + (f" -- {c.publication_date}" if c.publication_date else ""))
+        if c.link:
+            print(f"  {c.link}")
+
+
+def cmd_watch_candidates(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    candidates = list_candidates(repo)
+    if not candidates:
+        print("(no new candidates -- run 'dhra watch check' first)")
+        return
+    for c in candidates:
+        authors = ", ".join(c.authors) if c.authors else "(no listed authors)"
+        print(f"{c.work_id}  {c.title}")
+        print(f"  {authors}" + (f" -- {c.publication_date}" if c.publication_date else ""))
+
+
+def cmd_watch_remove(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    remove_watch_query(repo, args.watch_id, actor=args.actor)
+    print(f"removed watch {args.watch_id}")
+
+
+def cmd_watch_dismiss(args: argparse.Namespace) -> None:
+    repo = _repo(args)
+    dismiss_candidate(repo, args.work_id, actor=args.actor)
+    print(f"dismissed {args.work_id}")
+
+
 def cmd_web(args: argparse.Namespace) -> None:
     import uvicorn
 
@@ -265,6 +327,33 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("trace", help="decision trace")
     p.add_argument("--task")
     p.set_defaults(func=cmd_trace)
+
+    p = sub.add_parser("watch", help="external literature watch (OpenAlex)")
+    watch_sub = p.add_subparsers(dest="watch_command", required=True)
+
+    wp = watch_sub.add_parser("add", help="add a saved query")
+    wp.add_argument("query")
+    wp.add_argument("--actor", default="researcher")
+    wp.set_defaults(func=cmd_watch_add)
+
+    wp = watch_sub.add_parser("list", help="list saved queries")
+    wp.set_defaults(func=cmd_watch_list)
+
+    wp = watch_sub.add_parser("remove", help="remove a saved query")
+    wp.add_argument("watch_id")
+    wp.add_argument("--actor", default="researcher")
+    wp.set_defaults(func=cmd_watch_remove)
+
+    wp = watch_sub.add_parser("check", help="run all saved queries against OpenAlex now")
+    wp.set_defaults(func=cmd_watch_check)
+
+    wp = watch_sub.add_parser("candidates", help="list new matches found by the last check(s)")
+    wp.set_defaults(func=cmd_watch_candidates)
+
+    wp = watch_sub.add_parser("dismiss", help="dismiss a candidate")
+    wp.add_argument("work_id")
+    wp.add_argument("--actor", default="researcher")
+    wp.set_defaults(func=cmd_watch_dismiss)
 
     p = sub.add_parser("web", help="launch the web UI")
     p.add_argument("--host", default="127.0.0.1")

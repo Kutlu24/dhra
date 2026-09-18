@@ -285,3 +285,91 @@ def test_assistant_route_returns_502_not_500_when_llm_backend_fails(repo, client
 
     resp = client.post("/assistant/research-questions", data={"context_query": "Tokat", "actor": "researcher"}, follow_redirects=False)
     assert resp.status_code == 502
+
+
+def test_updates_page_shows_queries_and_new_candidates(repo, client, monkeypatch):
+    client.post("/updates/queries", data={"query_text": "Ottoman manuscripts", "actor": "researcher"})
+
+    import requests
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "results": [
+                    {
+                        "id": "https://openalex.org/W111",
+                        "doi": "https://doi.org/10.1234/W111",
+                        "title": "A new find in the Tokat archive",
+                        "publication_date": "2026-09-15",
+                        "primary_location": {"landing_page_url": "https://doi.org/10.1234/W111"},
+                        "authorships": [{"author": {"display_name": "Jane Historian"}}],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(requests.Session, "get", lambda self, *a, **kw: _FakeResp())
+
+    check_resp = client.post("/updates/check", follow_redirects=False)
+    assert check_resp.status_code == 303
+
+    page = client.get("/updates")
+    assert "Ottoman manuscripts" in page.text
+    assert "A new find in the Tokat archive" in page.text
+    assert "Jane Historian" in page.text
+
+
+def test_updates_check_degrades_gracefully_when_openalex_fails(repo, client, monkeypatch):
+    """Same real-bug class as the LLM 500 -- a real backend failure must
+    never crash the request."""
+    client.post("/updates/queries", data={"query_text": "Ottoman manuscripts", "actor": "researcher"})
+
+    import requests
+
+    def _failing_get(self, *a, **kw):
+        raise requests.exceptions.ConnectionError("Name or service not known")
+
+    monkeypatch.setattr(requests.Session, "get", _failing_get)
+
+    resp = client.post("/updates/check", follow_redirects=True)
+    assert resp.status_code == 200
+    assert "Couldn't reach OpenAlex" in resp.text
+
+
+def test_updates_dismiss_and_restore_candidate(repo, client, monkeypatch):
+    client.post("/updates/queries", data={"query_text": "Ottoman manuscripts", "actor": "researcher"})
+
+    import requests
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "results": [
+                    {
+                        "id": "https://openalex.org/W111",
+                        "title": "A new find",
+                        "publication_date": "2026-09-15",
+                        "primary_location": {},
+                        "authorships": [],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(requests.Session, "get", lambda self, *a, **kw: _FakeResp())
+    client.post("/updates/check")
+
+    dismiss_resp = client.post("/updates/candidates/W111/dismiss", data={"actor": "researcher"}, follow_redirects=False)
+    assert dismiss_resp.status_code == 303
+
+    page = client.get("/updates")
+    assert "No new matches" in page.text
+    assert "Dismissed (1)" in page.text
+
+    client.post("/updates/candidates/W111/restore", data={"actor": "researcher"})
+    page = client.get("/updates")
+    assert "A new find" in page.text

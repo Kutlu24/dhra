@@ -67,7 +67,19 @@ dhra ingest --source-id "my_archive" --file path/to/scan.pdf</code></pre>
 dhra exclusions restore &lt;item_id&gt;</code></pre>
 </div>
 
-<h2>6. See exactly what happened</h2>
+<h2>6. Track new publications</h2>
+<div class="card">
+  <p>Save a keyword query and <a href="/updates">Updates &rarr;</a> checks
+  it against OpenAlex's open works index whenever you ask &mdash; no
+  background process, so nothing is watching between checks. New matches
+  show title, authors, date and a link; dismiss the ones you don't need,
+  restore them if you change your mind.</p>
+  <pre><code>dhra watch add "Ottoman manuscripts"
+dhra watch check
+dhra watch candidates</code></pre>
+</div>
+
+<h2>7. See exactly what happened</h2>
 <div class="card">
   <p><a href="/trace">Trace &rarr;</a> is the audit trail: every search,
   every exclusion, every claim assessment, as an event with a timestamp.

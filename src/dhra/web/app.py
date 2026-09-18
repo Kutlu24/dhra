@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -39,6 +40,17 @@ from dhra.bias import compute_bias_report
 from dhra.chat import answer as chat_answer
 from dhra.drafting import list_drafts
 from dhra.evidence import search as evidence_search
+from dhra.literature_watch import (
+    LiteratureWatchError,
+    add_watch_query,
+    check_for_updates,
+    dismiss_candidate,
+    list_candidates,
+    list_dismissed_candidates,
+    list_watch_queries,
+    remove_watch_query,
+    restore_candidate,
+)
 from dhra.llm import LLMClient, LLMConfig, LLMError
 from dhra.models import ExclusionReason, Locator
 from dhra.peer_review import review_paper
@@ -240,6 +252,51 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     def restore(item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
         repo.restore_item(item_id=item_id, actor=actor)
         return RedirectResponse("/exclusions", status_code=303)
+
+    # --- Literature watch (external, OpenAlex -- section 6 monitoring, ------
+    # extended past the corpus boundary; see literature_watch.py docstring) --
+
+    @app.get("/updates", response_class=HTMLResponse)
+    def updates(request: Request, error: str = "") -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "updates.html",
+            _ctx(
+                "updates",
+                queries=list_watch_queries(repo),
+                candidates=list_candidates(repo),
+                dismissed=list_dismissed_candidates(repo),
+                error=error or None,
+            ),
+        )
+
+    @app.post("/updates/queries")
+    def updates_add_query(query_text: str = Form(...), actor: str = Form("researcher")) -> RedirectResponse:
+        add_watch_query(repo, query_text=query_text, actor=actor)
+        return RedirectResponse("/updates", status_code=303)
+
+    @app.post("/updates/queries/{watch_id}/remove")
+    def updates_remove_query(watch_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        remove_watch_query(repo, watch_id, actor=actor)
+        return RedirectResponse("/updates", status_code=303)
+
+    @app.post("/updates/check")
+    def updates_check() -> RedirectResponse:
+        try:
+            check_for_updates(repo)
+        except LiteratureWatchError as exc:
+            return RedirectResponse(f"/updates?error={quote(str(exc))}", status_code=303)
+        return RedirectResponse("/updates", status_code=303)
+
+    @app.post("/updates/candidates/{work_id}/dismiss")
+    def updates_dismiss(work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        dismiss_candidate(repo, work_id, actor=actor)
+        return RedirectResponse("/updates", status_code=303)
+
+    @app.post("/updates/candidates/{work_id}/restore")
+    def updates_restore(work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        restore_candidate(repo, work_id, actor=actor)
+        return RedirectResponse("/updates", status_code=303)
 
     # --- Aggregate + bias (section 12: bias shown before aggregate data) ---
 

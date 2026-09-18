@@ -348,3 +348,22 @@ still open:
     a real search backend (self-hosted or otherwise) is its own
     infrastructure decision, same category as GLM hosting (#24), not
     something to wire against blindly.
+
+29. **Literature watch (`dhra.literature_watch`, 2026-09-18) covers a
+    related but distinct gap from #28 — new-publication metadata, not
+    general web search.** The researcher asked how DHRA tracks new
+    periodicals/publications; nothing did. Built as saved keyword
+    queries re-run against OpenAlex's open works API on demand (no
+    scheduler — same `dhra.monitoring` reasoning), surfaced at
+    `/updates` and `dhra watch ...`. No LLM involved — deterministic
+    search + ID-based dedup, `PermissionClass.READ`. Real gaps: (a) the
+    match quality depends entirely on OpenAlex's own `search` parameter
+    — an exact phrase search fixed one bad case found in testing
+    (a smoking-prevalence paper matched "Ottoman manuscripts" under
+    loose word-level matching) but the underlying relevance ranking is
+    still OpenAlex's, not DHRA's; (b) no orthographic-variant expansion
+    (section 8.2, same gap #26 names for peer_review) — a query for
+    "Tokat" won't catch a paper that only uses an alternate
+    transliteration; (c) results are metadata + link only, never
+    ingested as corpus evidence, so a promising hit still requires the
+    researcher to manually acquire and `dhra ingest` it themselves.

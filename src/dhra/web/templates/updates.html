@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Updates -- DHRA{% endblock %}
+{% block content %}
+<h1>Literature updates</h1>
+<p class="lede">
+  Saved queries re-run against OpenAlex's open works index on demand --
+  no background process, so nothing is "watching" between checks. Click
+  <strong>Check now</strong> whenever you want, or run <code>dhra watch check</code>
+  from your own cron for real periodicity. <a href="/tutorial">Getting started &rarr;</a>
+</p>
+
+{% if error %}
+<div class="warning">Couldn't reach OpenAlex just now: {{ error }}</div>
+{% endif %}
+
+<h2>Watch queries</h2>
+{% if queries %}
+<table>
+  <tr><th>query</th><th>added by</th><th></th></tr>
+  {% for q in queries %}
+  <tr>
+    <td>{{ q.query_text }}</td>
+    <td class="muted">{{ q.actor }}</td>
+    <td>
+      <form class="inline" method="post" action="/updates/queries/{{ q.watch_id }}/remove">
+        <button type="submit">Remove</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No watch queries yet -- add one below.</p>
+{% endif %}
+
+<form method="post" action="/updates/queries" class="search-box">
+  <input type="text" name="query_text" placeholder="e.g. Ottoman manuscripts" required>
+  <button type="submit">Add query</button>
+</form>
+
+<form method="post" action="/updates/check" style="margin: .5rem 0 1.5rem;">
+  <button type="submit">Check now</button>
+</form>
+
+<h2>New ({{ candidates | length }})</h2>
+{% if candidates %}
+{% for c in candidates %}
+<div class="card">
+  <strong>{{ c.title }}</strong>
+  <p class="muted" style="margin: .3rem 0;">
+    {{ c.authors | join(", ") if c.authors else "(no listed authors)" }}
+    {% if c.publication_date %} &mdash; {{ c.publication_date }}{% endif %}
+  </p>
+  <div class="evidence meta">
+    {% if c.link %}<a href="{{ c.link }}" target="_blank" rel="noopener">open &rarr;</a>{% endif %}
+    {% if c.doi %}<span>{{ c.doi }}</span>{% endif %}
+    <span>found {{ c.found_ts[:10] }}</span>
+  </div>
+  <form class="inline" method="post" action="/updates/candidates/{{ c.work_id }}/dismiss" style="margin-top:.6rem;">
+    <button type="submit">Dismiss</button>
+  </form>
+</div>
+{% endfor %}
+{% else %}
+<p class="muted">No new matches since the last check.</p>
+{% endif %}
+
+{% if dismissed %}
+<h2>Dismissed ({{ dismissed | length }})</h2>
+{% for c in dismissed %}
+<div class="card" style="opacity:.7;">
+  <strong>{{ c.title }}</strong>
+  <p class="muted" style="margin: .3rem 0;">{{ c.authors | join(", ") if c.authors else "(no listed authors)" }}</p>
+  <form class="inline" method="post" action="/updates/candidates/{{ c.work_id }}/restore">
+    <button type="submit">Restore</button>
+  </form>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

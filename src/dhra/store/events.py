@@ -35,6 +35,11 @@ EVENT_TYPES = frozenset(
         "annotation.resolved",
         "monitor.saved",
         "monitor.checked",
+        "literature_watch_query.added",
+        "literature_watch_query.removed",
+        "literature_candidate.found",
+        "literature_candidate.dismissed",
+        "literature_candidate.restored",
         "model.invoked",
         "tool.invoked",
     }

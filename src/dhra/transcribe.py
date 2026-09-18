@@ -82,8 +82,13 @@ class PdfToTextTranscriber:
                 text=True,
                 check=True,
             )
+        # pdftotext appends a form-feed (page separator) after the last
+        # page too, which renders as a stray control-picture glyph in a
+        # browser -- an artifact of its page-delimiting convention, never
+        # real source content, so stripped here rather than left for
+        # every caller to rediscover.
         return TranscriptionResult(
-            text=proc.stdout,
+            text=proc.stdout.rstrip(),
             producer="pdftotext",
             producer_version=self._version,
         )

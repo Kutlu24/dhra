@@ -121,6 +121,10 @@ def test_ingest_pdf_extracts_real_text_via_pdftotext(repo):
     assert "Hello DHRA PDF" in rep.text
     assert rep.producer == "pdftotext"
     assert rep.producer_version  # mandatory, and must reflect the real installed tool
+    # pdftotext appends a trailing form-feed (page separator) that renders
+    # as a stray control-picture glyph in a browser -- must be stripped.
+    assert rep.text == rep.text.rstrip()
+    assert "\x0c" not in rep.text
 
 
 def test_ingest_tei_extracts_text_element(repo):

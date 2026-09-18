@@ -126,7 +126,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         ]
         new_turns = [
             {"role": "user", "text": message},
-            {"role": "assistant", "text": result.answer, "evidence": evidence_dicts, "absence_note": result.absence_note},
+            {"role": "assistant", "text": result.answer, "evidence": evidence_dicts, "absence_note": result.absence_note, "llm_error": result.llm_error},
         ]
         updated_history = history + new_turns
         return templates.TemplateResponse(
@@ -361,6 +361,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             suggest_research_questions(repo, client, context_query=context_query, actor=actor)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/peer-review")
@@ -370,24 +372,35 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             review_paper(repo, client, paper_text=paper_text, actor=actor)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/exam-questions")
     def assistant_exam_questions(source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
-        draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
+        try:
+            draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/rubric")
     def assistant_rubric(paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
-        assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
+        try:
+            assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/reading-list")
     def assistant_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
-        draft_reading_list(repo, client, course_topic=course_topic, actor=actor)
+        try:
+            draft_reading_list(repo, client, course_topic=course_topic, actor=actor)
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
     return app

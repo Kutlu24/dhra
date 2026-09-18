@@ -31,6 +31,9 @@
       {% if turn.absence_note %}
         <p class="absence-note">{{ turn.absence_note }}</p>
       {% endif %}
+      {% if turn.llm_error %}
+        <p class="warning">Couldn't reach the LLM backend just now, showing evidence only. ({{ turn.llm_error }})</p>
+      {% endif %}
       {% if turn.text %}
         <div class="narrative">
           <div class="badge">Generated -- grounded only in the evidence above</div>

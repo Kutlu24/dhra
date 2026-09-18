@@ -289,19 +289,29 @@ decisions were confirmed with the researcher before building (GLM as
 the model, teaching support's scope, peer review's narrow scope). What's
 still open:
 
-24. **No real GLM endpoint to test against yet.** `dhra.llm.LLMClient`
-    is verified against the real OpenAI-compatible request/response
-    shape GLM's API actually uses (checked against `docs.z.ai` before
-    writing it, not assumed) via a fake `requests.Session` in
-    `tests/acceptance/test_llm_features.py` — this proves the
-    request-building and response-parsing logic is correct, not that
-    the real Z.AI endpoint behaves identically. The plan (2026-09-18) is
-    a free-tier Z.AI API key the researcher obtains directly, not a
-    self-hosted deployment. **Needs a live smoke test once that key is
-    set** (`DHRA_GLM_BASE_URL`/`DHRA_GLM_API_KEY` on the Render
-    deployment, see `render.yaml`), the same gap
+24. **Resolved 2026-09-18 — live smoke test against the real Z.AI
+    endpoint found and fixed a real bug.** `dhra.llm.LLMClient` was
+    verified against the real OpenAI-compatible request/response shape
+    (checked against `docs.z.ai`) via a fake `requests.Session`, but
+    every one of those fakes always succeeded — nothing exercised what
+    happens when the real backend fails. Once the researcher's
+    free-tier Z.AI key went live on the Render deployment, a real call
+    failed and reached the browser as a raw, unhandled 500:
+    `LLMClient.complete` called `resp.raise_for_status()` and
+    `resp.json()` with no `try`/`except` around either, so any
+    `requests` exception (bad key, rate limit, timeout, an HTML error
+    page instead of JSON) propagated straight through `dhra.chat` and
+    the `/assistant` routes. Fixed: `complete` now catches
+    `requests.exceptions.RequestException` and a `resp.json()` decode
+    failure and re-raises both as `LLMError`; `dhra.chat.answer` catches
+    that and degrades to evidence-only with a `ChatTurnResult.llm_error`
+    the UI shows as a plain warning (never a fabricated answer); the
+    five `/assistant/*` routes catch it and return 502 instead of 500.
+    Regression tests: `test_client_complete_raises_llm_error_on_*` in
+    `test_llm_features.py`, `test_chat_degrades_to_evidence_only_when_llm_backend_fails`,
+    and the web-layer tests in `test_web.py`. The same gap
     `test_live_zenodo_acquisition_end_to_end` records for a different
-    real backend.
+    real backend, now closed for this one.
 
 25. **`disconfirm_search` not yet wired to `dhra.llm`.** See #11 above —
     `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review` were

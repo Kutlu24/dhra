@@ -246,3 +246,42 @@ def test_chat_never_generates_an_answer_without_evidence(repo, client, monkeypat
     assert resp.status_code == 200
     assert calls == []  # no LLM call at all
     assert "not evidence of non-occurrence" in resp.text.lower()
+
+
+def test_chat_post_degrades_gracefully_when_llm_backend_fails(repo, client, monkeypatch):
+    """Regression test for a real bug: on the live Render deployment
+    (2026-09-18), a real GLM call failure reached the browser as a raw
+    500. /chat must render normally (with real evidence) and a plain
+    warning, never crash the request."""
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    def _failing_post(self, *a, **kw):
+        raise requests.exceptions.ConnectionError("Name or service not known")
+
+    monkeypatch.setattr(requests.Session, "post", _failing_post)
+
+    resp = client.post("/chat", data={"message": "Tokat", "history_json": "[]"})
+    assert resp.status_code == 200
+    assert "Tokat" in resp.text  # real evidence still shown
+    assert "Couldn't reach the LLM backend" in resp.text
+    assert "Generated --" not in resp.text  # no fabricated narrative badge
+
+
+def test_assistant_route_returns_502_not_500_when_llm_backend_fails(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    def _failing_post(self, *a, **kw):
+        raise requests.exceptions.ConnectionError("Name or service not known")
+
+    monkeypatch.setattr(requests.Session, "post", _failing_post)
+
+    resp = client.post("/assistant/research-questions", data={"context_query": "Tokat", "actor": "researcher"}, follow_redirects=False)
+    assert resp.status_code == 502

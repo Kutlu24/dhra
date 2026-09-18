@@ -1,15 +1,19 @@
 """LLM-backed features -- dhra.llm, dhra.research_assistant, dhra.teaching,
 dhra.peer_review.
 
-No real network calls: a real GLM API key (Z.AI free tier, per the
-researcher's own choice -- see OPEN_QUESTIONS.md) doesn't exist yet to
-call, so `LLMClient` is exercised against a fake `requests.Session`
-that returns real OpenAI-compatible-shaped responses. This proves the
-request/response handling is correct; it does not prove the real
-endpoint, once it exists, behaves identically -- that needs a live
-smoke test once the key is set, the same caveat
-`test_live_zenodo_acquisition_end_to_end` records for a different real
-backend.
+No real network calls: `LLMClient` is exercised against a fake
+`requests.Session` that returns real OpenAI-compatible-shaped
+responses, or raises the way `requests` does on a real failure. The
+success-path tests prove the request/response handling is correct;
+the `*_on_http_error`/`*_on_non_json_response`/`*_on_connection_failure`
+tests below exist because a live smoke test against the real Z.AI
+endpoint (2026-09-18, once the researcher's key was set on the public
+Render deployment) hit an unhandled `requests` exception that escaped
+as a raw 500 -- every test here before that point only ever exercised
+a session that succeeds, so nothing caught it. `LLMClient.complete`
+now wraps request/response failures as `LLMError`, and every caller
+(dhra.chat, the /assistant routes) is expected to catch it rather than
+let it propagate -- see test_web.py for the web-layer half of this.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ from __future__ import annotations
 import os
 
 import pytest
+import requests
 
 from dhra.llm import LLMClient, LLMConfig, LLMError, log_and_complete
 from dhra.peer_review import extract_claims, review_paper
@@ -110,6 +115,62 @@ def test_client_complete_raises_on_unexpected_shape():
             return self._d
 
     client = LLMClient(config, session=_BadSession())
+    with pytest.raises(LLMError):
+        client.complete([{"role": "user", "content": "hi"}])
+
+
+def test_client_complete_raises_llm_error_on_http_error_status():
+    """A real 401 (bad key) / 429 (rate limit) / 5xx response: `requests`
+    raises HTTPError from raise_for_status(), which must not escape as a
+    raw, unhandled exception -- this is exactly what reached the live
+    Render deployment as a 500 before this test existed."""
+    config = LLMConfig(base_url="https://x", api_key="k", model="m")
+
+    class _ErrorResponse:
+        status_code = 429
+
+        def raise_for_status(self):
+            raise requests.exceptions.HTTPError("429 Client Error: Too Many Requests for url: https://x/chat/completions")
+
+    class _ErrorSession:
+        def post(self, *a, **kw):
+            return _ErrorResponse()
+
+    client = LLMClient(config, session=_ErrorSession())
+    with pytest.raises(LLMError, match="429"):
+        client.complete([{"role": "user", "content": "hi"}])
+
+
+def test_client_complete_raises_llm_error_on_non_json_response():
+    """A rate-limiter or gateway in front of the real API can return an
+    HTML error page with a 200 status -- `.json()` then raises ValueError,
+    not an HTTP error, so this needs its own catch."""
+    config = LLMConfig(base_url="https://x", api_key="k", model="m")
+
+    class _HtmlResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            raise ValueError("Expecting value: line 1 column 1 (char 0)")
+
+    class _HtmlSession:
+        def post(self, *a, **kw):
+            return _HtmlResponse()
+
+    client = LLMClient(config, session=_HtmlSession())
+    with pytest.raises(LLMError):
+        client.complete([{"role": "user", "content": "hi"}])
+
+
+def test_client_complete_raises_llm_error_on_connection_failure():
+    config = LLMConfig(base_url="https://x", api_key="k", model="m")
+
+    class _UnreachableSession:
+        def post(self, *a, **kw):
+            raise requests.exceptions.ConnectionError("Name or service not known")
+
+    client = LLMClient(config, session=_UnreachableSession())
     with pytest.raises(LLMError):
         client.complete([{"role": "user", "content": "hi"}])
 
@@ -287,6 +348,29 @@ def test_chat_returns_evidence_only_when_no_client_configured(repo):
     result = answer(repo, None, question="Tokat", history=[])
     assert result.evidence
     assert result.answer is None  # graceful degradation, not a crash
+
+
+def test_chat_degrades_to_evidence_only_when_llm_backend_fails(repo):
+    """The real-world case this regression-tests: evidence exists, a
+    client is configured, but the actual API call fails (bad key, rate
+    limit, network blip). Must return evidence + a distinct llm_error,
+    never raise -- see LLMClient.complete's docstring for why this
+    matters on the live deployment."""
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    class _FailingSession:
+        def post(self, *a, **kw):
+            raise requests.exceptions.ConnectionError("Name or service not known")
+
+    config = LLMConfig(base_url="https://glm.example.unibe.ch/v1", api_key="test-key", model="glm-4.6")
+    client = LLMClient(config, session=_FailingSession())
+
+    from dhra.chat import answer
+
+    result = answer(repo, client, question="Tokat", history=[])
+    assert result.evidence  # the search itself still ran and found real evidence
+    assert result.answer is None  # no fabricated answer
+    assert result.llm_error is not None
 
 
 def test_chat_passes_prior_turns_as_conversation_history(repo):

@@ -67,19 +67,30 @@ class LLMClient:
         self.session = session or requests.Session()
 
     def complete(self, messages: list[dict], *, temperature: float = 0.0, max_tokens: int = 1024) -> str:
-        resp = self.session.post(
-            f"{self.config.base_url}/chat/completions",
-            headers={"Authorization": f"Bearer {self.config.api_key}"},
-            json={
-                "model": self.config.model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
-            timeout=self.config.timeout,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        """Never lets a real backend failure (bad key, rate limit, timeout,
+        an HTML error page instead of JSON -- all things a free-tier API
+        key hits in practice, not just a hypothetical) escape as a raw
+        exception. Every caller in this repo (dhra.chat, dhra.research_assistant,
+        dhra.teaching, dhra.peer_review) is expected to catch LLMError and
+        degrade, never to crash the request -- see their web routes."""
+        try:
+            resp = self.session.post(
+                f"{self.config.base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self.config.api_key}"},
+                json={
+                    "model": self.config.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+                timeout=self.config.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except requests.exceptions.RequestException as exc:
+            raise LLMError(f"LLM backend request failed: {exc}") from exc
+        except ValueError as exc:  # resp.json() on a non-JSON body (e.g. an HTML error/rate-limit page)
+            raise LLMError(f"LLM backend returned a non-JSON response: {exc}") from exc
         try:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError) as exc:

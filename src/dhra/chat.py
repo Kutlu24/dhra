@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from dhra.llm import LLMClient, log_and_complete
+from dhra.llm import LLMClient, LLMError, log_and_complete
 from dhra.evidence import search as evidence_search
 from dhra.models import Passage
 from dhra.repo import DHRARepo
@@ -34,7 +34,8 @@ _CHAT_SYSTEM_PROMPT = (
 class ChatTurnResult:
     evidence: tuple[Passage, ...]
     absence_note: str | None
-    answer: str | None  # None when there was no evidence to answer from -- no LLM call was made
+    answer: str | None  # None when there was no evidence to answer from, or the LLM call itself failed
+    llm_error: str | None = None  # set only when a call was attempted and the backend failed (rate limit, bad key, timeout, ...)
 
 
 def answer(
@@ -67,5 +68,8 @@ def answer(
         + history_messages
         + [{"role": "user", "content": f"Evidence:\n{excerpts}\n\nQuestion: {question}"}]
     )
-    answer_text = log_and_complete(client, repo, purpose="chat_answer", messages=messages, task=task)
+    try:
+        answer_text = log_and_complete(client, repo, purpose="chat_answer", messages=messages, task=task)
+    except LLMError as exc:
+        return ChatTurnResult(evidence=response.evidence, absence_note=None, answer=None, llm_error=str(exc))
     return ChatTurnResult(evidence=response.evidence, absence_note=None, answer=answer_text)

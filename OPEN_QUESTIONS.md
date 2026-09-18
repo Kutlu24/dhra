@@ -295,13 +295,13 @@ still open:
     writing it, not assumed) via a fake `requests.Session` in
     `tests/acceptance/test_llm_features.py` — this proves the
     request-building and response-parsing logic is correct, not that
-    Adrian's eventual Uni Bern hosting behaves identically. **Needs a
-    live smoke test once that hosting exists**, the same gap
+    the real Z.AI endpoint behaves identically. The plan (2026-09-18) is
+    a free-tier Z.AI API key the researcher obtains directly, not a
+    self-hosted deployment. **Needs a live smoke test once that key is
+    set** (`DHRA_GLM_BASE_URL`/`DHRA_GLM_API_KEY` on the Render
+    deployment, see `render.yaml`), the same gap
     `test_live_zenodo_acquisition_end_to_end` records for a different
-    real backend (and unlike Zenodo, there is no public fallback
-    endpoint to test against in the meantime — GLM's public Z.AI API is
-    a different deployment than a self-hosted one, and self-hosting is
-    the researcher's actual stated intent).
+    real backend.
 
 25. **`disconfirm_search` not yet wired to `dhra.llm`.** See #11 above —
     `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review` were

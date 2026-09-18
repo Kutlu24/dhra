@@ -5,12 +5,12 @@ took it as a caller-supplied argument because nothing in this repo could
 actually call a model. This is that missing piece.
 
 Deliberately provider-neutral, not the Anthropic SDK: the researcher
-chose GLM (OpenAI-compatible chat completions API), self-hostable on
-university infrastructure -- a real, deliberate choice for this
-integration, not a default. `LLMClient` is a small `requests`-based
-client against that API shape; anything else OpenAI-compatible (a
-different self-hosted model, a different vendor) works by changing
-`base_url`/`model` only.
+chose GLM (Zhipu/Z.AI's OpenAI-compatible chat completions API) -- a
+real, deliberate choice for this integration, not a default. The plan
+is a free-tier Z.AI API key, not a self-hosted deployment. `LLMClient`
+is a small `requests`-based client against that API shape; anything
+else OpenAI-compatible (a self-hosted model, a different vendor) works
+by changing `base_url`/`model` only.
 
 Section 10's boundary is enforced by what calls this module, not by
 this module itself: `dhra.llm` only ever returns text. Nothing here

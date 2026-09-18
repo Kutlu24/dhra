@@ -112,10 +112,11 @@ dhra trace
 `dhra.research_assistant`, `dhra.teaching`, `dhra.peer_review` — built
 2026-09-18 after a real discussion among historians (Adrian, Tobias Hodel
 and others) about what they'd want from an "agentic AI", mapped onto
-DHRA's existing design. The model (GLM, OpenAI-compatible, meant to be
-self-hosted on university infrastructure — `dhra.llm`) only ever
-*proposes*; deterministic code still does the real work and every call
-is logged (`model.invoked` events, feeding the methods export):
+DHRA's existing design. The model (GLM, OpenAI-compatible, via a
+free-tier Z.AI API key the researcher obtains directly — `dhra.llm`)
+only ever *proposes*; deterministic code still does the real work and
+every call is logged (`model.invoked` events, feeding the methods
+export):
 
 - **`suggest_research_questions`** — runs a real `evidence.search()`,
   shows the model only those real excerpts, stores its suggestions as a
@@ -130,8 +131,8 @@ is logged (`model.invoked` events, feeding the methods export):
   itself; that stays a separate, manual `assess_claim` step, per section
   10's boundary.
 
-No real GLM endpoint exists yet to call (Adrian's hosting is still
-pending) — `dhra.llm.LLMClient` is tested against the real
+No real GLM endpoint exists yet to call (the researcher's free-tier
+Z.AI API key is still pending) — `dhra.llm.LLMClient` is tested against the real
 OpenAI-compatible request/response shape via a fake session, not a live
 endpoint; see [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-llm-features--dhrallm-research_assistant-teaching-peer_review)
 #24. None of these three modules are wired into the CLI/web UI/MCP

@@ -1,14 +1,15 @@
 """LLM-backed features -- dhra.llm, dhra.research_assistant, dhra.teaching,
 dhra.peer_review.
 
-No real network calls: GLM hosting (Uni Bern, per the researcher's own
-choice -- see OPEN_QUESTIONS.md) doesn't exist yet to call, so
-`LLMClient` is exercised against a fake `requests.Session` that returns
-real OpenAI-compatible-shaped responses. This proves the request/response
-handling is correct; it does not prove the real endpoint, once it
-exists, behaves identically -- that needs a live smoke test once Adrian's
-hosting is up, the same caveat `test_live_zenodo_acquisition_end_to_end`
-records for a different real backend.
+No real network calls: a real GLM API key (Z.AI free tier, per the
+researcher's own choice -- see OPEN_QUESTIONS.md) doesn't exist yet to
+call, so `LLMClient` is exercised against a fake `requests.Session`
+that returns real OpenAI-compatible-shaped responses. This proves the
+request/response handling is correct; it does not prove the real
+endpoint, once it exists, behaves identically -- that needs a live
+smoke test once the key is set, the same caveat
+`test_live_zenodo_acquisition_end_to_end` records for a different real
+backend.
 """
 
 from __future__ import annotations

@@ -403,3 +403,28 @@ def test_updates_dismiss_and_restore_candidate(repo, client, monkeypatch):
     client.post("/updates/candidates/W111/restore", data={"actor": "researcher"})
     page = client.get("/updates")
     assert "A new find" in page.text
+
+
+def test_robots_txt_allows_crawling_and_points_at_sitemap(client):
+    resp = client.get("/robots.txt")
+    assert resp.status_code == 200
+    assert "Allow: /" in resp.text
+    assert "Sitemap:" in resp.text
+    assert "/sitemap.xml" in resp.text
+
+
+def test_sitemap_xml_lists_the_main_pages(client):
+    resp = client.get("/sitemap.xml")
+    assert resp.status_code == 200
+    assert "application/xml" in resp.headers["content-type"]
+    for path in ["<loc>", "/chat</loc>", "/tutorial</loc>", "/assistant</loc>", "/updates</loc>"]:
+        assert path in resp.text
+
+
+def test_pages_carry_seo_meta_tags(client):
+    resp = client.get("/")
+    assert 'name="description"' in resp.text
+    assert 'property="og:title"' in resp.text
+    assert 'property="og:description"' in resp.text
+    assert 'rel="canonical"' in resp.text
+    assert "Literal, locator-bound evidence search" in resp.text  # page-specific description, not the generic default

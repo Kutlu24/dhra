@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}DHRA{% endblock %}</title>
+<meta name="description" content="{% block description %}DHRA (Digital Humanities Research Agent) keeps every historical claim traceable to a source, and tells you plainly when it can't. Evidence-first search, locator-bound citations, and AI research assistance for historians.{% endblock %}">
+<link rel="canonical" href="{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DHRA">
+<meta property="og:title" content="{% block og_title %}DHRA -- Digital Humanities Research Agent{% endblock %}">
+<meta property="og:description" content="{% block og_description %}Evidence-first research tool for historians -- every claim traceable to a source, or marked plainly when it isn't.{% endblock %}">
+<meta property="og:url" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}">
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/logo.svg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{% block twitter_title %}DHRA -- Digital Humanities Research Agent{% endblock %}">
+<meta name="twitter:description" content="{% block twitter_description %}Evidence-first research tool for historians.{% endblock %}">
 <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
 <style>
   @font-face {

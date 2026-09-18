@@ -4,8 +4,13 @@ services:
     runtime: docker
     plan: free
     envVars:
+      # No longer a value here on purpose -- DHRA moved from "temporary demo"
+      # to a real public deployment (2026-09-18). Leave this unset/empty in
+      # the Render dashboard for no banner, or set your own (e.g. a beta
+      # notice) directly there -- sync: false so a fresh blueprint apply
+      # never silently re-adds the old "temporary" wording.
       - key: DHRA_DEMO_BANNER
-        value: "Demo deployment -- temporary, for testing only. Data resets on restart and is not private (no login)."
+        sync: false
       # GLM (Z.AI free-tier API key, obtained directly by the researcher --
       # not self-hosted) -- not required for the demo to run: chat/research/
       # teaching all degrade gracefully to evidence-only without them. Set

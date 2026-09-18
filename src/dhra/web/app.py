@@ -121,6 +121,19 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             response = evidence_search(repo, q)
         return templates.TemplateResponse(request, "search.html", _ctx("search", request, q=q or "", response=response))
 
+    @app.get("/robots.txt", response_class=Response)
+    def robots_txt(request: Request) -> Response:
+        origin = f"{request.url.scheme}://{request.url.netloc}"
+        return Response(f"User-agent: *\nAllow: /\n\nSitemap: {origin}/sitemap.xml\n", media_type="text/plain")
+
+    @app.get("/sitemap.xml", response_class=Response)
+    def sitemap_xml(request: Request) -> Response:
+        origin = f"{request.url.scheme}://{request.url.netloc}"
+        paths = ["/", "/chat", "/tutorial", "/assistant", "/updates", "/ingest", "/claims", "/aggregate", "/exclusions", "/trace"]
+        urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in paths)
+        xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+        return Response(xml, media_type="application/xml")
+
     def _llm_client_or_none() -> LLMClient | None:
         try:
             return LLMClient(LLMConfig.from_env())

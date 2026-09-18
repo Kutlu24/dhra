@@ -203,7 +203,8 @@ def cmd_web(args: argparse.Namespace) -> None:
 
     repo = _repo(args)
     expected = set(args.expected_language) if args.expected_language else None
-    app = build_app(repo, expected_languages=expected)
+    demo_banner = os.environ.get("DHRA_DEMO_BANNER") or None
+    app = build_app(repo, expected_languages=expected, demo_banner=demo_banner)
     print(f"DHRA web UI: http://{args.host}:{args.port}  (store: {repo.root})")
     uvicorn.run(app, host=args.host, port=args.port)
 

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: dhra
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DHRA_DEMO_BANNER
+        value: "Demo deployment -- temporary, for testing only. Data resets on restart and is not private (no login)."
+      # GLM (Uni Bern hosting, per Adrian) -- not required for the demo to
+      # run: chat/research/teaching all degrade gracefully to evidence-only
+      # without them. Set these once the endpoint exists.
+      - key: DHRA_GLM_BASE_URL
+        sync: false
+      - key: DHRA_GLM_API_KEY
+        sync: false
+      - key: DHRA_GLM_MODEL
+        sync: false

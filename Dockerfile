@@ -1,0 +1,37 @@
+FROM python:3.11-slim
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONUTF8=1 \
+    PYTHONIOENCODING=utf-8 \
+    PYTHONUNBUFFERED=1
+
+# poppler-utils: pdftotext, used by PdfToTextTranscriber for PDF uploads.
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+WORKDIR $HOME/app
+
+RUN pip install --no-cache-dir --upgrade pip
+
+COPY --chown=user pyproject.toml ./
+COPY --chown=user src ./src
+COPY --chown=user scripts ./scripts
+
+RUN pip install --no-cache-dir --user -e .
+
+# Render's free plan has no persistent disk, so the store lives in the
+# container's own filesystem and is reset on every restart -- fine for a
+# temporary/demo deployment, and it's reseeded (only if empty) at startup.
+ENV DHRA_STORE_DIR=$HOME/app/store
+
+EXPOSE 7860
+
+# Shell form (not JSON-array) so ${PORT:-7860} actually expands: Render
+# injects PORT dynamically, Hugging Face Spaces expects the fixed 7860 and
+# sets no PORT -- the same image runs on either without changes.
+CMD python scripts/seed_demo_store.py && dhra --store "$DHRA_STORE_DIR" web --host 0.0.0.0 --port ${PORT:-7860}

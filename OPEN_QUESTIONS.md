@@ -319,11 +319,22 @@ still open:
     `review_paper` most useful for corpora that plausibly quote or
     closely paraphrase the paper's claims, not a general fact-check.
 
-27. **None of `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review`
-    are wired into `dhra.cli`, `dhra.web`, or `dhra.mcp_server` yet.**
-    Built and tested as library functions only, consistent with how
-    every earlier phase started (Phase 0's modules predate the CLI/web
-    UI by a long way) — but there is no `dhra suggest-questions`
-    command, no "Draft exam questions" button, no MCP tool for any of
-    this yet. Needs real GLM credentials to be worth wiring end-to-end
-    (see #24) rather than exposing a surface nothing can actually call.
+27. **`dhra.research_assistant`/`dhra.peer_review` wired into the web
+    UI (`/assistant`, 2026-09-18); `dhra.cli`/`dhra.mcp_server` still
+    aren't.** The web UI now has real forms for all four LLM-backed
+    functions, disabled with a clear banner when no LLM backend is
+    configured, and lists past drafts per column. No `dhra
+    suggest-questions` CLI command or MCP tool yet — same reasoning as
+    before, real GLM credentials make wiring worth it (#24).
+
+28. **No real web-search tool — `draft_reading_list`'s external
+    suggestions are recalled, not retrieved.** Adrian suggested a
+    local, self-hosted agentic-search stack (searxng + llamafile + the
+    "pi" harness) in the same Discord discussion that prompted these
+    features. Wiring something like that in would let the "UNVERIFIED
+    SUGGESTIONS" section of a reading list become real, locator-bound
+    evidence like everything else in this repo, instead of the one
+    place the model is allowed to speak from memory. Not built —
+    a real search backend (self-hosted or otherwise) is its own
+    infrastructure decision, same category as GLM hosting (#24), not
+    something to wire against blindly.

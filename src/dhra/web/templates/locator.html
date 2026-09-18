@@ -2,7 +2,7 @@
 {% block title %}Locator -- DHRA{% endblock %}
 {% block content %}
 <h1>Resolved passage</h1>
-<div class="evidence">
+<div class="card evidence">
   <blockquote>&ldquo;{{ passage.text }}&rdquo;</blockquote>
   <div class="meta">
     <span>{{ locator.item_id }} / {{ locator.rep_id }} [{{ locator.start }}:{{ locator.end }}]</span>
@@ -10,7 +10,7 @@
 </div>
 
 {% if is_image %}
-  <p><img src="/blob/{{ item.item_id }}" style="max-width:100%;border:1px solid #8884;"></p>
+  <img src="/blob/{{ item.item_id }}" class="passage-image">
 {% endif %}
 
 {% if item %}
@@ -46,8 +46,8 @@
 <form method="post" action="/annotate">
   <input type="hidden" name="target_type" value="item">
   <input type="hidden" name="target_id" value="{{ locator.item_id }}">
-  <input type="text" name="actor" placeholder="your name" required>
-  <textarea name="text" rows="2" placeholder="add a note" required></textarea>
+  <p><label>Your name<br><input type="text" name="actor" required></label></p>
+  <p><label>Note<br><textarea name="text" rows="2" required></textarea></label></p>
   <button type="submit">Add annotation</button>
 </form>
 {% endblock %}

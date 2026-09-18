@@ -7,7 +7,7 @@
   <tr><th>status</th><th>claim</th></tr>
   {% for c in claims %}
   <tr>
-    <td><span class="status-code" title="{{ status_meaning(c.status) }}">{{ c.status.value }}</span></td>
+    <td><span class="status-code" data-tone="{{ status_tone(c.status) }}" title="{{ status_meaning(c.status) }}">{{ c.status.value }}</span></td>
     <td><a href="/claims/{{ c.claim_id }}">{{ c.claim_text }}</a></td>
   </tr>
   {% else %}

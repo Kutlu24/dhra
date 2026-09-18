@@ -60,11 +60,12 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
     app = FastAPI(title="DHRA", description="Digital Humanities Research Agent -- local evidence browser")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["status_meaning"] = lambda s: STATUS_MEANINGS.get(Status(s), "")
+    templates.env.globals["status_tone"] = lambda s: "warn" if Status(s) in (Status.CONTESTED, Status.UNSUPPORTED, Status.NEGATIVE) else "ok"
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    def _corpus_version_short() -> str:
-        return repo.corpus_version().manifest_hash[:12]
+    def _ctx(active: str, **extra: Any) -> dict[str, Any]:
+        return {"active": active, "corpus_version": repo.corpus_version().manifest_hash[:12], **extra}
 
     # --- Home / search (section 12: evidence above, narrative below) -------
 
@@ -73,15 +74,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         response = None
         if q:
             response = evidence_search(repo, q)
-        return templates.TemplateResponse(
-            request,
-            "search.html",
-            {
-                "q": q or "",
-                "response": response,
-                "corpus_version": _corpus_version_short(),
-            },
-        )
+        return templates.TemplateResponse(request, "search.html", _ctx("search", q=q or "", response=response))
 
     # --- Ingestion: manual_upload only (real network acquisition, e.g.
     # Zenodo, is ASK-gated and only reachable via dhra.mcp_server so far --
@@ -89,7 +82,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
 
     @app.get("/ingest", response_class=HTMLResponse)
     def ingest_form(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "ingest.html", {})
+        return templates.TemplateResponse(request, "ingest.html", _ctx("ingest"))
 
     @app.post("/ingest")
     def ingest_submit(
@@ -140,14 +133,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         return templates.TemplateResponse(
             request,
             "locator.html",
-            {
-                "locator": locator,
-                "passage": passage,
-                "item": item,
-                "rep": rep,
-                "is_image": is_image,
-                "thread": thread,
-            },
+            _ctx("search", locator=locator, passage=passage, item=item, rep=rep, is_image=is_image, thread=thread),
         )
 
     @app.get("/item/{item_id}")
@@ -189,7 +175,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         grouped: dict[str, list] = {}
         for item_id, excl in projection.active_exclusions.items():
             grouped.setdefault(excl.reason.value, []).append((item_id, excl))
-        return templates.TemplateResponse(request, "exclusions.html", {"grouped": grouped})
+        return templates.TemplateResponse(request, "exclusions.html", _ctx("exclusions", grouped=grouped))
 
     @app.post("/exclusions/{item_id}/restore")
     def restore(item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
@@ -201,7 +187,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
     @app.get("/aggregate", response_class=HTMLResponse)
     def aggregate(request: Request) -> HTMLResponse:
         result = aggregate_by_source(repo, expected_languages=expected_languages)
-        return templates.TemplateResponse(request, "aggregate.html", {"result": result})
+        return templates.TemplateResponse(request, "aggregate.html", _ctx("aggregate", result=result))
 
     # --- Claims (section 12: status as a code, never a number) -------------
 
@@ -209,14 +195,14 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
     def claims_list(request: Request) -> HTMLResponse:
         projection = repo.projection()
         claims = sorted(projection.claims.values(), key=lambda c: c.claim_id)
-        return templates.TemplateResponse(request, "claims.html", {"claims": claims})
+        return templates.TemplateResponse(request, "claims.html", _ctx("claims", claims=claims))
 
     @app.get("/claims/new", response_class=HTMLResponse)
     def claim_new(request: Request, item_id: str = "", rep_id: str = "", start: str = "", end: str = "") -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "claim_new.html",
-            {"item_id": item_id, "rep_id": rep_id, "start": start, "end": end},
+            _ctx("claims", item_id=item_id, rep_id=rep_id, start=start, end=end),
         )
 
     @app.get("/claims/{claim_id}", response_class=HTMLResponse)
@@ -225,7 +211,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         if assessment is None:
             raise HTTPException(status_code=404, detail="no such claim")
         history = repo.claim_history(claim_id)
-        return templates.TemplateResponse(request, "claim_detail.html", {"assessment": assessment, "history": history})
+        return templates.TemplateResponse(request, "claim_detail.html", _ctx("claims", assessment=assessment, history=history))
 
     def _parse_locators(raw: str) -> list[Locator]:
         """One 'item_id,rep_id,start,end' per line -- the plain-text
@@ -278,7 +264,11 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         return templates.TemplateResponse(
             request,
             "trace.html",
-            {"task": task, "summary": summary, "decisions": decisions, "raw": raw},
+            _ctx("trace", task=task, summary=summary, decisions=decisions, raw=raw),
         )
+
+    @app.get("/tutorial", response_class=HTMLResponse)
+    def tutorial(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial"))
 
     return app

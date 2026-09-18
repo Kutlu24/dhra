@@ -2,7 +2,8 @@
 {% block title %}Search -- DHRA{% endblock %}
 {% block content %}
 <h1>Evidence search</h1>
-<form method="get" action="/">
+<p class="lede">Literal, locator-bound. New here? <a href="/tutorial">Getting started &rarr;</a></p>
+<form method="get" action="/" class="search-box">
   <input type="text" name="q" value="{{ q }}" placeholder="literal query" autofocus>
   <button type="submit">Search</button>
 </form>
@@ -15,7 +16,7 @@
   {% if response.evidence %}
     <h2>Evidence ({{ response.evidence | length }})</h2>
     {% for p in response.evidence %}
-      <div class="evidence">
+      <div class="card evidence">
         <blockquote>&ldquo;{{ p.text }}&rdquo;</blockquote>
         <div class="meta">
           <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}">

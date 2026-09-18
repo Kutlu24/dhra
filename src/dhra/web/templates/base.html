@@ -2,44 +2,110 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}DHRA{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%232a5f6b%22/><text x=%2250%22 y=%2268%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Georgia,serif%22>D</text></svg>">
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 1rem 1.25rem 4rem;
-         line-height: 1.5; background: Canvas; color: CanvasText; }
-  nav { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding-bottom: .75rem; border-bottom: 1px solid #8884; }
-  nav a { text-decoration: none; color: inherit; opacity: .75; }
-  nav a:hover { opacity: 1; text-decoration: underline; }
-  h1 { font-size: 1.3rem; }
-  .corpus-version { font-size: .8rem; opacity: .6; font-family: monospace; }
-  .evidence { border: 1px solid #8884; border-radius: 6px; padding: .75rem 1rem; margin: .75rem 0; }
-  .evidence blockquote { margin: .4rem 0; font-size: 1.05rem; }
-  .evidence .meta { font-size: .8rem; opacity: .65; display: flex; gap: 1rem; flex-wrap: wrap; }
-  .narrative { border: 2px dashed #c908; border-radius: 6px; padding: .75rem 1rem; margin-top: 1.25rem; background: #ffdf0008; }
-  .narrative .badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: #a60; font-weight: 600; }
-  .absence-note { border-left: 3px solid #888; padding: .5rem 1rem; opacity: .85; font-style: italic; }
-  .status-code { font-family: monospace; font-weight: 700; border: 1px solid currentColor; border-radius: 4px;
-                 padding: 0 .35em; cursor: help; }
-  .warning { border-left: 3px solid #c40; padding: .4rem .8rem; margin: .4rem 0; background: #c4000008; }
-  table { border-collapse: collapse; width: 100%; margin: .5rem 0; }
-  th, td { text-align: left; padding: .3rem .6rem; border-bottom: 1px solid #8883; font-size: .92rem; }
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f5f0; --surface: #ffffff; --border: #e2ded4; --text: #2b2822; --text-muted: #8a8474;
+    --accent: #2a5f6b; --accent-soft: #e7f0ee;
+    --amber: #a3650a; --amber-soft: #fbf1e2;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181a; --surface: #1e2124; --border: #33373b; --text: #e7e5e0; --text-muted: #8b9096;
+      --accent: #6fb7c4; --accent-soft: #1d2f33;
+      --amber: #d9a34d; --amber-soft: #332a1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, ui-serif, serif;
+    display: flex; min-height: 100vh;
+  }
+  aside {
+    width: 220px; flex: 0 0 220px; padding: 1.75rem 1.25rem; border-right: 1px solid var(--border);
+    position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
+  }
+  .wordmark { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; margin-bottom: .15rem; }
+  .wordmark .mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-size: 1rem; flex: none; }
+  .tagline { font-size: .72rem; color: var(--text-muted); margin: 0 0 1.5rem; line-height: 1.4; font-family: system-ui, sans-serif; }
+  nav { display: flex; flex-direction: column; gap: .15rem; font-family: system-ui, sans-serif; font-size: .92rem; }
+  nav a { text-decoration: none; color: var(--text); opacity: .8; padding: .45rem .6rem; border-radius: 7px; display: flex; align-items: center; gap: .55rem; }
+  nav a:hover { opacity: 1; background: var(--accent-soft); }
+  nav a.active { opacity: 1; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  nav .icon { width: 1.1em; text-align: center; opacity: .85; }
+  .corpus-version { font-size: .68rem; color: var(--text-muted); font-family: ui-monospace, monospace; margin-top: 1.5rem;
+    padding-top: 1rem; border-top: 1px solid var(--border); word-break: break-all; }
+  main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 780px; }
+  h1 { font-size: 1.5rem; margin: 0 0 .35rem; }
+  h2 { font-size: 1.05rem; margin: 1.75rem 0 .6rem; font-family: system-ui, sans-serif; text-transform: uppercase;
+       letter-spacing: .04em; color: var(--text-muted); font-weight: 600; }
+  p, li { font-family: system-ui, sans-serif; font-size: .96rem; }
+  .lede { color: var(--text-muted); font-family: system-ui, sans-serif; font-size: .92rem; margin-top: 0; }
+  .card { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); padding: 1.1rem 1.3rem; margin: .85rem 0; }
+  .evidence blockquote { margin: 0 0 .6rem; font-size: 1.08rem; line-height: 1.5; }
+  .evidence .meta { font-size: .78rem; color: var(--text-muted); display: flex; gap: 1.1rem; flex-wrap: wrap; font-family: system-ui, sans-serif; }
+  .evidence .meta a { color: var(--accent); }
+  .narrative { border: 1px dashed var(--amber); border-radius: var(--radius); padding: 1rem 1.3rem; margin-top: 1.5rem; background: var(--amber-soft); }
+  .narrative .badge { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--amber); font-weight: 700;
+                       font-family: system-ui, sans-serif; }
+  .absence-note { border-left: 3px solid var(--text-muted); padding: .6rem 1.1rem; color: var(--text-muted); font-style: italic; background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; }
+  .status-code { font-family: ui-monospace, monospace; font-weight: 700; font-size: .85rem; border-radius: 5px;
+                 padding: .15em .55em; cursor: help; background: var(--accent-soft); color: var(--accent); }
+  .status-code[data-tone="warn"] { background: var(--amber-soft); color: var(--amber); }
+  .warning { border-left: 3px solid var(--amber); padding: .55rem 1rem; margin: .5rem 0; background: var(--amber-soft);
+             border-radius: 0 var(--radius) var(--radius) 0; font-family: system-ui, sans-serif; font-size: .92rem; }
+  table { border-collapse: collapse; width: 100%; margin: .5rem 0; font-family: system-ui, sans-serif; }
+  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border); font-size: .88rem; }
+  th { color: var(--text-muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
   form.inline { display: inline; }
-  button, input[type=submit] { cursor: pointer; }
-  textarea, input[type=text] { font-family: monospace; width: 100%; box-sizing: border-box; }
-  .muted { opacity: .6; font-size: .85rem; }
-  code { font-size: .9em; }
+  button, input[type=submit] {
+    cursor: pointer; font-family: system-ui, sans-serif; background: var(--accent); color: #fff; border: none;
+    border-radius: 7px; padding: .5rem 1rem; font-size: .88rem; font-weight: 600;
+  }
+  button:hover, input[type=submit]:hover { filter: brightness(1.08); }
+  textarea, input[type=text], select, input[type=file] {
+    font-family: system-ui, sans-serif; width: 100%; box-sizing: border-box; padding: .5rem .65rem;
+    border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font-size: .9rem;
+  }
+  label { display: block; font-size: .82rem; color: var(--text-muted); font-family: system-ui, sans-serif; margin-bottom: .3rem; }
+  .muted { color: var(--text-muted); font-size: .85rem; font-family: system-ui, sans-serif; }
+  code { font-size: .88em; background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--accent-soft); border-radius: var(--radius); padding: .9rem 1.1rem; overflow-x: auto; font-size: .84rem; }
+  pre code { background: none; padding: 0; }
+  a { color: var(--accent); }
+  .search-box { display: flex; gap: .5rem; margin: 1rem 0 1.5rem; }
+  .search-box input[type=text] { font-size: 1rem; padding: .65rem .9rem; }
+  .passage-image { max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); margin: .75rem 0 1.25rem; display: block; }
+  @media (max-width: 720px) {
+    body { flex-direction: column; }
+    aside { width: auto; flex: none; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 1.5rem 1.25rem 3rem; }
+  }
 </style>
 </head>
 <body>
-<nav>
-  <a href="/">Search</a>
-  <a href="/ingest">Add item</a>
-  <a href="/claims">Claims</a>
-  <a href="/aggregate">Aggregate</a>
-  <a href="/exclusions">Exclusions</a>
-  <a href="/trace">Trace</a>
-  <span class="corpus-version">corpus {{ corpus_version if corpus_version is defined else '' }}</span>
-</nav>
+<aside>
+  <div class="wordmark"><span class="mark">D</span> DHRA</div>
+  <p class="tagline">Digital Humanities Research Agent — evidence before narrative, always.</p>
+  <nav>
+    <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> Search</a>
+    <a href="/ingest" class="{{ 'active' if active == 'ingest' }}"><span class="icon">&#128228;</span> Add item</a>
+    <a href="/claims" class="{{ 'active' if active == 'claims' }}"><span class="icon">&#128203;</span> Claims</a>
+    <a href="/aggregate" class="{{ 'active' if active == 'aggregate' }}"><span class="icon">&#128202;</span> Aggregate</a>
+    <a href="/exclusions" class="{{ 'active' if active == 'exclusions' }}"><span class="icon">&#8635;</span> Exclusions</a>
+    <a href="/trace" class="{{ 'active' if active == 'trace' }}"><span class="icon">&#128337;</span> Trace</a>
+    <a href="/tutorial" class="{{ 'active' if active == 'tutorial' }}"><span class="icon">&#128218;</span> Getting started</a>
+  </nav>
+  <div class="corpus-version">corpus {{ corpus_version if corpus_version is defined else '' }}</div>
+</aside>
+<main>
 {% block content %}{% endblock %}
+</main>
 </body>
 </html>

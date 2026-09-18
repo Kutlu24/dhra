@@ -3,7 +3,7 @@
 {% block content %}
 <h1>{{ assessment.claim_text }}</h1>
 <p>
-  <span class="status-code" title="{{ status_meaning(assessment.status) }}">{{ assessment.status.value }}</span>
+  <span class="status-code" data-tone="{{ status_tone(assessment.status) }}" title="{{ status_meaning(assessment.status) }}">{{ assessment.status.value }}</span>
   <span class="muted">(hover for meaning -- never shown as a number)</span>
 </p>
 <p>{{ assessment.note }}</p>
@@ -38,7 +38,7 @@
   <tr><th>status</th><th>note</th></tr>
   {% for h in history %}
   <tr>
-    <td><span class="status-code" title="{{ status_meaning(h.status) }}">{{ h.status.value }}</span></td>
+    <td><span class="status-code" data-tone="{{ status_tone(h.status) }}" title="{{ status_meaning(h.status) }}">{{ h.status.value }}</span></td>
     <td>{{ h.note }}</td>
   </tr>
   {% endfor %}

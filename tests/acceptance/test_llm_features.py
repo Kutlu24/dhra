@@ -247,3 +247,57 @@ def test_review_paper_raises_when_nothing_extracted(repo):
     client, _session = _client("no claims here, malformed output")
     with pytest.raises(ValueError):
         review_paper(repo, client, paper_text="text", actor="reviewer")
+
+
+# --- dhra.chat -----------------------------------------------------------------
+
+
+def test_chat_answers_only_from_real_evidence(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849 after a storm.", source_id="s")
+    client, session = _client("The bridge at Tokat was repaired in 1849 [item/rep:4-19].")
+
+    from dhra.chat import answer
+
+    result = answer(repo, client, question="Tokat", history=[])
+    assert result.evidence  # real search results
+    assert result.answer == "The bridge at Tokat was repaired in 1849 [item/rep:4-19]."
+
+    sent_content = session.calls[0]["json"]["messages"][-1]["content"]
+    assert "Tokat" in sent_content  # the model saw a real excerpt, not an empty prompt
+
+
+def test_chat_never_calls_the_model_without_evidence(repo):
+    repo.ingest_text("an unrelated sentence", source_id="s")
+    client, session = _client("should never be sent")
+
+    from dhra.chat import answer
+
+    result = answer(repo, client, question="zzz_absent_zzz", history=[])
+    assert result.answer is None
+    assert result.absence_note is not None
+    assert session.calls == []  # no LLM call was made at all -- I10's spirit, applied here too
+
+
+def test_chat_returns_evidence_only_when_no_client_configured(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    from dhra.chat import answer
+
+    result = answer(repo, None, question="Tokat", history=[])
+    assert result.evidence
+    assert result.answer is None  # graceful degradation, not a crash
+
+
+def test_chat_passes_prior_turns_as_conversation_history(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+    client, session = _client("Yes, in 1849, as mentioned.")
+
+    from dhra.chat import answer
+
+    history = [{"role": "user", "text": "Tell me about Tokat."}, {"role": "assistant", "text": "It had a bridge."}]
+    answer(repo, client, question="Tokat", history=history)
+
+    sent_messages = session.calls[0]["json"]["messages"]
+    roles_and_texts = [(m["role"], m["content"]) for m in sent_messages]
+    assert ("user", "Tell me about Tokat.") in roles_and_texts
+    assert ("assistant", "It had a bridge.") in roles_and_texts

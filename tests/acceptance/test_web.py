@@ -183,3 +183,66 @@ def test_assistant_research_questions_creates_draft_shown_on_page(repo, client, 
     page = client.get("/assistant")
     assert "What caused the 1849 damage" in page.text
     assert "research_questions" in page.text
+
+
+def test_chat_shows_evidence_without_llm_configured(repo, client, monkeypatch):
+    monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
+    monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    resp = client.post("/chat", data={"message": "Tokat", "history_json": "[]"})
+    assert resp.status_code == 200
+    assert "Tokat" in resp.text
+    assert "No LLM backend configured" in resp.text
+    assert "Generated --" not in resp.text  # no narrative badge -- no answer was generated
+
+
+def test_chat_conversation_state_round_trips_through_the_form(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "It was repaired in 1849."}}]}
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **kw: _FakeResp())
+
+    resp = client.post("/chat", data={"message": "Tokat", "history_json": "[]"})
+    assert "It was repaired in 1849." in resp.text
+    assert 'name="history_json"' in resp.text
+    # the hidden field now carries this turn forward for the next POST
+    assert "Tokat" in resp.text and "assistant" in resp.text
+
+
+def test_chat_never_generates_an_answer_without_evidence(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("an unrelated sentence", source_id="s")
+
+    import requests
+
+    calls = []
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "should never be sent"}}]}
+
+    def _fake_post(self, *a, **kw):
+        calls.append(1)
+        return _FakeResp()
+
+    monkeypatch.setattr(requests.Session, "post", _fake_post)
+
+    resp = client.post("/chat", data={"message": "zzz_absent_zzz", "history_json": "[]"})
+    assert resp.status_code == 200
+    assert calls == []  # no LLM call at all
+    assert "not evidence of non-occurrence" in resp.text.lower()

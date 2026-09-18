@@ -24,6 +24,7 @@ described:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ from fastapi.templating import Jinja2Templates
 from dhra.aggregate import aggregate_by_source
 from dhra.annotation import add_annotation, annotations_for
 from dhra.bias import compute_bias_report
+from dhra.chat import answer as chat_answer
 from dhra.drafting import list_drafts
 from dhra.evidence import search as evidence_search
 from dhra.llm import LLMClient, LLMConfig, LLMError
@@ -64,7 +66,7 @@ STATUS_MEANINGS = {
 }
 
 
-def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> FastAPI:
+def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, demo_banner: str | None = None) -> FastAPI:
     app = FastAPI(title="DHRA", description="Digital Humanities Research Agent -- local evidence browser")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["status_meaning"] = lambda s: STATUS_MEANINGS.get(Status(s), "")
@@ -73,7 +75,12 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     def _ctx(active: str, **extra: Any) -> dict[str, Any]:
-        return {"active": active, "corpus_version": repo.corpus_version().manifest_hash[:12], **extra}
+        return {
+            "active": active,
+            "corpus_version": repo.corpus_version().manifest_hash[:12],
+            "demo_banner": demo_banner,
+            **extra,
+        }
 
     # --- Home / search (section 12: evidence above, narrative below) -------
 
@@ -83,6 +90,50 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
         if q:
             response = evidence_search(repo, q)
         return templates.TemplateResponse(request, "search.html", _ctx("search", q=q or "", response=response))
+
+    def _llm_client_or_none() -> LLMClient | None:
+        try:
+            return LLMClient(LLMConfig.from_env())
+        except LLMError:
+            return None
+
+    # --- Chat (grounded: no evidence, no LLM call, no answer -- I10's
+    # spirit, applied to a conversational surface). Stateless on the
+    # server -- see dhra.chat's module docstring for why a public,
+    # accountless demo deployment needs that. ------------------------------
+
+    @app.get("/chat", response_class=HTMLResponse)
+    def chat_get(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request, "chat.html", _ctx("chat", history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
+        )
+
+    @app.post("/chat", response_class=HTMLResponse)
+    def chat_post(request: Request, message: str = Form(...), history_json: str = Form("[]")) -> HTMLResponse:
+        try:
+            history = json.loads(history_json)
+        except json.JSONDecodeError:
+            history = []
+        client = _llm_client_or_none()
+        result = chat_answer(repo, client, question=message, history=history)
+
+        evidence_dicts = [
+            {
+                "text": p.text,
+                "locator": {"item_id": p.locator.item_id, "rep_id": p.locator.rep_id, "start": p.locator.start, "end": p.locator.end},
+            }
+            for p in result.evidence
+        ]
+        new_turns = [
+            {"role": "user", "text": message},
+            {"role": "assistant", "text": result.answer, "evidence": evidence_dicts, "absence_note": result.absence_note},
+        ]
+        updated_history = history + new_turns
+        return templates.TemplateResponse(
+            request,
+            "chat.html",
+            _ctx("chat", history=updated_history, history_json=json.dumps(updated_history), llm_configured=client is not None),
+        )
 
     # --- Ingestion: manual_upload only (real network acquisition, e.g.
     # Zenodo, is ASK-gated and only reachable via dhra.mcp_server so far --
@@ -282,12 +333,6 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
     # --- Research & Teaching assistant (LLM-backed, section 10's boundary:
     # the model only ever proposes -- see dhra.llm/research_assistant/
     # teaching/peer_review) -------------------------------------------------
-
-    def _llm_client_or_none() -> LLMClient | None:
-        try:
-            return LLMClient(LLMConfig.from_env())
-        except LLMError:
-            return None
 
     @app.get("/assistant", response_class=HTMLResponse)
     def assistant(request: Request) -> HTMLResponse:

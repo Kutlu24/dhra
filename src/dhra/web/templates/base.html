@@ -89,6 +89,8 @@
   .assistant-col h3 { font-size: .95rem; margin: 0 0 .3rem; font-family: system-ui, sans-serif; }
   .assistant-col .card pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
   button[disabled] { opacity: .5; cursor: not-allowed; }
+  .chat-user { background: var(--accent-soft); font-family: system-ui, sans-serif; }
+  .chat-assistant blockquote { margin: .3rem 0; font-size: .95rem; }
   @media (max-width: 900px) {
     .assistant-columns { flex-direction: column; }
   }
@@ -105,6 +107,7 @@
   <p class="tagline">Digital Humanities Research Agent — evidence before narrative, always.</p>
   <nav>
     <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> Search</a>
+    <a href="/chat" class="{{ 'active' if active == 'chat' }}"><span class="icon">&#128172;</span> Chat</a>
     <a href="/ingest" class="{{ 'active' if active == 'ingest' }}"><span class="icon">&#128228;</span> Add item</a>
     <a href="/claims" class="{{ 'active' if active == 'claims' }}"><span class="icon">&#128203;</span> Claims</a>
     <a href="/aggregate" class="{{ 'active' if active == 'aggregate' }}"><span class="icon">&#128202;</span> Aggregate</a>
@@ -116,6 +119,9 @@
   <div class="corpus-version">corpus {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main class="{{ 'wide' if wide else '' }}">
+{% if demo_banner is defined and demo_banner %}
+<div class="warning" style="margin-bottom:1.25rem;">{{ demo_banner }}</div>
+{% endif %}
 {% block content %}{% endblock %}
 </main>
 </body>

@@ -26,6 +26,30 @@ def client(repo):
     return TestClient(build_app(repo))
 
 
+def test_ingest_text_then_findable_by_search(repo, client):
+    resp = client.post(
+        "/ingest",
+        data={
+            "source_id": "manual_upload",
+            "access_basis": "public_domain",
+            "licence_id": "",
+            "original_reference": "",
+            "text": "a manually pasted test passage",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/item/")
+
+    found = client.get("/?q=manually")
+    assert "Evidence (1)" in found.text
+
+
+def test_ingest_requires_text_or_file(repo, client):
+    resp = client.post("/ingest", data={"source_id": "manual_upload", "access_basis": "public_domain", "licence_id": "", "original_reference": "", "text": ""})
+    assert resp.status_code == 400
+
+
 def test_search_shows_evidence_above_narrative(repo, client):
     repo.ingest_text("the bridge at Tokat was repaired in 1850", source_id="s")
     resp = client.get("/?q=Tokat")

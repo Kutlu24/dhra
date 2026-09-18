@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Add item -- DHRA{% endblock %}
+{% block content %}
+<h1>Add an item</h1>
+<p class="muted">
+  Manual upload only (section 9.2's licence/rate-limit gating applies to
+  real archive acquisition, not to material you already have). Paste text,
+  or upload a file -- <code>.pdf</code> uses <code>pdftotext</code>,
+  <code>.png/.jpg/.tif</code> uses Tesseract OCR, <code>.xml/.tei</code> is
+  parsed as TEI, anything else is stored as plain text.
+</p>
+<form method="post" action="/ingest" enctype="multipart/form-data">
+  <p><label>Source id<br><input type="text" name="source_id" value="manual_upload" required></label></p>
+  <p><label>Access basis<br>
+    <select name="access_basis">
+      <option value="public_domain">public_domain</option>
+      <option value="licensed">licensed</option>
+      <option value="tdm_exception">tdm_exception</option>
+      <option value="permission">permission</option>
+      <option value="unknown">unknown</option>
+    </select>
+  </label></p>
+  <p><label>Licence id (optional)<br><input type="text" name="licence_id"></label></p>
+  <p><label>Original reference / URL (optional)<br><input type="text" name="original_reference"></label></p>
+  <p><label>Paste text<br><textarea name="text" rows="6" placeholder="leave empty if uploading a file"></textarea></label></p>
+  <p><label>...or upload a file<br><input type="file" name="file"></label></p>
+  <button type="submit">Add item</button>
+</form>
+{% endblock %}

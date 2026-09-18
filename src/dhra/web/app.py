@@ -27,7 +27,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -82,6 +82,46 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
                 "corpus_version": _corpus_version_short(),
             },
         )
+
+    # --- Ingestion: manual_upload only (real network acquisition, e.g.
+    # Zenodo, is ASK-gated and only reachable via dhra.mcp_server so far --
+    # OPEN_QUESTIONS.md #23) ---------------------------------------------
+
+    @app.get("/ingest", response_class=HTMLResponse)
+    def ingest_form(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "ingest.html", {})
+
+    @app.post("/ingest")
+    def ingest_submit(
+        source_id: str = Form(...),
+        access_basis: str = Form("public_domain"),
+        licence_id: str = Form(""),
+        original_reference: str = Form(""),
+        text: str = Form(""),
+        file: UploadFile | None = None,
+    ) -> RedirectResponse:
+        kwargs: dict[str, Any] = {
+            "source_id": source_id,
+            "access_basis": access_basis,
+            "licence_id": licence_id or None,
+            "original_reference": original_reference or None,
+        }
+        if file is not None and file.filename:
+            data = file.file.read()
+            name = file.filename.lower()
+            if name.endswith(".pdf"):
+                item_id, _rep_id = repo.ingest_pdf(data, **kwargs)
+            elif name.endswith((".png", ".jpg", ".jpeg", ".tif", ".tiff")):
+                item_id, _rep_id = repo.ingest_image(data, **kwargs)
+            elif name.endswith((".xml", ".tei")):
+                item_id, _rep_id = repo.ingest_tei(data, **kwargs)
+            else:
+                item_id, _rep_id = repo.ingest_text(data.decode("utf-8", errors="replace"), **kwargs)
+        elif text.strip():
+            item_id, _rep_id = repo.ingest_text(text, **kwargs)
+        else:
+            raise HTTPException(status_code=400, detail="provide either text or a file")
+        return RedirectResponse(f"/item/{item_id}", status_code=303)
 
     # --- Locator resolution (section 4.6: resolves in one call, or it's a bug) --
 

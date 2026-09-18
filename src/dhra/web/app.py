@@ -94,16 +94,38 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    def _ctx(active: str, request: Request, **extra: Any) -> dict[str, Any]:
-        lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
+    def _ctx(active: str, request: Request, *, lang: str | None = None, **extra: Any) -> dict[str, Any]:
+        """`lang=None` (every pre-existing call site): derived from the
+        `dhra_lang` cookie, as before -- one URL, language picked client-side.
+        `lang=<code>` (the five /{lang}/... content routes below): the URL
+        itself is the language -- real, distinct, crawlable pages per
+        language, which a cookie-only switch can never give a search engine
+        (it never sends cookies, so it would only ever see English)."""
+        if lang is None:
+            lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
+        segments = request.url.path.split("/", 2)
+        first_segment = segments[1] if len(segments) > 1 else ""
+        lang_url_based = first_segment in LANGUAGES
+        if lang_url_based:
+            rest = "/" + (segments[2] if len(segments) > 2 else "")
+            lang_urls = {code: f"/{code}{rest}" for code in LANGUAGES}
+        else:
+            lang_urls = {code: f"/lang/{code}" for code in LANGUAGES}
         return {
             "active": active,
             "corpus_version": repo.corpus_version().manifest_hash[:12],
             "demo_banner": demo_banner,
             "lang": lang,
+            "lang_urls": lang_urls,
+            "lang_url_based": lang_url_based,
             "t": lambda key, **kw: translate(lang, key, **kw),
             **extra,
         }
+
+    def _valid_lang(lang: str) -> str:
+        if lang not in LANGUAGES:
+            raise HTTPException(status_code=404, detail="unknown language")
+        return lang
 
     @app.get("/lang/{code}")
     def set_language(code: str, request: Request) -> RedirectResponse:
@@ -114,12 +136,22 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     # --- Home / search (section 12: evidence above, narrative below) -------
 
-    @app.get("/", response_class=HTMLResponse)
-    def home(request: Request, q: str | None = None) -> HTMLResponse:
+    def _home_page(request: Request, q: str | None, lang: str | None) -> HTMLResponse:
         response = None
         if q:
             response = evidence_search(repo, q)
-        return templates.TemplateResponse(request, "search.html", _ctx("search", request, q=q or "", response=response))
+        return templates.TemplateResponse(request, "search.html", _ctx("search", request, lang=lang, q=q or "", response=response))
+
+    @app.get("/", response_class=HTMLResponse)
+    def home(request: Request, q: str | None = None) -> HTMLResponse:
+        return _home_page(request, q, lang=None)
+
+    @app.get("/{lang}/", response_class=HTMLResponse)
+    def home_lang(request: Request, lang: str, q: str | None = None) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _home_page(request, q, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     @app.get("/robots.txt", response_class=Response)
     def robots_txt(request: Request) -> Response:
@@ -129,8 +161,14 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     @app.get("/sitemap.xml", response_class=Response)
     def sitemap_xml(request: Request) -> Response:
         origin = f"{request.url.scheme}://{request.url.netloc}"
-        paths = ["/", "/chat", "/tutorial", "/assistant", "/updates", "/ingest", "/claims", "/aggregate", "/exclusions", "/trace"]
-        urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in paths)
+        # single-language pages (cookie-switched only, not worth a separate
+        # crawlable URL per language)
+        single_lang_paths = ["/ingest", "/claims", "/aggregate", "/exclusions", "/trace"]
+        # real per-language URLs -- these are what actually let Google index
+        # the German/French content separately, which a cookie never could
+        content_paths = ["/", "/chat", "/tutorial", "/assistant", "/updates"]
+        urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in single_lang_paths)
+        urls += "".join(f"<url><loc>{origin}/{code}{p}</loc></url>" for code in LANGUAGES for p in content_paths)
         xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
         return Response(xml, media_type="application/xml")
 
@@ -145,11 +183,21 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     # server -- see dhra.chat's module docstring for why a public,
     # accountless demo deployment needs that. ------------------------------
 
+    def _chat_page(request: Request, lang: str | None) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request, "chat.html", _ctx("chat", request, lang=lang, history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
+        )
+
     @app.get("/chat", response_class=HTMLResponse)
     def chat_get(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(
-            request, "chat.html", _ctx("chat", request, history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
-        )
+        return _chat_page(request, lang=None)
+
+    @app.get("/{lang}/chat", response_class=HTMLResponse)
+    def chat_get_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _chat_page(request, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     @app.post("/chat", response_class=HTMLResponse)
     def chat_post(request: Request, message: str = Form(...), history_json: str = Form("[]")) -> HTMLResponse:
@@ -288,20 +336,31 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     # --- Literature watch (external, OpenAlex -- section 6 monitoring, ------
     # extended past the corpus boundary; see literature_watch.py docstring) --
 
-    @app.get("/updates", response_class=HTMLResponse)
-    def updates(request: Request, error: str = "") -> HTMLResponse:
+    def _updates_page(request: Request, error: str, lang: str | None) -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "updates.html",
             _ctx(
                 "updates",
                 request,
+                lang=lang,
                 queries=list_watch_queries(repo),
                 candidates=list_candidates(repo),
                 dismissed=list_dismissed_candidates(repo),
                 error=error or None,
             ),
         )
+
+    @app.get("/updates", response_class=HTMLResponse)
+    def updates(request: Request, error: str = "") -> HTMLResponse:
+        return _updates_page(request, error, lang=None)
+
+    @app.get("/{lang}/updates", response_class=HTMLResponse)
+    def updates_lang(request: Request, lang: str, error: str = "") -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _updates_page(request, error, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     @app.post("/updates/queries")
     def updates_add_query(query_text: str = Form(...), actor: str = Form("researcher")) -> RedirectResponse:
@@ -416,28 +475,49 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             _ctx("trace", request, task=task, summary=summary, decisions=decisions, raw=raw),
         )
 
+    def _tutorial_page(request: Request, lang: str | None) -> HTMLResponse:
+        return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial", request, lang=lang))
+
     @app.get("/tutorial", response_class=HTMLResponse)
     def tutorial(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial", request))
+        return _tutorial_page(request, lang=None)
+
+    @app.get("/{lang}/tutorial", response_class=HTMLResponse)
+    def tutorial_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _tutorial_page(request, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     # --- Research & Teaching assistant (LLM-backed, section 10's boundary:
     # the model only ever proposes -- see dhra.llm/research_assistant/
     # teaching/peer_review) -------------------------------------------------
 
-    @app.get("/assistant", response_class=HTMLResponse)
-    def assistant(request: Request) -> HTMLResponse:
+    def _assistant_page(request: Request, lang: str | None) -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "assistant.html",
             _ctx(
                 "assistant",
                 request,
+                lang=lang,
                 wide=True,
                 llm_configured=_llm_client_or_none() is not None,
                 research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),
                 teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
             ),
         )
+
+    @app.get("/assistant", response_class=HTMLResponse)
+    def assistant(request: Request) -> HTMLResponse:
+        return _assistant_page(request, lang=None)
+
+    @app.get("/{lang}/assistant", response_class=HTMLResponse)
+    def assistant_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _assistant_page(request, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     def _require_llm() -> LLMClient:
         client = _llm_client_or_none()

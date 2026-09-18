@@ -6,6 +6,10 @@
 <title>{% block title %}DHRA{% endblock %}</title>
 <meta name="description" content="{% block description %}DHRA (Digital Humanities Research Agent) keeps every historical claim traceable to a source, and tells you plainly when it can't. Evidence-first search, locator-bound citations, and AI research assistance for historians.{% endblock %}">
 <link rel="canonical" href="{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}">
+{% if lang_url_based is defined and lang_url_based %}
+{% for code in languages %}<link rel="alternate" hreflang="{{ code }}" href="{{ request.url.scheme }}://{{ request.url.netloc }}{{ lang_urls[code] }}">
+{% endfor %}<link rel="alternate" hreflang="x-default" href="{{ request.url.scheme }}://{{ request.url.netloc }}{{ lang_urls['en'] }}">
+{% endif %}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DHRA">
 <meta property="og:title" content="{% block og_title %}DHRA -- Digital Humanities Research Agent{% endblock %}">
@@ -155,7 +159,7 @@
 <aside>
   <div class="wordmark"><img src="/static/logo.svg" alt="" width="52" height="52"> DHRA</div>
   <div class="lang-switch">
-    {% for code in languages %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
+    {% for code in languages %}<a href="{{ lang_urls[code] if lang_urls is defined else '/lang/' ~ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
   </div>
   <p class="tagline">{{ t('app.tagline') | safe }}</p>
   <nav>

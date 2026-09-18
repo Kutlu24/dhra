@@ -119,3 +119,83 @@ def test_apostrophes_in_translations_render_literally_not_as_html_entities(clien
     page = client.get("/updates")
     assert "&#39;" not in page.text
     assert "&#x27;" not in page.text
+
+
+# --- URL-based language variants (the five content pages a search engine ---
+# --- should actually be able to crawl and index separately per language) ---
+
+
+@pytest.mark.parametrize(
+    "path,marker",
+    [
+        ("/de/", "Belegsuche"),
+        ("/de/chat", "Fragen Sie etwas"),
+        ("/de/tutorial", "Erste Schritte"),
+        ("/de/assistant", "Forschungs- &amp; Lehrassistent"),
+        ("/de/updates", "Literaturneuigkeiten"),
+        ("/fr/", "Recherche de preuves"),
+        ("/fr/chat", "Discussion"),
+    ],
+)
+def test_lang_prefixed_content_pages_render_in_that_language(client, path, marker):
+    resp = client.get(path)
+    assert resp.status_code == 200
+    assert 'lang="de"' in resp.text if path.startswith("/de/") else 'lang="fr"' in resp.text
+    assert marker in resp.text
+
+
+def test_lang_prefixed_page_sets_the_cookie_so_the_rest_of_the_site_follows(client):
+    """Visiting a URL-based language page should also make the
+    cookie-only pages (search results, claims, etc.) consistent -- not a
+    jarring language flip the moment you leave the five content pages."""
+    resp = client.get("/de/chat")
+    assert resp.cookies.get(LANGUAGE_COOKIE) == "de"
+
+
+def test_invalid_lang_prefix_is_404_not_500(client):
+    resp = client.get("/xx/chat")
+    assert resp.status_code == 404
+    resp = client.get("/xx/")
+    assert resp.status_code == 404
+
+
+def test_bare_pages_are_unaffected_by_the_lang_prefix_routes(client, repo):
+    """The bare, cookie-only URLs (english by default, or whatever the
+    cookie says) must keep working exactly as before -- this refactor
+    must not have broken the original 130+ tests' assumptions."""
+    resp = client.get("/chat")
+    assert resp.status_code == 200
+    assert 'lang="en"' in resp.text
+
+
+def test_content_pages_carry_hreflang_alternates_for_all_languages(client):
+    page = client.get("/de/chat")
+    for code, path in [("en", "/en/chat"), ("de", "/de/chat"), ("fr", "/fr/chat")]:
+        assert f'hreflang="{code}" href="http://testserver{path}"' in page.text
+    assert 'hreflang="x-default" href="http://testserver/en/chat"' in page.text
+
+
+def test_non_content_pages_have_no_hreflang_alternates(client):
+    """/claims etc. are cookie-only, single-URL -- hreflang tags there
+    would incorrectly tell Google these are separate indexable language
+    variants when they're really the same URL showing different text."""
+    page = client.get("/claims")
+    assert "hreflang" not in page.text
+
+
+def test_language_switcher_uses_real_urls_on_content_pages_and_cookie_route_elsewhere(client):
+    content_page = client.get("/de/chat")
+    assert 'href="/en/chat"' in content_page.text
+    assert 'href="/fr/chat"' in content_page.text
+    assert "/lang/" not in content_page.text
+
+    other_page = client.get("/claims")
+    assert 'href="/lang/en"' in other_page.text
+    assert 'href="/lang/de"' in other_page.text
+
+
+def test_sitemap_lists_the_per_language_content_urls(client):
+    resp = client.get("/sitemap.xml")
+    for code in LANGUAGES:
+        for path in ["/", "/chat", "/tutorial", "/assistant", "/updates"]:
+            assert f"<loc>http://testserver/{code}{path}</loc>" in resp.text

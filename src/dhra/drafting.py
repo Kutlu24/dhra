@@ -50,6 +50,38 @@ def reject_draft(repo: DHRARepo, *, draft_id: str, reason: str, actor: str, task
     repo.events.append("draft.rejected", draft_id=draft_id, reason=reason, actor=actor, task=task)
 
 
+def list_drafts(repo: DHRARepo, *, kinds: tuple[str, ...] | None = None) -> list[Draft]:
+    """All drafts, newest first. `kinds` filters by `Draft.kind` (e.g.
+    the web UI's Research/Teaching columns each show a different subset)."""
+    latest_create: dict[str, dict] = {}
+    status_by_id: dict[str, DraftStatus] = {}
+    for event in repo.events.read_all():
+        draft_id = event.get("draft_id")
+        if draft_id is None:
+            continue
+        if event["type"] == "draft.created":
+            latest_create[draft_id] = event
+            status_by_id.setdefault(draft_id, DraftStatus.PENDING)
+        elif event["type"] == "draft.approved":
+            status_by_id[draft_id] = DraftStatus.APPROVED
+        elif event["type"] == "draft.rejected":
+            status_by_id[draft_id] = DraftStatus.REJECTED
+
+    drafts = [
+        Draft(
+            draft_id=draft_id,
+            kind=event["kind"],
+            text=event["text"],
+            status=status_by_id[draft_id],
+            created_by=event["actor"],
+            ts=event["ts"],
+        )
+        for draft_id, event in latest_create.items()
+        if kinds is None or event["kind"] in kinds
+    ]
+    return sorted(drafts, key=lambda d: d.ts, reverse=True)
+
+
 def get_draft(repo: DHRARepo, draft_id: str) -> Draft | None:
     latest_create = None
     status = DraftStatus.PENDING

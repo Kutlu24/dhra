@@ -35,11 +35,19 @@ from fastapi.templating import Jinja2Templates
 from dhra.aggregate import aggregate_by_source
 from dhra.annotation import add_annotation, annotations_for
 from dhra.bias import compute_bias_report
+from dhra.drafting import list_drafts
 from dhra.evidence import search as evidence_search
+from dhra.llm import LLMClient, LLMConfig, LLMError
 from dhra.models import ExclusionReason, Locator
+from dhra.peer_review import review_paper
 from dhra.repo import DHRARepo
+from dhra.research_assistant import suggest_research_questions
 from dhra.status import Status
+from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.trace import trace_decisions, trace_raw, trace_summary
+
+RESEARCH_DRAFT_KINDS = ("research_questions", "peer_review")
+TEACHING_DRAFT_KINDS = ("exam_questions", "rubric_assessment", "reading_list")
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -270,5 +278,71 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None) -> 
     @app.get("/tutorial", response_class=HTMLResponse)
     def tutorial(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial"))
+
+    # --- Research & Teaching assistant (LLM-backed, section 10's boundary:
+    # the model only ever proposes -- see dhra.llm/research_assistant/
+    # teaching/peer_review) -------------------------------------------------
+
+    def _llm_client_or_none() -> LLMClient | None:
+        try:
+            return LLMClient(LLMConfig.from_env())
+        except LLMError:
+            return None
+
+    @app.get("/assistant", response_class=HTMLResponse)
+    def assistant(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "assistant.html",
+            _ctx(
+                "assistant",
+                wide=True,
+                llm_configured=_llm_client_or_none() is not None,
+                research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),
+                teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
+            ),
+        )
+
+    def _require_llm() -> LLMClient:
+        client = _llm_client_or_none()
+        if client is None:
+            raise HTTPException(status_code=503, detail="No LLM backend configured -- set DHRA_GLM_BASE_URL and DHRA_GLM_API_KEY.")
+        return client
+
+    @app.post("/assistant/research-questions")
+    def assistant_research_questions(context_query: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        try:
+            suggest_research_questions(repo, client, context_query=context_query, actor=actor)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse("/assistant", status_code=303)
+
+    @app.post("/assistant/peer-review")
+    def assistant_peer_review(paper_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        try:
+            review_paper(repo, client, paper_text=paper_text, actor=actor)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse("/assistant", status_code=303)
+
+    @app.post("/assistant/exam-questions")
+    def assistant_exam_questions(source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
+        return RedirectResponse("/assistant", status_code=303)
+
+    @app.post("/assistant/rubric")
+    def assistant_rubric(paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
+        return RedirectResponse("/assistant", status_code=303)
+
+    @app.post("/assistant/reading-list")
+    def assistant_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        draft_reading_list(repo, client, course_topic=course_topic, actor=actor)
+        return RedirectResponse("/assistant", status_code=303)
 
     return app

@@ -21,7 +21,7 @@ from dhra.llm import LLMClient, LLMConfig, LLMError, log_and_complete
 from dhra.peer_review import extract_claims, review_paper
 from dhra.repo import DHRARepo
 from dhra.research_assistant import suggest_research_questions
-from dhra.teaching import assess_paper_against_rubric, draft_exam_questions
+from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 
 
 @pytest.fixture
@@ -175,6 +175,40 @@ def test_assess_paper_against_rubric_never_assigns_a_grade(repo):
     assert draft is not None
     sent_system_prompt = session.calls[0]["json"]["messages"][0]["content"]
     assert "do not assign a grade" in sent_system_prompt.lower() or "not assign a grade" in sent_system_prompt.lower()
+
+
+def test_draft_reading_list_separates_corpus_from_unverified_suggestions(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+    content = (
+        "PRIMARY SOURCES FROM YOUR CORPUS:\n1. The Tokat bridge repair record.\n\n"
+        "UNVERIFIED SUGGESTIONS (check before using -- not grounded in retrieved evidence):\n1. Some Book, Ch. 3."
+    )
+    client, session = _client(content)
+
+    draft_id = draft_reading_list(repo, client, course_topic="Tokat", actor="instructor")
+    from dhra.drafting import get_draft
+
+    draft = get_draft(repo, draft_id)
+    assert "PRIMARY SOURCES FROM YOUR CORPUS" in draft.text
+    assert "UNVERIFIED SUGGESTIONS" in draft.text
+    assert "not grounded in retrieved evidence" in draft.text
+
+    # the model saw the real matched excerpt, not an empty corpus section
+    sent_content = session.calls[0]["json"]["messages"][1]["content"]
+    assert "Tokat" in sent_content
+
+
+def test_draft_reading_list_works_with_no_corpus_matches(repo):
+    repo.ingest_text("an unrelated sentence", source_id="s")
+    client, session = _client("UNVERIFIED SUGGESTIONS (check before using -- not grounded in retrieved evidence):\n1. Some Book.")
+
+    draft_id = draft_reading_list(repo, client, course_topic="zzz_absent_zzz", actor="instructor")
+    from dhra.drafting import get_draft
+
+    draft = get_draft(repo, draft_id)
+    assert draft is not None  # does not raise, unlike suggest_research_questions
+    sent_content = session.calls[0]["json"]["messages"][1]["content"]
+    assert "no matching items found" in sent_content
 
 
 # --- dhra.peer_review ----------------------------------------------------------

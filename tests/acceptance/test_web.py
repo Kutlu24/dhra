@@ -141,3 +141,45 @@ def test_trace_level2_only_shows_discretionary_decisions(repo, client):
     resp = client.get("/trace")
     assert resp.status_code == 200
     assert "item.excluded" in resp.text
+
+
+def test_assistant_page_shows_research_and_teaching_columns(client, monkeypatch):
+    monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
+    monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
+    resp = client.get("/assistant")
+    assert resp.status_code == 200
+    research_pos = resp.text.index(">Research<")
+    teaching_pos = resp.text.index(">Teaching<")
+    assert research_pos < teaching_pos  # research column renders first (left)
+    assert "No LLM backend configured" in resp.text
+
+
+def test_assistant_forms_refuse_without_llm_configured(client, monkeypatch):
+    monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
+    monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
+    resp = client.post("/assistant/research-questions", data={"context_query": "x", "actor": "researcher"})
+    assert resp.status_code == 503
+
+
+def test_assistant_research_questions_creates_draft_shown_on_page(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "1. What caused the 1849 damage?"}}]}
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **kw: _FakeResp())
+
+    resp = client.post("/assistant/research-questions", data={"context_query": "Tokat", "actor": "researcher"}, follow_redirects=False)
+    assert resp.status_code == 303
+
+    page = client.get("/assistant")
+    assert "What caused the 1849 damage" in page.text
+    assert "research_questions" in page.text

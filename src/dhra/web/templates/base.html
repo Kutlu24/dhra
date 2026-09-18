@@ -67,8 +67,8 @@
     position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
     background: linear-gradient(180deg, var(--accent-soft) 0%, transparent 140px);
   }
-  .wordmark { display: flex; align-items: center; gap: .6rem; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; letter-spacing: .005em; margin-bottom: .15rem; }
-  .wordmark img { width: 32px; height: 32px; border-radius: 9px; flex: none; box-shadow: var(--shadow-sm); }
+  .wordmark { display: flex; align-items: center; gap: .75rem; font-family: var(--font-display); font-weight: 700; font-size: 2rem; letter-spacing: 0; margin-bottom: .25rem; }
+  .wordmark img { width: 52px; height: 52px; border-radius: 13px; flex: none; box-shadow: var(--shadow-sm); }
   .tagline { font-size: .74rem; color: var(--text-muted); margin: 0 0 1.75rem; line-height: 1.45; font-family: var(--font-display); font-style: italic; }
   nav { display: flex; flex-direction: column; gap: .15rem; font-family: var(--font-ui); font-size: .92rem; }
   nav a { text-decoration: none; color: var(--text); opacity: .8; padding: .45rem .6rem; border-radius: 7px; display: flex; align-items: center; gap: .55rem; }
@@ -147,7 +147,7 @@
 </head>
 <body>
 <aside>
-  <div class="wordmark"><img src="/static/logo.svg" alt="" width="32" height="32"> DHRA</div>
+  <div class="wordmark"><img src="/static/logo.svg" alt="" width="52" height="52"> DHRA</div>
   <p class="tagline">Digital Humanities Research Agent — evidence before narrative, always.</p>
   <nav>
     <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> Search</a>

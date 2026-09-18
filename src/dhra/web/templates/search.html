@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Search -- DHRA{% endblock %}
+{% block content %}
+<h1>Evidence search</h1>
+<form method="get" action="/">
+  <input type="text" name="q" value="{{ q }}" placeholder="literal query" autofocus>
+  <button type="submit">Search</button>
+</form>
+
+{% if response is not none %}
+  {% if response.variant_expansion %}
+    <p class="muted">Orthographic variants also searched: {{ response.variant_expansion | join(', ') }}</p>
+  {% endif %}
+
+  {% if response.evidence %}
+    <h2>Evidence ({{ response.evidence | length }})</h2>
+    {% for p in response.evidence %}
+      <div class="evidence">
+        <blockquote>&ldquo;{{ p.text }}&rdquo;</blockquote>
+        <div class="meta">
+          <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}">
+            {{ p.locator.item_id }} / {{ p.locator.rep_id }} [{{ p.locator.start }}:{{ p.locator.end }}]
+          </a>
+          <span>rationale: {{ p.rationale }}</span>
+          <a href="/claims/new?item_id={{ p.locator.item_id }}&rep_id={{ p.locator.rep_id }}&start={{ p.locator.start }}&end={{ p.locator.end }}">use as evidence for a claim &rarr;</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if response.absence_note %}
+    <p class="absence-note">{{ response.absence_note }}</p>
+  {% endif %}
+
+  {% if response.narrative %}
+    <div class="narrative">
+      <div class="badge">Generated -- not verified, not reproducible (see docs)</div>
+      <p>{{ response.narrative }}</p>
+    </div>
+  {% endif %}
+
+  <p class="muted"><a href="/trace?task={{ response.trace.task or '' }}">decision trace &rarr;</a></p>
+{% endif %}
+{% endblock %}

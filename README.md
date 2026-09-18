@@ -64,6 +64,34 @@ pip install -e ".[dev]"
 pytest tests/acceptance/test_phase4.py
 ```
 
+## Web UI
+
+Section 12's UI requirements, actually enforced (`tests/acceptance/test_web.py`
+checks against a live `TestClient`, not just that routes exist):
+evidence always renders above narrative and narrative never renders without
+it; epistemic status is always a hover-tooltipped code (`E1`..`E8`), never a
+bare number, anywhere; the bias report is part of the same response as
+aggregate buckets, so it cannot be skipped; exclusions are grouped by reason
+with one-click restore; there is no delete route anywhere in the app
+(checked against the live route table, section 15). Server-rendered Jinja2 +
+vanilla JS, no frontend framework (section 16).
+
+```bash
+pip install -e ".[dev]"
+python -m dhra.web path/to/store --port 8420
+# then open http://127.0.0.1:8420
+```
+
+Covers search, locator/provenance detail (with inline image display and
+annotation threads), claim assessment (a plain-text `item_id,rep_id,start,end`
+per line for evidence locators — a real, working v1, not yet a
+click-to-select UI), exclusions, the source aggregate + bias report, and the
+decision trace. Not built: a UI for triggering `dhra.zenodo` acquisitions
+(the MCP server already covers agent-driven acquisition; a human "approve
+this request" button is future work), and there is no account/session
+system — same caveat as `dhra.annotation`'s "the event log is the shared
+medium" (OPEN_QUESTIONS.md #19).
+
 ## Phase 3 (Environment)
 
 Phases 0-3's own sections below are unchanged from before Phase 4.

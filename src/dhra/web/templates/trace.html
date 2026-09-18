@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Trace -- DHRA{% endblock %}
+{% block content %}
+<h1>Decision trace</h1>
+<form method="get" action="/trace">
+  <input type="text" name="task" value="{{ task or '' }}" placeholder="task id (blank = everything)">
+  <button type="submit">Filter</button>
+</form>
+
+<h2>Level 1 -- summary</h2>
+<p>{{ summary.event_count }} event(s){% if summary.task %} for task <code>{{ summary.task }}</code>{% endif %}.</p>
+<table>
+  <tr><th>type</th><th>count</th></tr>
+  {% for t, c in summary.counts_by_type %}
+  <tr><td>{{ t }}</td><td>{{ c }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Level 2 -- decisions</h2>
+<p class="muted">Every discretionary judgement: exclusions, restorations, claim assessments, approvals.</p>
+<table>
+  <tr><th>seq</th><th>ts</th><th>type</th></tr>
+  {% for d in decisions %}
+  <tr><td>{{ d.seq }}</td><td>{{ d.ts }}</td><td>{{ d.type }}</td></tr>
+  {% else %}
+  <tr><td colspan="3" class="muted">None{% if not summary.task %} -- pick a task to see level 2/3{% endif %}.</td></tr>
+  {% endfor %}
+</table>
+
+{% if task %}
+<h2>Level 3 -- raw</h2>
+<table>
+  <tr><th>seq</th><th>ts</th><th>type</th></tr>
+  {% for e in raw %}
+  <tr><td>{{ e.seq }}</td><td>{{ e.ts }}</td><td>{{ e.type }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

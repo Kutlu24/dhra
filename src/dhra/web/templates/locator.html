@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Locator -- DHRA{% endblock %}
+{% block content %}
+<h1>Resolved passage</h1>
+<div class="evidence">
+  <blockquote>&ldquo;{{ passage.text }}&rdquo;</blockquote>
+  <div class="meta">
+    <span>{{ locator.item_id }} / {{ locator.rep_id }} [{{ locator.start }}:{{ locator.end }}]</span>
+  </div>
+</div>
+
+{% if is_image %}
+  <p><img src="/blob/{{ item.item_id }}" style="max-width:100%;border:1px solid #8884;"></p>
+{% endif %}
+
+{% if item %}
+<h2>Provenance</h2>
+<table>
+  <tr><th>source</th><td>{{ item.acquisition.source_id }}</td></tr>
+  <tr><th>method</th><td>{{ item.acquisition.method }}</td></tr>
+  <tr><th>retrieved</th><td>{{ item.acquisition.retrieved_at }}</td></tr>
+  <tr><th>access basis</th><td>{{ item.acquisition.access_basis }}</td></tr>
+  <tr><th>licence</th><td>{{ item.acquisition.licence_id or '(unknown)' }}</td></tr>
+  <tr><th>redistributable</th><td>{{ item.acquisition.redistributable if item.acquisition.redistributable is not none else '(unknown -- unknown is not permission)' }}</td></tr>
+  <tr><th>original reference</th><td>{{ item.acquisition.original_reference or '' }}</td></tr>
+</table>
+{% endif %}
+
+{% if rep %}
+<h2>Representation</h2>
+<table>
+  <tr><th>kind</th><td>{{ rep.kind }}</td></tr>
+  <tr><th>producer</th><td>{{ rep.producer }} {{ rep.producer_version }}</td></tr>
+  {% if rep.quality and rep.quality.mean_char_confidence is not none %}
+  <tr><th>OCR quality signal</th><td>{{ '%.2f' | format(rep.quality.mean_char_confidence) }} (transcription quality, not an epistemic judgement)</td></tr>
+  {% endif %}
+</table>
+{% endif %}
+
+<h2>Annotations</h2>
+{% for a in thread %}
+  <p><strong>{{ a.actor }}</strong> ({{ a.ts }}){% if a.resolved %} <span class="muted">resolved</span>{% endif %}<br>{{ a.text }}</p>
+{% else %}
+  <p class="muted">No annotations yet.</p>
+{% endfor %}
+<form method="post" action="/annotate">
+  <input type="hidden" name="target_type" value="item">
+  <input type="hidden" name="target_id" value="{{ locator.item_id }}">
+  <input type="text" name="actor" placeholder="your name" required>
+  <textarea name="text" rows="2" placeholder="add a note" required></textarea>
+  <button type="submit">Add annotation</button>
+</form>
+{% endblock %}

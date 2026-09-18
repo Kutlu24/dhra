@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Aggregate -- DHRA{% endblock %}
+{% block content %}
+<h1>Bias report</h1>
+<p class="muted">Shown before any aggregate result, unprompted (section 12) -- {{ result.bias_report.total_items }} items in the active corpus.</p>
+{% if result.bias_report.warnings %}
+  {% for w in result.bias_report.warnings %}
+    <div class="warning">{{ w }}</div>
+  {% endfor %}
+{% else %}
+  <p class="muted">No warnings raised by this report.</p>
+{% endif %}
+
+<h1>Aggregate: items by source</h1>
+<table>
+  <tr><th>source</th><th>items</th><th>drill down</th></tr>
+  {% for b in result.buckets %}
+  <tr>
+    <td>{{ b.label }}</td>
+    <td>{{ b.item_ids | length }}</td>
+    <td>
+      {% for iid in b.item_ids %}
+        <a href="/item/{{ iid }}">{{ iid }}</a>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

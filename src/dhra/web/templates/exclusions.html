@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Exclusions -- DHRA{% endblock %}
+{% block content %}
+<h1>Exclusions</h1>
+<p class="muted">Reversible annotations, never deletion (I4). Restore is one click.</p>
+{% for reason, items in grouped.items() %}
+  <h2>{{ reason }} <span class="muted">({{ items | length }})</span></h2>
+  <table>
+    <tr><th>item</th><th>actor</th><th>ts</th><th></th></tr>
+    {% for item_id, excl in items %}
+    <tr>
+      <td>{{ item_id }}</td>
+      <td>{{ excl.actor }}</td>
+      <td>{{ excl.ts }}</td>
+      <td>
+        <form class="inline" method="post" action="/exclusions/{{ item_id }}/restore">
+          <button type="submit">Restore</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p class="muted">No active exclusions.</p>
+{% endfor %}
+{% endblock %}

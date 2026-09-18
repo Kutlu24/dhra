@@ -251,3 +251,24 @@ Not yet put to the researcher — flagged here per section 0 rule 6.
     that runs unattended (a cron job, a scheduled agent run), that is a
     deployment/orchestration decision outside this repo, not something
     `dhra.monitoring` should silently promise it's doing.
+
+# Open questions (Web UI)
+
+21. **No account/session system, same as #19.** `dhra.web` has no auth —
+    anyone who can reach the port can do anything a researcher can
+    (search, assess claims, restore exclusions, add annotations). Fine
+    for `127.0.0.1`-only local use (the default and the only mode
+    tested); would need real auth before binding to a non-loopback
+    address or sharing the port with anyone else.
+
+22. **Claim evidence entry is plain-text locators, not point-and-click.**
+    `/claims/new` takes `item_id,rep_id,start,end` per line, typed or
+    pasted (search results link over with one locator pre-filled). A
+    real "select text in a passage to cite it" UI would be much better
+    ergonomics; this is a working v1, not the final form.
+
+23. **No UI for triggering `dhra.zenodo` acquisition.** The ASK-class
+    approval flow (`grant_approval`/`deny_approval`) is only reachable
+    via `dhra.mcp_server` right now, not the web UI. A human
+    "here's exactly what would be requested — approve?" button belongs
+    here per section 9.1's own framing, but wasn't built in this pass.

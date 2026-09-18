@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="DHRA">
-  <defs>
-    <radialGradient id="badge-bg" cx="35%" cy="30%" r="75%">
-      <stop offset="0" stop-color="#2f6e7b"/>
-      <stop offset="1" stop-color="#173a42"/>
-    </radialGradient>
-    <linearGradient id="badge-gold" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f0c876"/>
-      <stop offset="1" stop-color="#b8862f"/>
-    </linearGradient>
-  </defs>
-  <circle cx="50" cy="50" r="48" fill="url(#badge-bg)"/>
-  <circle cx="50" cy="50" r="48" fill="none" stroke="url(#badge-gold)" stroke-width="2.5"/>
-  <path d="M28 66 C28 40, 34 26, 46 22 C40 30, 38 42, 44 50 C36 48, 30 54, 30 64 Z" fill="url(#badge-gold)"/>
-  <path d="M46 22 C58 22, 66 30, 66 42 C66 52, 58 58, 48 56 C56 52, 58 42, 52 36 C48 32, 44 32, 40 36" fill="none" stroke="url(#badge-gold)" stroke-width="4.5" stroke-linecap="round"/>
-  <circle cx="68" cy="66" r="11" fill="none" stroke="#f7f5f0" stroke-width="4.5"/>
-  <line x1="75.8" y1="73.8" x2="83" y2="81" stroke="#f7f5f0" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M38 20 Q34 6 46 16 Z" fill="#3d6a9e" stroke="#1f2733" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M62 20 Q66 6 54 16 Z" fill="#3d6a9e" stroke="#1f2733" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="50" cy="60" rx="28" ry="33" fill="#4a7fb5" stroke="#1f2733" stroke-width="2.5"/>
+  <ellipse cx="18" cy="66" rx="12" ry="24" fill="#2d4f78" stroke="#1f2733" stroke-width="2" transform="rotate(18 18 66)"/>
+  <ellipse cx="82" cy="66" rx="12" ry="24" fill="#2d4f78" stroke="#1f2733" stroke-width="2" transform="rotate(-18 82 66)"/>
+  <circle cx="50" cy="51" r="30" fill="#fff8ec" stroke="#1f2733" stroke-width="2"/>
+  <circle cx="35" cy="49" r="8.5" fill="#1f2733"/>
+  <circle cx="37.7" cy="46.2" r="2.3" fill="#fff"/>
+  <circle cx="65" cy="49" r="8.5" fill="#1f2733"/>
+  <circle cx="67.7" cy="46.2" r="2.3" fill="#fff"/>
+  <path d="M46 59 L54 59 L50 66 Z" fill="#c9a227" stroke="#1f2733" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="35" cy="49" r="13.5" fill="none" stroke="#1f2733" stroke-width="3"/>
+  <circle cx="65" cy="49" r="13.5" fill="none" stroke="#1f2733" stroke-width="3"/>
+  <line x1="48.5" y1="49" x2="51.5" y2="49" stroke="#1f2733" stroke-width="3" stroke-linecap="round"/>
+  <line x1="21.5" y1="47" x2="14" y2="44" stroke="#1f2733" stroke-width="3" stroke-linecap="round"/>
+  <line x1="78.5" y1="47" x2="86" y2="44" stroke="#1f2733" stroke-width="3" stroke-linecap="round"/>
 </svg>

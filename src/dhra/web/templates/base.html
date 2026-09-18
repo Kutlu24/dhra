@@ -7,33 +7,23 @@
 <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
 <style>
   @font-face {
-    font-family: 'Fraunces'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/fraunces-latin.woff2') format('woff2');
+    font-family: 'Fredoka'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('/static/fonts/fredoka-latin.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
   }
   @font-face {
-    font-family: 'Fraunces'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/fraunces-latin-ext.woff2') format('woff2');
+    font-family: 'Fredoka'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('/static/fonts/fredoka-latin-ext.woff2') format('woff2');
     unicode-range: U+0100-02BA, U+1E00-1EFF;
   }
   @font-face {
-    font-family: 'Fraunces'; font-style: italic; font-weight: 400 600; font-display: swap;
-    src: url('/static/fonts/fraunces-italic-latin.woff2') format('woff2');
+    font-family: 'Quicksand'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('/static/fonts/quicksand-latin.woff2') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
   }
   @font-face {
-    font-family: 'Fraunces'; font-style: italic; font-weight: 400 600; font-display: swap;
-    src: url('/static/fonts/fraunces-italic-latin-ext.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+1E00-1EFF;
-  }
-  @font-face {
-    font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap;
-    src: url('/static/fonts/inter-latin.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
-  }
-  @font-face {
-    font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap;
-    src: url('/static/fonts/inter-latin-ext.woff2') format('woff2');
+    font-family: 'Quicksand'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('/static/fonts/quicksand-latin-ext.woff2') format('woff2');
     unicode-range: U+0100-02BA, U+1E00-1EFF;
   }
   :root {
@@ -42,8 +32,8 @@
     --accent: #2a5f6b; --accent-2: #3f7d8a; --accent-soft: #e7f0ee;
     --amber: #a3650a; --amber-soft: #fbf1e2;
     --radius: 12px;
-    --font-display: 'Fraunces', Georgia, ui-serif, serif;
-    --font-ui: 'Inter', var(--font-ui);
+    --font-display: 'Fredoka', system-ui, sans-serif;
+    --font-ui: 'Quicksand', system-ui, sans-serif;
     --shadow-sm: 0 1px 2px rgba(30, 25, 10, .05), 0 2px 10px rgba(30, 25, 10, .04);
     --shadow-md: 0 2px 6px rgba(30, 25, 10, .07), 0 8px 24px rgba(30, 25, 10, .06);
   }
@@ -69,7 +59,7 @@
   }
   .wordmark { display: flex; align-items: center; gap: .75rem; font-family: var(--font-display); font-weight: 700; font-size: 2rem; letter-spacing: 0; margin-bottom: .25rem; }
   .wordmark img { width: 52px; height: 52px; border-radius: 13px; flex: none; box-shadow: var(--shadow-sm); }
-  .tagline { font-size: .74rem; color: var(--text-muted); margin: 0 0 1.75rem; line-height: 1.45; font-family: var(--font-display); font-style: italic; }
+  .tagline { font-size: .74rem; color: var(--text-muted); margin: 0 0 1.75rem; line-height: 1.45; font-family: var(--font-ui); font-weight: 600; }
   nav { display: flex; flex-direction: column; gap: .15rem; font-family: var(--font-ui); font-size: .92rem; }
   nav a { text-decoration: none; color: var(--text); opacity: .8; padding: .45rem .6rem; border-radius: 7px; display: flex; align-items: center; gap: .55rem; }
   nav a:hover { opacity: 1; background: var(--accent-soft); }
@@ -94,13 +84,13 @@
     transition: box-shadow .15s ease;
   }
   .card:hover { box-shadow: var(--shadow-md); }
-  .evidence blockquote { margin: 0 0 .6rem; font-size: 1.15rem; line-height: 1.55; font-family: var(--font-display); font-style: italic; }
+  .evidence blockquote { margin: 0 0 .6rem; font-size: 1.15rem; line-height: 1.55; font-family: var(--font-display); font-weight: 500; }
   .evidence .meta { font-size: .78rem; color: var(--text-muted); display: flex; gap: 1.1rem; flex-wrap: wrap; font-family: var(--font-ui); }
   .evidence .meta a { color: var(--accent); }
   .narrative { border: 1px dashed var(--amber); border-radius: var(--radius); padding: 1rem 1.3rem; margin-top: 1.5rem; background: var(--amber-soft); }
   .narrative .badge { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--amber); font-weight: 700;
                        font-family: var(--font-ui); }
-  .absence-note { border-left: 3px solid var(--text-muted); padding: .6rem 1.1rem; color: var(--text-muted); font-style: italic; background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; }
+  .absence-note { border-left: 3px solid var(--text-muted); padding: .6rem 1.1rem; color: var(--text-muted); font-family: var(--font-ui); background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; }
   .status-code { font-family: ui-monospace, monospace; font-weight: 700; font-size: .85rem; border-radius: 5px;
                  padding: .15em .55em; cursor: help; background: var(--accent-soft); color: var(--accent); }
   .status-code[data-tone="warn"] { background: var(--amber-soft); color: var(--amber); }

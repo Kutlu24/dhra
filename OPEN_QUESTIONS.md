@@ -399,3 +399,41 @@ still open:
     specific language of their own choosing regardless of which
     language they happen to be browsing the UI in, unlike chat's
     turn-by-turn conversational expectation.
+
+31. **Public deployment reverted from "permanent product" back to
+    "demo" (2026-09-18), same day it was changed the other way.** The
+    researcher decided the render.yaml/dashboard `DHRA_DEMO_BANNER`
+    text should say this again, now pointing at a real downloadable
+    copy instead of just warning people off. Underlying reason
+    unchanged from the last time this was flagged: Render's free plan
+    has no persistent disk (store resets on every restart/redeploy) and
+    there's still no auth (one shared corpus) -- "demo" is the honest
+    label until one of those changes, not just a formality.
+
+32. **Desktop download (`dhra.desktop`, `desktop.spec`,
+    `.github/workflows/desktop-build.yml`) is real but genuinely
+    partial -- verified only what could actually be verified from this
+    Linux sandbox.** Built and ran the actual standalone Linux
+    executable end-to-end (server starts, store created under
+    `~/DHRA/store`, templates/static/fonts all served correctly from
+    the bundle, browser-open call fires) -- that part is not
+    speculative. Real, disclosed gaps: (a) the Windows/macOS builds
+    have never actually run anywhere -- PyInstaller can't cross-compile,
+    so they only exist once the GitHub Actions workflow runs on GitHub's
+    own `windows-latest`/`macos-latest` runners, which requires the
+    researcher to trigger it (Actions tab -> "Build desktop
+    executables" -> Run workflow, or push a `v*` tag); (b) neither
+    build bundles the `pdftotext` (poppler) or Tesseract OCR binaries
+    PDF/image ingestion needs -- those still have to be installed
+    separately by whoever runs the executable, same requirement as the
+    pip-installed CLI, just not obviously flagged to someone who
+    expected a truly self-contained app; (c) unsigned Windows/macOS
+    builds will show an "unknown publisher"/Gatekeeper warning on first
+    run -- fixing that needs a paid code-signing certificate (Apple
+    Developer Program, a Windows signing cert), out of scope here; (d)
+    no app icon (`icon=None` in `desktop.spec`) -- the logo only exists
+    as SVG, converting it to `.ico`/`.icns` is a small separate task;
+    (e) the demo site's "download a ready-to-run copy" link
+    (`/releases`) will 404-equivalent (empty releases page) until a
+    `v*` tag is actually pushed -- the workflow exists, a release
+    doesn't yet.

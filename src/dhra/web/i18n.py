@@ -280,6 +280,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "<code>DHRA_STORE_DIR</code> environment variable) at it:",
         "tutorial.terminal_mcp_note": "An MCP-connected agent (e.g. Claude Code/Desktop) can also "
         "drive DHRA directly &mdash; see <code>dhra.mcp_server</code> in the repo.",
+        "tutorial.download_heading": "Get your own copy",
+        "tutorial.download_body": "This site is a shared demo &mdash; its data resets on restart and isn't "
+        "private. For a persistent, private corpus, run DHRA on your own machine: "
+        '<a href="https://github.com/Kutlu24/dhra/releases">download a ready-to-run copy</a> '
+        "(no terminal needed), or "
+        '<a href="https://github.com/Kutlu24/dhra">clone the source</a> and follow the '
+        "install instructions in the README.",
         # --- status meanings (E1-E8 tooltips) ------------------------------------------------
         "status.attested": "E1 -- explicitly stated in a source in the corpus.",
         "status.corroborated": "E2 -- attested in &gt;=2 sources that passed an independence check.",
@@ -544,6 +551,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "(oder die Umgebungsvariable <code>DHRA_STORE_DIR</code>) darauf aus:",
         "tutorial.terminal_mcp_note": "Ein MCP-verbundener Agent (z. B. Claude Code/Desktop) kann DHRA auch "
         "direkt steuern &mdash; siehe <code>dhra.mcp_server</code> im Repository.",
+        "tutorial.download_heading": "Eigene Kopie holen",
+        "tutorial.download_body": "Diese Seite ist eine gemeinsam genutzte Demo &mdash; ihre Daten werden bei "
+        "jedem Neustart zurückgesetzt und sind nicht privat. Für ein dauerhaftes, privates "
+        "Korpus DHRA auf dem eigenen Rechner ausführen: "
+        '<a href="https://github.com/Kutlu24/dhra/releases">eine startfertige Kopie herunterladen</a> '
+        "(kein Terminal nötig), oder "
+        '<a href="https://github.com/Kutlu24/dhra">den Quellcode klonen</a> und der '
+        "Installationsanleitung in der README folgen.",
         # --- status meanings (E1-E8 tooltips) ------------------------------------------------
         "status.attested": "E1 -- ausdrücklich in einer Quelle des Korpus festgehalten.",
         "status.corroborated": "E2 -- in &gt;=2 Quellen belegt, die eine Unabhängigkeitsprüfung bestanden haben.",
@@ -810,6 +825,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "(ou la variable d'environnement <code>DHRA_STORE_DIR</code>) vers celui-ci :",
         "tutorial.terminal_mcp_note": "Un agent connecté via MCP (p. ex. Claude Code/Desktop) peut aussi "
         "piloter DHRA directement &mdash; voir <code>dhra.mcp_server</code> dans le dépôt.",
+        "tutorial.download_heading": "Obtenir votre propre copie",
+        "tutorial.download_body": "Ce site est une démo partagée &mdash; ses données sont réinitialisées à "
+        "chaque redémarrage et ne sont pas privées. Pour un corpus persistant et privé, "
+        "exécutez DHRA sur votre propre machine : "
+        '<a href="https://github.com/Kutlu24/dhra/releases">téléchargez une copie prête à '
+        "l'emploi</a> (aucun terminal requis), ou "
+        '<a href="https://github.com/Kutlu24/dhra">clonez le code source</a> et suivez les '
+        "instructions d'installation du README.",
         # --- status meanings (E1-E8 tooltips) ------------------------------------------------
         "status.attested": "E1 -- explicitement énoncé dans une source du corpus.",
         "status.corroborated": "E2 -- attesté dans &gt;=2 sources ayant passé un contrôle d'indépendance.",

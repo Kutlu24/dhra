@@ -178,7 +178,12 @@
 </aside>
 <main class="{{ 'wide' if wide else '' }}">
 {% if demo_banner is defined and demo_banner %}
-<div class="warning" style="margin-bottom:1.25rem;">{{ demo_banner }}</div>
+{# | safe deliberately: DHRA_DEMO_BANNER is set by whoever operates the
+   deployment (via render.yaml/the Render dashboard), not by a site
+   visitor -- treating it as trusted HTML is what lets it carry a real
+   link (e.g. to a downloadable copy), same trust level as any other
+   server-side config value rendered elsewhere in this app. #}
+<div class="warning" style="margin-bottom:1.25rem;">{{ demo_banner | safe }}</div>
 {% endif %}
 {% block content %}{% endblock %}
 </main>

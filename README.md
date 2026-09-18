@@ -113,6 +113,31 @@ identical in every language. The CLI and MCP server remain English-only.
 `tests/acceptance/test_i18n.py` checks all three languages carry the same
 key set and that language switching actually changes rendered pages.
 
+## Desktop download (no terminal required)
+
+`src/dhra/desktop.py` (packaged via `desktop.spec` + PyInstaller) is a
+double-click launcher for people who've never opened a terminal: it picks a
+default store under `~/DHRA/store`, starts the web server, and opens the
+browser for you. `.github/workflows/desktop-build.yml` builds real
+Windows/macOS/Linux executables on GitHub's own runners (PyInstaller
+doesn't cross-compile, so this can't be built from one machine) — run it
+manually from the Actions tab, or push a `v*` tag to also attach the
+binaries to a GitHub Release.
+
+Honest limitations, not solved here: the executable bundles DHRA's Python
+code, but not the external `pdftotext` (poppler) / Tesseract OCR binaries
+PDF and image ingestion shell out to — those still need to be installed
+separately, same as the pip-installed CLI. There's no native app window,
+just your default browser. And an unsigned Windows/macOS build shows an OS
+security warning on first run until someone buys a code-signing
+certificate — real money, not something built into this repo.
+
+```bash
+pip install -e ".[desktop-build]"
+pyinstaller desktop.spec
+# -> dist/dhra-desktop (or dhra-desktop.exe on Windows)
+```
+
 ## Terminal interface
 
 Everything the web UI does, scriptable, against the same store

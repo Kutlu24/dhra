@@ -8,3 +8,5 @@ __pycache__/
 *.db-shm
 /demo_store/
 .env*
+/build/
+/dist/

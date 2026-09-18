@@ -428,3 +428,14 @@ def test_pages_carry_seo_meta_tags(client):
     assert 'property="og:description"' in resp.text
     assert 'rel="canonical"' in resp.text
     assert "Literal, locator-bound evidence search" in resp.text  # page-specific description, not the generic default
+
+
+def test_demo_banner_renders_as_real_html_not_escaped_text(repo):
+    """demo_banner is operator-set (render.yaml/Render dashboard), not
+    visitor input -- it must render as real HTML so it can carry an
+    actual link (e.g. to a downloadable copy), not literal &lt;a&gt; text."""
+    banner_app = build_app(repo, demo_banner='Demo -- <a href="https://example.com/releases">Download it</a>.')
+    banner_client = TestClient(banner_app)
+    resp = banner_client.get("/")
+    assert '<a href="https://example.com/releases">Download it</a>' in resp.text
+    assert "&lt;a href" not in resp.text

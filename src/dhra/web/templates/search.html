@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Search -- DHRA{% endblock %}
 {% block content %}
-<h1>Evidence search</h1>
-<p class="lede">Literal, locator-bound. New here? <a href="/tutorial">Getting started &rarr;</a></p>
+<h1>{{ t('search.title') }}</h1>
+<p class="lede">{{ t('search.lede') | safe }}</p>
 <form method="get" action="/" class="search-box">
-  <input type="text" name="q" value="{{ q }}" placeholder="literal query" autofocus>
-  <button type="submit">Search</button>
+  <input type="text" name="q" value="{{ q }}" placeholder="{{ t('search.placeholder') }}" autofocus>
+  <button type="submit">{{ t('search.button') }}</button>
 </form>
 
 {% if response is not none %}
   {% if response.variant_expansion %}
-    <p class="muted">Orthographic variants also searched: {{ response.variant_expansion | join(', ') }}</p>
+    <p class="muted">{{ t('search.variants_note', variants=response.variant_expansion | join(', ')) }}</p>
   {% endif %}
 
   {% if response.evidence %}
-    <h2>Evidence ({{ response.evidence | length }})</h2>
+    <h2>{{ t('search.evidence_heading', n=response.evidence | length) }}</h2>
     {% for p in response.evidence %}
       <div class="card evidence">
         <blockquote>&ldquo;{{ p.text }}&rdquo;</blockquote>
@@ -22,8 +22,8 @@
           <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}">
             {{ p.locator.item_id }} / {{ p.locator.rep_id }} [{{ p.locator.start }}:{{ p.locator.end }}]
           </a>
-          <span>rationale: {{ p.rationale }}</span>
-          <a href="/claims/new?item_id={{ p.locator.item_id }}&rep_id={{ p.locator.rep_id }}&start={{ p.locator.start }}&end={{ p.locator.end }}">use as evidence for a claim &rarr;</a>
+          <span>{{ t('search.rationale_prefix') }} {{ p.rationale }}</span>
+          <a href="/claims/new?item_id={{ p.locator.item_id }}&rep_id={{ p.locator.rep_id }}&start={{ p.locator.start }}&end={{ p.locator.end }}">{{ t('search.use_as_evidence') | safe }}</a>
         </div>
       </div>
     {% endfor %}
@@ -35,11 +35,11 @@
 
   {% if response.narrative %}
     <div class="narrative">
-      <div class="badge">Generated -- not verified, not reproducible (see docs)</div>
+      <div class="badge">{{ t('search.narrative_badge') }}</div>
       <p>{{ response.narrative }}</p>
     </div>
   {% endif %}
 
-  <p class="muted"><a href="/trace?task={{ response.trace.task or '' }}">decision trace &rarr;</a></p>
+  <p class="muted"><a href="/trace?task={{ response.trace.task or '' }}">{{ t('search.decision_trace') | safe }}</a></p>
 {% endif %}
 {% endblock %}

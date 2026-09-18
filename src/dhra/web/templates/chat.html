@@ -1,30 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Chat -- DHRA{% endblock %}
 {% block content %}
-<h1>Chat</h1>
-<p class="lede">
-  Every answer is grounded in a real search of the corpus, shown above the
-  answer, with its own locator. No evidence, no answer &mdash; the model
-  never guesses. <a href="/tutorial">Getting started &rarr;</a>
-</p>
+<h1>{{ t('chat.title') }}</h1>
+<p class="lede">{{ t('chat.lede') | safe }}</p>
 
 {% if not llm_configured %}
-<div class="warning">
-  No LLM backend configured &mdash; showing evidence only, no generated answer.
-  Set <code>DHRA_GLM_BASE_URL</code> / <code>DHRA_GLM_API_KEY</code> to enable answers.
-</div>
+<div class="warning">{{ t('chat.not_configured') | safe }}</div>
 {% endif %}
 
 {% for turn in history %}
   {% if turn.role == 'user' %}
-    <div class="card chat-user"><strong>You:</strong> {{ turn.text }}</div>
+    <div class="card chat-user"><strong>{{ t('chat.you') }}</strong> {{ turn.text }}</div>
   {% else %}
     <div class="card chat-assistant">
       {% if turn.evidence %}
-        <div class="muted">Evidence:</div>
+        <div class="muted">{{ t('chat.evidence_label') }}</div>
         {% for p in turn.evidence %}
           <blockquote>&ldquo;{{ p.text }}&rdquo;
-            <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}" class="muted">[source]</a>
+            <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}" class="muted">{{ t('chat.source_link') }}</a>
           </blockquote>
         {% endfor %}
       {% endif %}
@@ -32,11 +25,11 @@
         <p class="absence-note">{{ turn.absence_note }}</p>
       {% endif %}
       {% if turn.llm_error %}
-        <p class="warning">Couldn't reach the LLM backend just now, showing evidence only. ({{ turn.llm_error }})</p>
+        <p class="warning">{{ t('chat.llm_error_prefix') }} ({{ turn.llm_error }})</p>
       {% endif %}
       {% if turn.text %}
         <div class="narrative">
-          <div class="badge">Generated -- grounded only in the evidence above</div>
+          <div class="badge">{{ t('chat.generated_badge') }}</div>
           <p>{{ turn.text }}</p>
         </div>
       {% endif %}
@@ -46,7 +39,7 @@
 
 <form method="post" action="/chat" class="search-box">
   <input type="hidden" name="history_json" value="{{ history_json }}">
-  <input type="text" name="message" placeholder="Ask about your corpus..." autofocus required>
-  <button type="submit">Send</button>
+  <input type="text" name="message" placeholder="{{ t('chat.placeholder') }}" autofocus required>
+  <button type="submit">{{ t('chat.send') }}</button>
 </form>
 {% endblock %}

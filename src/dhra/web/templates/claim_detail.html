@@ -3,13 +3,13 @@
 {% block content %}
 <h1>{{ assessment.claim_text }}</h1>
 <p>
-  <span class="status-code" data-tone="{{ status_tone(assessment.status) }}" title="{{ status_meaning(assessment.status) }}">{{ assessment.status.value }}</span>
-  <span class="muted">(hover for meaning -- never shown as a number)</span>
+  <span class="status-code" data-tone="{{ status_tone(assessment.status) }}" title="{{ status_meaning(assessment.status, lang) }}">{{ assessment.status.value }}</span>
+  <span class="muted">{{ t('claim_detail.hover_note') | safe }}</span>
 </p>
 <p>{{ assessment.note }}</p>
 
 {% if assessment.supporting %}
-<h2>Supporting</h2>
+<h2>{{ t('claim_detail.supporting') }}</h2>
 <ul>
   {% for loc in assessment.supporting %}
   <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
@@ -17,7 +17,7 @@
 </ul>
 {% endif %}
 {% if assessment.contradicting %}
-<h2>Contradicting</h2>
+<h2>{{ t('claim_detail.contradicting') }}</h2>
 <ul>
   {% for loc in assessment.contradicting %}
   <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
@@ -25,7 +25,7 @@
 </ul>
 {% endif %}
 {% if assessment.negating %}
-<h2>Negating</h2>
+<h2>{{ t('claim_detail.negating') }}</h2>
 <ul>
   {% for loc in assessment.negating %}
   <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
@@ -33,15 +33,15 @@
 </ul>
 {% endif %}
 
-<h2>History</h2>
+<h2>{{ t('claim_detail.history') }}</h2>
 <table>
-  <tr><th>status</th><th>note</th></tr>
+  <tr><th>{{ t('claim_detail.col_status') }}</th><th>{{ t('claim_detail.col_note') }}</th></tr>
   {% for h in history %}
   <tr>
-    <td><span class="status-code" data-tone="{{ status_tone(h.status) }}" title="{{ status_meaning(h.status) }}">{{ h.status.value }}</span></td>
+    <td><span class="status-code" data-tone="{{ status_tone(h.status) }}" title="{{ status_meaning(h.status, lang) }}">{{ h.status.value }}</span></td>
     <td>{{ h.note }}</td>
   </tr>
   {% endfor %}
 </table>
-<p><a href="/claims/new?item_id=&rep_id=&start=&end=">+ reassess with new evidence</a></p>
+<p><a href="/claims/new?item_id=&rep_id=&start=&end=">{{ t('claim_detail.reassess') }}</a></p>
 {% endblock %}

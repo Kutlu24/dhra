@@ -1,78 +1,73 @@
 {% extends "base.html" %}
 {% block title %}Updates -- DHRA{% endblock %}
 {% block content %}
-<h1>Literature updates</h1>
-<p class="lede">
-  Saved queries re-run against OpenAlex's open works index on demand --
-  no background process, so nothing is "watching" between checks. Click
-  <strong>Check now</strong> whenever you want, or run <code>dhra watch check</code>
-  from your own cron for real periodicity. <a href="/tutorial">Getting started &rarr;</a>
-</p>
+<h1>{{ t('updates.title') }}</h1>
+<p class="lede">{{ t('updates.lede') | safe }}</p>
 
 {% if error %}
-<div class="warning">Couldn't reach OpenAlex just now: {{ error }}</div>
+<div class="warning">{{ t('updates.error_prefix') }} {{ error }}</div>
 {% endif %}
 
-<h2>Watch queries</h2>
+<h2>{{ t('updates.queries_heading') }}</h2>
 {% if queries %}
 <table>
-  <tr><th>query</th><th>added by</th><th></th></tr>
+  <tr><th>{{ t('updates.col_query') }}</th><th>{{ t('updates.col_added_by') }}</th><th></th></tr>
   {% for q in queries %}
   <tr>
     <td>{{ q.query_text }}</td>
     <td class="muted">{{ q.actor }}</td>
     <td>
       <form class="inline" method="post" action="/updates/queries/{{ q.watch_id }}/remove">
-        <button type="submit">Remove</button>
+        <button type="submit">{{ t('updates.remove') }}</button>
       </form>
     </td>
   </tr>
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">No watch queries yet -- add one below.</p>
+<p class="muted">{{ t('updates.none_yet') | safe }}</p>
 {% endif %}
 
 <form method="post" action="/updates/queries" class="search-box">
-  <input type="text" name="query_text" placeholder="e.g. Ottoman manuscripts" required>
-  <button type="submit">Add query</button>
+  <input type="text" name="query_text" placeholder="{{ t('updates.query_placeholder') }}" required>
+  <button type="submit">{{ t('updates.add_query') }}</button>
 </form>
 
 <form method="post" action="/updates/check" style="margin: .5rem 0 1.5rem;">
-  <button type="submit">Check now</button>
+  <button type="submit">{{ t('updates.check_now') }}</button>
 </form>
 
-<h2>New ({{ candidates | length }})</h2>
+<h2>{{ t('updates.new_heading', n=candidates | length) }}</h2>
 {% if candidates %}
 {% for c in candidates %}
 <div class="card">
   <strong>{{ c.title }}</strong>
   <p class="muted" style="margin: .3rem 0;">
-    {{ c.authors | join(", ") if c.authors else "(no listed authors)" }}
+    {{ c.authors | join(", ") if c.authors else t('updates.no_authors') }}
     {% if c.publication_date %} &mdash; {{ c.publication_date }}{% endif %}
   </p>
   <div class="evidence meta">
-    {% if c.link %}<a href="{{ c.link }}" target="_blank" rel="noopener">open &rarr;</a>{% endif %}
+    {% if c.link %}<a href="{{ c.link }}" target="_blank" rel="noopener">{{ t('updates.open_link') | safe }}</a>{% endif %}
     {% if c.doi %}<span>{{ c.doi }}</span>{% endif %}
-    <span>found {{ c.found_ts[:10] }}</span>
+    <span>{{ t('updates.found_prefix') }} {{ c.found_ts[:10] }}</span>
   </div>
   <form class="inline" method="post" action="/updates/candidates/{{ c.work_id }}/dismiss" style="margin-top:.6rem;">
-    <button type="submit">Dismiss</button>
+    <button type="submit">{{ t('updates.dismiss') }}</button>
   </form>
 </div>
 {% endfor %}
 {% else %}
-<p class="muted">No new matches since the last check.</p>
+<p class="muted">{{ t('updates.no_new') }}</p>
 {% endif %}
 
 {% if dismissed %}
-<h2>Dismissed ({{ dismissed | length }})</h2>
+<h2>{{ t('updates.dismissed_heading', n=dismissed | length) }}</h2>
 {% for c in dismissed %}
 <div class="card" style="opacity:.7;">
   <strong>{{ c.title }}</strong>
-  <p class="muted" style="margin: .3rem 0;">{{ c.authors | join(", ") if c.authors else "(no listed authors)" }}</p>
+  <p class="muted" style="margin: .3rem 0;">{{ c.authors | join(", ") if c.authors else t('updates.no_authors') }}</p>
   <form class="inline" method="post" action="/updates/candidates/{{ c.work_id }}/restore">
-    <button type="submit">Restore</button>
+    <button type="submit">{{ t('updates.restore') }}</button>
   </form>
 </div>
 {% endfor %}

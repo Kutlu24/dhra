@@ -58,6 +58,7 @@ from dhra.repo import DHRARepo
 from dhra.research_assistant import suggest_research_questions
 from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
+from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
 from dhra.trace import trace_decisions, trace_raw, trace_summary
 
 RESEARCH_DRAFT_KINDS = ("research_questions", "peer_review")
@@ -66,33 +67,50 @@ TEACHING_DRAFT_KINDS = ("exam_questions", "rubric_assessment", "reading_list")
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 
-STATUS_MEANINGS = {
-    Status.ATTESTED: "E1 -- explicitly stated in a source in the corpus.",
-    Status.CORROBORATED: "E2 -- attested in >=2 sources that passed an independence check.",
-    Status.INFERRED: "E3 -- follows from E1/E2 by a stated chain.",
-    Status.CONTESTED: "E4 -- sources in the corpus disagree.",
-    Status.SINGLE_WITNESS: "E5 -- one source, reliability unestablished.",
-    Status.UNSUPPORTED: "E6 -- not found; scope of search stated. Not evidence of non-occurrence.",
-    Status.NEGATIVE: "E7 -- a source positively asserts non-occurrence.",
-    Status.OUT_OF_SCOPE: "E8 -- this corpus cannot in principle address this claim.",
+# UI-chrome translations only -- see dhra.web.i18n's module docstring for
+# the exact scope boundary (never the corpus/evidence text, never the
+# dynamically-generated domain text from dhra.evidence/bias/chat/etc.).
+STATUS_MEANING_KEYS = {
+    Status.ATTESTED: "status.attested",
+    Status.CORROBORATED: "status.corroborated",
+    Status.INFERRED: "status.inferred",
+    Status.CONTESTED: "status.contested",
+    Status.SINGLE_WITNESS: "status.single_witness",
+    Status.UNSUPPORTED: "status.unsupported",
+    Status.NEGATIVE: "status.negative",
+    Status.OUT_OF_SCOPE: "status.out_of_scope",
 }
+
+LANGUAGE_COOKIE = "dhra_lang"
 
 
 def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, demo_banner: str | None = None) -> FastAPI:
     app = FastAPI(title="DHRA", description="Digital Humanities Research Agent -- local evidence browser")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-    templates.env.globals["status_meaning"] = lambda s: STATUS_MEANINGS.get(Status(s), "")
+    templates.env.globals["status_meaning"] = lambda s, lang: translate(lang, STATUS_MEANING_KEYS.get(Status(s), ""))
     templates.env.globals["status_tone"] = lambda s: "warn" if Status(s) in (Status.CONTESTED, Status.UNSUPPORTED, Status.NEGATIVE) else "ok"
+    templates.env.globals["languages"] = LANGUAGES
+    templates.env.globals["language_labels"] = LANGUAGE_LABELS
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    def _ctx(active: str, **extra: Any) -> dict[str, Any]:
+    def _ctx(active: str, request: Request, **extra: Any) -> dict[str, Any]:
+        lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
         return {
             "active": active,
             "corpus_version": repo.corpus_version().manifest_hash[:12],
             "demo_banner": demo_banner,
+            "lang": lang,
+            "t": lambda key, **kw: translate(lang, key, **kw),
             **extra,
         }
+
+    @app.get("/lang/{code}")
+    def set_language(code: str, request: Request) -> RedirectResponse:
+        dest = request.headers.get("referer") or "/"
+        resp = RedirectResponse(dest, status_code=303)
+        resp.set_cookie(LANGUAGE_COOKIE, resolve_language(code), max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
 
     # --- Home / search (section 12: evidence above, narrative below) -------
 
@@ -101,7 +119,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         response = None
         if q:
             response = evidence_search(repo, q)
-        return templates.TemplateResponse(request, "search.html", _ctx("search", q=q or "", response=response))
+        return templates.TemplateResponse(request, "search.html", _ctx("search", request, q=q or "", response=response))
 
     def _llm_client_or_none() -> LLMClient | None:
         try:
@@ -117,7 +135,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     @app.get("/chat", response_class=HTMLResponse)
     def chat_get(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(
-            request, "chat.html", _ctx("chat", history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
+            request, "chat.html", _ctx("chat", request, history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
         )
 
     @app.post("/chat", response_class=HTMLResponse)
@@ -127,7 +145,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         except json.JSONDecodeError:
             history = []
         client = _llm_client_or_none()
-        result = chat_answer(repo, client, question=message, history=history)
+        lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
+        result = chat_answer(repo, client, question=message, history=history, lang=lang)
 
         evidence_dicts = [
             {
@@ -144,7 +163,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return templates.TemplateResponse(
             request,
             "chat.html",
-            _ctx("chat", history=updated_history, history_json=json.dumps(updated_history), llm_configured=client is not None),
+            _ctx("chat", request, history=updated_history, history_json=json.dumps(updated_history), llm_configured=client is not None),
         )
 
     # --- Ingestion: manual_upload only (real network acquisition, e.g.
@@ -153,7 +172,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/ingest", response_class=HTMLResponse)
     def ingest_form(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "ingest.html", _ctx("ingest"))
+        return templates.TemplateResponse(request, "ingest.html", _ctx("ingest", request))
 
     @app.post("/ingest")
     def ingest_submit(
@@ -204,7 +223,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return templates.TemplateResponse(
             request,
             "locator.html",
-            _ctx("search", locator=locator, passage=passage, item=item, rep=rep, is_image=is_image, thread=thread),
+            _ctx("search", request, locator=locator, passage=passage, item=item, rep=rep, is_image=is_image, thread=thread),
         )
 
     @app.get("/item/{item_id}")
@@ -246,7 +265,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         grouped: dict[str, list] = {}
         for item_id, excl in projection.active_exclusions.items():
             grouped.setdefault(excl.reason.value, []).append((item_id, excl))
-        return templates.TemplateResponse(request, "exclusions.html", _ctx("exclusions", grouped=grouped))
+        return templates.TemplateResponse(request, "exclusions.html", _ctx("exclusions", request, grouped=grouped))
 
     @app.post("/exclusions/{item_id}/restore")
     def restore(item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
@@ -263,6 +282,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             "updates.html",
             _ctx(
                 "updates",
+                request,
                 queries=list_watch_queries(repo),
                 candidates=list_candidates(repo),
                 dismissed=list_dismissed_candidates(repo),
@@ -303,7 +323,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     @app.get("/aggregate", response_class=HTMLResponse)
     def aggregate(request: Request) -> HTMLResponse:
         result = aggregate_by_source(repo, expected_languages=expected_languages)
-        return templates.TemplateResponse(request, "aggregate.html", _ctx("aggregate", result=result))
+        return templates.TemplateResponse(request, "aggregate.html", _ctx("aggregate", request, result=result))
 
     # --- Claims (section 12: status as a code, never a number) -------------
 
@@ -311,14 +331,14 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     def claims_list(request: Request) -> HTMLResponse:
         projection = repo.projection()
         claims = sorted(projection.claims.values(), key=lambda c: c.claim_id)
-        return templates.TemplateResponse(request, "claims.html", _ctx("claims", claims=claims))
+        return templates.TemplateResponse(request, "claims.html", _ctx("claims", request, claims=claims))
 
     @app.get("/claims/new", response_class=HTMLResponse)
     def claim_new(request: Request, item_id: str = "", rep_id: str = "", start: str = "", end: str = "") -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "claim_new.html",
-            _ctx("claims", item_id=item_id, rep_id=rep_id, start=start, end=end),
+            _ctx("claims", request, item_id=item_id, rep_id=rep_id, start=start, end=end),
         )
 
     @app.get("/claims/{claim_id}", response_class=HTMLResponse)
@@ -327,7 +347,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         if assessment is None:
             raise HTTPException(status_code=404, detail="no such claim")
         history = repo.claim_history(claim_id)
-        return templates.TemplateResponse(request, "claim_detail.html", _ctx("claims", assessment=assessment, history=history))
+        return templates.TemplateResponse(request, "claim_detail.html", _ctx("claims", request, assessment=assessment, history=history))
 
     def _parse_locators(raw: str) -> list[Locator]:
         """One 'item_id,rep_id,start,end' per line -- the plain-text
@@ -380,12 +400,12 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return templates.TemplateResponse(
             request,
             "trace.html",
-            _ctx("trace", task=task, summary=summary, decisions=decisions, raw=raw),
+            _ctx("trace", request, task=task, summary=summary, decisions=decisions, raw=raw),
         )
 
     @app.get("/tutorial", response_class=HTMLResponse)
     def tutorial(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial"))
+        return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial", request))
 
     # --- Research & Teaching assistant (LLM-backed, section 10's boundary:
     # the model only ever proposes -- see dhra.llm/research_assistant/
@@ -398,6 +418,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             "assistant.html",
             _ctx(
                 "assistant",
+                request,
                 wide=True,
                 llm_configured=_llm_client_or_none() is not None,
                 research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),

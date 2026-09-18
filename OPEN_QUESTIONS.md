@@ -367,3 +367,35 @@ still open:
     transliteration; (c) results are metadata + link only, never
     ingested as corpus evidence, so a promising hit still requires the
     researcher to manually acquire and `dhra ingest` it themselves.
+
+30. **Trilingual web UI (`dhra.web.i18n`, 2026-09-18) — scope is the
+    chrome, not the CLI/MCP server or the domain text.** The researcher
+    asked for German and French alongside English. Built as a
+    `dhra_lang` cookie + `GET /lang/{code}` switcher and a translation
+    table covering every template's static strings (~140 keys × 3
+    languages) plus the E1-E8 tooltip meanings, checked in
+    `test_i18n.py` for key-set parity across languages and that
+    switching actually changes rendered output. Real gaps: (a) the
+    German and French text is my own (Claude's) translation, not a
+    professional/native-speaker review — plausible for an initial pass,
+    not verified by a fluent reader in either language; (b)
+    `dhra.cli`'s `--help` text and `dhra.mcp_server`'s tool descriptions
+    are untranslated, English-only, on purpose — this was scoped to "the
+    site"; (c) dynamically-generated text (evidence rationale strings,
+    absence notes, bias-report warnings, claim-assessment notes,
+    chat/GLM-generated answers) stays in whatever language the
+    underlying `dhra.evidence`/`dhra.bias`/`dhra.chat`/LLM modules
+    produce it in — localizing those would mean threading a `lang`
+    parameter through the whole domain layer shared with the CLI and
+    MCP server, a materially bigger project than translating the web
+    chrome, and out of scope here; (d) fixed for `dhra.chat` only --
+    `answer()` now takes `lang` and appends "Answer in {language}" to
+    the system prompt, wired from the `dhra_lang` cookie
+    (`test_chat_answers_in_the_web_uis_selected_language`), tested
+    against a fake session, not yet against the real GLM endpoint.
+    Deliberately not extended to `research_assistant`/`teaching`/
+    `peer_review` on `/assistant` -- those produce artifacts (exam
+    questions, research-question drafts) a researcher likely wants in a
+    specific language of their own choosing regardless of which
+    language they happen to be browsing the UI in, unlike chat's
+    turn-by-turn conversational expectation.

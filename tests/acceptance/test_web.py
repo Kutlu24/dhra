@@ -220,6 +220,36 @@ def test_chat_conversation_state_round_trips_through_the_form(repo, client, monk
     assert "Tokat" in resp.text and "assistant" in resp.text
 
 
+def test_chat_post_sends_the_selected_ui_language_to_the_model(repo, client, monkeypatch):
+    from dhra.web.app import LANGUAGE_COOKIE
+
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    calls = []
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "Die Brücke wurde 1849 repariert."}}]}
+
+    def _fake_post(self, url, *, headers, json, timeout):
+        calls.append(json)
+        return _FakeResp()
+
+    monkeypatch.setattr(requests.Session, "post", _fake_post)
+
+    client.cookies.set(LANGUAGE_COOKIE, "de")
+    client.post("/chat", data={"message": "Tokat", "history_json": "[]"})
+
+    assert "German" in calls[0]["messages"][0]["content"]
+
+
 def test_chat_never_generates_an_answer_without_evidence(repo, client, monkeypatch):
     monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
     monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")

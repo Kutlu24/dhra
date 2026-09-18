@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang if lang is defined else 'en' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -77,6 +77,10 @@
   nav .icon { width: 1.1em; text-align: center; opacity: .85; }
   .corpus-version { font-size: .68rem; color: var(--text-muted); font-family: ui-monospace, monospace; margin-top: 1.5rem;
     padding-top: 1rem; border-top: 1px solid var(--border); word-break: break-all; }
+  .lang-switch { display: flex; gap: .4rem; margin-top: .9rem; font-family: var(--font-ui); font-size: .72rem; }
+  .lang-switch a { color: var(--text-muted); text-decoration: none; padding: .1rem .35rem; border-radius: 5px; letter-spacing: .03em; }
+  .lang-switch a:hover { background: var(--accent-soft); color: var(--accent); }
+  .lang-switch a.active { color: var(--accent); font-weight: 700; background: var(--accent-soft); }
   main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 780px; }
   main.wide { max-width: 1100px; }
   h1 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 600; letter-spacing: -.005em; margin: 0 0 .4rem; }
@@ -148,20 +152,23 @@
 <body>
 <aside>
   <div class="wordmark"><img src="/static/logo.svg" alt="" width="52" height="52"> DHRA</div>
-  <p class="tagline">Digital Humanities Research Agent — evidence before narrative, always.</p>
+  <p class="tagline">{{ t('app.tagline') | safe }}</p>
   <nav>
-    <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> Search</a>
-    <a href="/chat" class="{{ 'active' if active == 'chat' }}"><span class="icon">&#128172;</span> Chat</a>
-    <a href="/ingest" class="{{ 'active' if active == 'ingest' }}"><span class="icon">&#128228;</span> Add item</a>
-    <a href="/claims" class="{{ 'active' if active == 'claims' }}"><span class="icon">&#128203;</span> Claims</a>
-    <a href="/aggregate" class="{{ 'active' if active == 'aggregate' }}"><span class="icon">&#128202;</span> Aggregate</a>
-    <a href="/exclusions" class="{{ 'active' if active == 'exclusions' }}"><span class="icon">&#8635;</span> Exclusions</a>
-    <a href="/trace" class="{{ 'active' if active == 'trace' }}"><span class="icon">&#128337;</span> Trace</a>
-    <a href="/updates" class="{{ 'active' if active == 'updates' }}"><span class="icon">&#128240;</span> Updates</a>
-    <a href="/assistant" class="{{ 'active' if active == 'assistant' }}"><span class="icon">&#129504;</span> Research &amp; Teaching</a>
-    <a href="/tutorial" class="{{ 'active' if active == 'tutorial' }}"><span class="icon">&#128218;</span> Getting started</a>
+    <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> {{ t('nav.search') }}</a>
+    <a href="/chat" class="{{ 'active' if active == 'chat' }}"><span class="icon">&#128172;</span> {{ t('nav.chat') }}</a>
+    <a href="/ingest" class="{{ 'active' if active == 'ingest' }}"><span class="icon">&#128228;</span> {{ t('nav.add_item') }}</a>
+    <a href="/claims" class="{{ 'active' if active == 'claims' }}"><span class="icon">&#128203;</span> {{ t('nav.claims') }}</a>
+    <a href="/aggregate" class="{{ 'active' if active == 'aggregate' }}"><span class="icon">&#128202;</span> {{ t('nav.aggregate') }}</a>
+    <a href="/exclusions" class="{{ 'active' if active == 'exclusions' }}"><span class="icon">&#8635;</span> {{ t('nav.exclusions') }}</a>
+    <a href="/trace" class="{{ 'active' if active == 'trace' }}"><span class="icon">&#128337;</span> {{ t('nav.trace') }}</a>
+    <a href="/updates" class="{{ 'active' if active == 'updates' }}"><span class="icon">&#128240;</span> {{ t('nav.updates') }}</a>
+    <a href="/assistant" class="{{ 'active' if active == 'assistant' }}"><span class="icon">&#129504;</span> {{ t('nav.assistant') | safe }}</a>
+    <a href="/tutorial" class="{{ 'active' if active == 'tutorial' }}"><span class="icon">&#128218;</span> {{ t('nav.tutorial') }}</a>
   </nav>
-  <div class="corpus-version">corpus {{ corpus_version if corpus_version is defined else '' }}</div>
+  <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
+  <div class="lang-switch">
+    {% for code in languages %}<a href="/lang/{{ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
+  </div>
 </aside>
 <main class="{{ 'wide' if wide else '' }}">
 {% if demo_banner is defined and demo_banner %}

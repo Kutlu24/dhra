@@ -29,6 +29,11 @@ _CHAT_SYSTEM_PROMPT = (
     "supported by the excerpts you were given."
 )
 
+# Web UI language (dhra.web.i18n), never the evidence's own language --
+# the excerpts above stay exactly as ingested either way; this only
+# steers which language the model answers IN.
+_RESPONSE_LANGUAGE_NAMES = {"en": "English", "de": "German", "fr": "French"}
+
 
 @dataclass(frozen=True)
 class ChatTurnResult:
@@ -45,12 +50,16 @@ def answer(
     question: str,
     history: list[dict],
     max_passages: int = 8,
+    lang: str = "en",
     task: str | None = None,
 ) -> ChatTurnResult:
     """`history`: prior turns as [{"role": "user"|"assistant", "text": ...}, ...] --
     supplied by the caller each time (see module docstring), not stored here.
     `client=None` returns evidence only, no generated answer -- same
-    graceful "not configured" degradation as the rest of the web UI."""
+    graceful "not configured" degradation as the rest of the web UI.
+    `lang`: the web UI's selected language (dhra.web.i18n) -- steers which
+    language the model answers in, nothing about how evidence is searched
+    or what it says."""
     response = evidence_search(repo, question, task=task)
     if not response.evidence:
         return ChatTurnResult(evidence=(), absence_note=response.absence_note, answer=None)
@@ -62,9 +71,11 @@ def answer(
         f"- [{p.locator.item_id}/{p.locator.rep_id}:{p.locator.start}-{p.locator.end}] \"{p.text}\""
         for p in response.evidence[:max_passages]
     )
+    language_name = _RESPONSE_LANGUAGE_NAMES.get(lang, "English")
+    system_prompt = f"{_CHAT_SYSTEM_PROMPT} Answer in {language_name}, regardless of the language of the evidence excerpts."
     history_messages = [{"role": h["role"], "content": h["text"]} for h in history if h.get("role") in ("user", "assistant") and h.get("text")]
     messages = (
-        [{"role": "system", "content": _CHAT_SYSTEM_PROMPT}]
+        [{"role": "system", "content": system_prompt}]
         + history_messages
         + [{"role": "user", "content": f"Evidence:\n{excerpts}\n\nQuestion: {question}"}]
     )

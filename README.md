@@ -93,6 +93,26 @@ human "approve this request" button is future work), and there is no
 account/session system — same caveat as `dhra.annotation`'s "the event log
 is the shared medium" (OPEN_QUESTIONS.md #19).
 
+### Trilingual (English / German / French)
+
+`dhra.web.i18n` — a language switcher (EN | DE | FR) in the sidebar, backed
+by a `dhra_lang` cookie (`GET /lang/{code}`, no URL prefix per route). Scope
+is deliberately the **UI chrome only** — nav, headings, labels, buttons, the
+`/tutorial` walkthrough, and the E1-E8 status-code tooltip meanings — never
+the corpus/evidence text itself (translating a researcher's primary sources
+would be a fidelity violation, not a UI nicety) and never the
+dynamically-generated domain text from `dhra.evidence`/`dhra.bias`/`dhra.chat`/
+the LLM-backed modules (evidence rationale strings, absence notes, bias
+warnings, claim notes, GLM answers) — those are produced by core modules
+shared with the CLI and MCP server, and localizing them would mean threading
+a `lang` parameter through the whole domain layer, a materially bigger
+project than a trilingual web chrome. `dhra ingest`/`dhra search`/etc.
+command examples inside the tutorial's `<pre><code>` blocks stay
+untranslated on purpose too — literal, copy-pasteable shell commands,
+identical in every language. The CLI and MCP server remain English-only.
+`tests/acceptance/test_i18n.py` checks all three languages carry the same
+key set and that language switching actually changes rendered pages.
+
 ## Terminal interface
 
 Everything the web UI does, scriptable, against the same store

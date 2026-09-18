@@ -1,100 +1,69 @@
 {% extends "base.html" %}
 {% block title %}Getting started -- DHRA{% endblock %}
 {% block content %}
-<h1>Getting started</h1>
-<p class="lede">
-  DHRA keeps every claim traceable to a source, and shows you when it can't.
-  Everything below works the same whether you click through this page or
-  type <code>dhra</code> commands in a terminal &mdash; use whichever fits
-  the moment.
-</p>
+<h1>{{ t('tutorial.title') }}</h1>
+<p class="lede">{{ t('tutorial.lede') }}</p>
 
-<h2>1. Add something to the corpus</h2>
+<h2>{{ t('tutorial.step1_heading') }}</h2>
 <div class="card">
-  <p><a href="/ingest">Add item &rarr;</a> &mdash; paste text, or upload a
-  <code>.pdf</code>/<code>.png</code>/<code>.jpg</code>/<code>.tif</code>/<code>.xml</code>
-  file. PDFs are read with <code>pdftotext</code>, images with real Tesseract
-  OCR &mdash; not simulated. You'll land on the new item's page once it's in.</p>
-  <p class="muted">Terminal equivalent:</p>
+  <p>{{ t('tutorial.step1_body') }}</p>
+  <p class="muted">{{ t('tutorial.terminal_equivalent') }}</p>
   <pre><code>dhra ingest --source-id "my_archive" --text "paste your text here"
 dhra ingest --source-id "my_archive" --file path/to/scan.pdf</code></pre>
 </div>
 
-<h2>2. Search it</h2>
+<h2>{{ t('tutorial.step2_heading') }}</h2>
 <div class="card">
-  <p><a href="/">Search &rarr;</a> is literal, case-insensitive full-text
-  search. A hit shows you exactly where it came from (a locator you can
-  click to see the full source and its provenance) and why it matched. A
-  miss tells you how much of the corpus was actually searched and how
-  legible it was &mdash; never just "not found".</p>
+  <p>{{ t('tutorial.step2_body') }}</p>
   <pre><code>dhra search "your query"</code></pre>
 </div>
 
-<h2>3. Assess a claim</h2>
+<h2>{{ t('tutorial.step3_heading') }}</h2>
 <div class="card">
-  <p>Found evidence for something? Click <em>use as evidence for a claim</em>
-  next to any search result, or go to <a href="/claims">Claims &rarr;</a>
-  directly. You write the claim in your own words and list the locators
-  that support (or contradict, or negate) it &mdash; DHRA's own code
-  decides the status from that list, never a model, never a number:</p>
+  <p>{{ t('tutorial.step3_body') }}</p>
   <table>
-    <tr><td><span class="status-code" title="explicitly stated in a source in the corpus">E1</span></td><td>attested</td></tr>
-    <tr><td><span class="status-code" title="one source, reliability unestablished">E5</span></td><td>single witness</td></tr>
-    <tr><td><span class="status-code" data-tone="warn" title="sources in the corpus disagree">E4</span></td><td>contested</td></tr>
-    <tr><td><span class="status-code" data-tone="warn" title="not found; not evidence of non-occurrence">E6</span></td><td>unsupported</td></tr>
+    <tr><td><span class="status-code" title="{{ status_meaning('E1', lang) }}">E1</span></td><td>{{ t('tutorial.status_attested') }}</td></tr>
+    <tr><td><span class="status-code" title="{{ status_meaning('E5', lang) }}">E5</span></td><td>{{ t('tutorial.status_single_witness') }}</td></tr>
+    <tr><td><span class="status-code" data-tone="warn" title="{{ status_meaning('E4', lang) }}">E4</span></td><td>{{ t('tutorial.status_contested') }}</td></tr>
+    <tr><td><span class="status-code" data-tone="warn" title="{{ status_meaning('E6', lang) }}">E6</span></td><td>{{ t('tutorial.status_unsupported') }}</td></tr>
   </table>
-  <p class="muted">Hover any status code anywhere in the app to see what it means &mdash; that tooltip is the only place a status's meaning lives.</p>
+  <p class="muted">{{ t('tutorial.step3_hover_note') }}</p>
   <pre><code>dhra claims assess my-claim-id --text "the claim, in your words" \
   --supporting item_id,rep_id,start,end</code></pre>
 </div>
 
-<h2>4. Check the corpus for bias</h2>
+<h2>{{ t('tutorial.step4_heading') }}</h2>
 <div class="card">
-  <p><a href="/aggregate">Aggregate &rarr;</a> always shows a bias report
-  first &mdash; source concentration, uneven date coverage, languages you
-  expected but never see, failed acquisitions &mdash; before any breakdown
-  of the corpus itself. It's not something you have to remember to check.</p>
+  <p>{{ t('tutorial.step4_body') }}</p>
   <pre><code>dhra aggregate</code></pre>
 </div>
 
-<h2>5. Exclude, don't delete</h2>
+<h2>{{ t('tutorial.step5_heading') }}</h2>
 <div class="card">
-  <p>Bad OCR, wrong date range, off-topic &mdash; excluding an item takes it
-  out of search and aggregates, but the item itself is never deleted.
-  <a href="/exclusions">Exclusions &rarr;</a> lists every one, grouped by
-  reason, restorable in one click.</p>
+  <p>{{ t('tutorial.step5_body') }}</p>
   <pre><code>dhra exclusions list
 dhra exclusions restore &lt;item_id&gt;</code></pre>
 </div>
 
-<h2>6. Track new publications</h2>
+<h2>{{ t('tutorial.step6_heading') }}</h2>
 <div class="card">
-  <p>Save a keyword query and <a href="/updates">Updates &rarr;</a> checks
-  it against OpenAlex's open works index whenever you ask &mdash; no
-  background process, so nothing is watching between checks. New matches
-  show title, authors, date and a link; dismiss the ones you don't need,
-  restore them if you change your mind.</p>
+  <p>{{ t('tutorial.step6_body') }}</p>
   <pre><code>dhra watch add "Ottoman manuscripts"
 dhra watch check
 dhra watch candidates</code></pre>
 </div>
 
-<h2>7. See exactly what happened</h2>
+<h2>{{ t('tutorial.step7_heading') }}</h2>
 <div class="card">
-  <p><a href="/trace">Trace &rarr;</a> is the audit trail: every search,
-  every exclusion, every claim assessment, as an event with a timestamp.
-  Nothing in this app changes corpus state outside that log.</p>
+  <p>{{ t('tutorial.step7_body') }}</p>
 </div>
 
-<h2>Working from a terminal or a script</h2>
+<h2>{{ t('tutorial.terminal_heading') }}</h2>
 <div class="card">
-  <p>Every command above is real, scriptable, and talks to the same store
-  directory as this page &mdash; point <code>--store</code> (or the
-  <code>DHRA_STORE_DIR</code> environment variable) at it:</p>
+  <p>{{ t('tutorial.terminal_body') }}</p>
   <pre><code>export DHRA_STORE_DIR=/path/to/your/store
 dhra search "some query"
 dhra web --port 8420   # launch this UI against the same store</code></pre>
-  <p class="muted">An MCP-connected agent (e.g. Claude Code/Desktop) can also
-  drive DHRA directly &mdash; see <code>dhra.mcp_server</code> in the repo.</p>
+  <p class="muted">{{ t('tutorial.terminal_mcp_note') }}</p>
 </div>
 {% endblock %}

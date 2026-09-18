@@ -1,25 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Assess a claim -- DHRA{% endblock %}
 {% block content %}
-<h1>Assess a claim</h1>
-<p class="muted">
-  Status is assigned by deterministic code from the evidence you list here -- never by the model,
-  never as a number (section 10). One locator per line: <code>item_id,rep_id,start,end</code>.
-</p>
+<h1>{{ t('claim_new.title') }}</h1>
+<p class="muted">{{ t('claim_new.description') | safe }}</p>
 <form method="post" action="/claims/assess">
-  <p><label>Claim id<br><input type="text" name="claim_id" required></label></p>
-  <p><label>Claim text<br><input type="text" name="claim_text" required></label></p>
-  <p><label>Actor<br><input type="text" name="actor" value="researcher" required></label></p>
+  <p><label>{{ t('claim_new.claim_id_label') }}<br><input type="text" name="claim_id" required></label></p>
+  <p><label>{{ t('claim_new.claim_text_label') }}<br><input type="text" name="claim_text" required></label></p>
+  <p><label>{{ t('claim_new.actor_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
 
-  <p><label>Supporting locators<br>
+  <p><label>{{ t('claim_new.supporting_label') }}<br>
     <textarea name="supporting" rows="3">{% if item_id %}{{ item_id }},{{ rep_id }},{{ start }},{{ end }}{% endif %}</textarea>
   </label></p>
-  <p><label>Contradicting locators<br><textarea name="contradicting" rows="2"></textarea></label></p>
-  <p><label>Negating locators (source positively asserts non-occurrence)<br><textarea name="negating" rows="2"></textarea></label></p>
+  <p><label>{{ t('claim_new.contradicting_label') }}<br><textarea name="contradicting" rows="2"></textarea></label></p>
+  <p><label>{{ t('claim_new.negating_label') }}<br><textarea name="negating" rows="2"></textarea></label></p>
 
   <p><label><input type="checkbox" name="run_independence" value="true">
-    Run the independence engine over the supporting locators first (required for E2 -- I6)</label></p>
+    {{ t('claim_new.independence_label') | safe }}</label></p>
 
-  <button type="submit">Assess</button>
+  <button type="submit">{{ t('claim_new.submit') }}</button>
 </form>
 {% endblock %}

@@ -1,41 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Research & Teaching -- DHRA{% endblock %}
 {% block content %}
-<h1>Research &amp; Teaching assistant</h1>
-<p class="lede">
-  The model only ever proposes -- every result below is a reviewable draft,
-  never applied automatically. <a href="/tutorial">What's grounded vs. not &rarr;</a>
-</p>
+<h1>{{ t('assistant.title') }}</h1>
+<p class="lede">{{ t('assistant.lede') }}</p>
 
 {% if not llm_configured %}
-<div class="warning">
-  No LLM backend configured. Set <code>DHRA_GLM_BASE_URL</code> and
-  <code>DHRA_GLM_API_KEY</code> (see <a href="/tutorial">Getting started</a>)
-  before using anything on this page.
-</div>
+<div class="warning">{{ t('assistant.not_configured') }}</div>
 {% endif %}
 
 <div class="assistant-columns">
 <section class="assistant-col">
-  <h2>Research</h2>
+  <h2>{{ t('assistant.research_heading') }}</h2>
 
   <div class="card">
-    <h3>Suggest research questions</h3>
-    <p class="muted">Searches your corpus for the topic, shows the model only real matching excerpts.</p>
+    <h3>{{ t('assistant.suggest_title') }}</h3>
+    <p class="muted">{{ t('assistant.suggest_desc') }}</p>
     <form method="post" action="/assistant/research-questions">
-      <p><label>Topic / query<br><input type="text" name="context_query" required></label></p>
-      <p><label>Your name<br><input type="text" name="actor" value="researcher" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>Suggest</button>
+      <p><label>{{ t('assistant.topic_label') }}<br><input type="text" name="context_query" required></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.suggest_button') }}</button>
     </form>
   </div>
 
   <div class="card">
-    <h3>Review a paper against your corpus</h3>
-    <p class="muted">Extracts candidate claims (proposal), finds real corpus evidence for each. Never assigns a status.</p>
+    <h3>{{ t('assistant.review_title') }}</h3>
+    <p class="muted">{{ t('assistant.review_desc') }}</p>
     <form method="post" action="/assistant/peer-review">
-      <p><label>Paper text<br><textarea name="paper_text" rows="6" required></textarea></label></p>
-      <p><label>Your name<br><input type="text" name="actor" value="reviewer" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>Review</button>
+      <p><label>{{ t('assistant.paper_text_label') }}<br><textarea name="paper_text" rows="6" required></textarea></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="reviewer" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.review_button') }}</button>
     </form>
   </div>
 
@@ -48,40 +41,36 @@
 </section>
 
 <section class="assistant-col">
-  <h2>Teaching</h2>
+  <h2>{{ t('assistant.teaching_heading') }}</h2>
 
   <div class="card">
-    <h3>Draft exam questions</h3>
+    <h3>{{ t('assistant.exam_title') }}</h3>
     <form method="post" action="/assistant/exam-questions">
-      <p><label>Course material<br><textarea name="source_text" rows="5" required></textarea></label></p>
-      <p><label>How many questions<br><input type="text" name="n_questions" value="5" required></label></p>
-      <p><label>Your name<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>Draft</button>
+      <p><label>{{ t('assistant.course_material_label') }}<br><textarea name="source_text" rows="5" required></textarea></label></p>
+      <p><label>{{ t('assistant.n_questions_label') }}<br><input type="text" name="n_questions" value="5" required></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.draft_button') }}</button>
     </form>
   </div>
 
   <div class="card">
-    <h3>First-pass rubric reading</h3>
-    <p class="muted">Never a grade -- flags points against your rubric for you to review.</p>
+    <h3>{{ t('assistant.rubric_title') }}</h3>
+    <p class="muted">{{ t('assistant.rubric_desc') }}</p>
     <form method="post" action="/assistant/rubric">
-      <p><label>Rubric<br><textarea name="rubric_text" rows="3" required></textarea></label></p>
-      <p><label>Student submission<br><textarea name="paper_text" rows="5" required></textarea></label></p>
-      <p><label>Your name<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>Read</button>
+      <p><label>{{ t('assistant.rubric_label') }}<br><textarea name="rubric_text" rows="3" required></textarea></label></p>
+      <p><label>{{ t('assistant.student_submission_label') }}<br><textarea name="paper_text" rows="5" required></textarea></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.read_button') }}</button>
     </form>
   </div>
 
   <div class="card">
-    <h3>Reading list / syllabus</h3>
-    <p class="muted">
-      Two parts: real excerpts from your own corpus, and separately-labelled
-      <strong>unverified</strong> suggestions (book chapters, articles) from the
-      model's own knowledge -- check every one before adding it to a syllabus.
-    </p>
+    <h3>{{ t('assistant.reading_list_title') }}</h3>
+    <p class="muted">{{ t('assistant.reading_list_desc') }}</p>
     <form method="post" action="/assistant/reading-list">
-      <p><label>Course topic<br><input type="text" name="course_topic" required></label></p>
-      <p><label>Your name<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>Draft reading list</button>
+      <p><label>{{ t('assistant.course_topic_label') }}<br><input type="text" name="course_topic" required></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.reading_list_button') }}</button>
     </form>
   </div>
 

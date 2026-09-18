@@ -386,3 +386,24 @@ def test_chat_passes_prior_turns_as_conversation_history(repo):
     roles_and_texts = [(m["role"], m["content"]) for m in sent_messages]
     assert ("user", "Tell me about Tokat.") in roles_and_texts
     assert ("assistant", "It had a bridge.") in roles_and_texts
+
+
+def test_chat_answers_in_the_web_uis_selected_language(repo):
+    """The web UI's language switcher (dhra.web.i18n) must steer the
+    model's response language too, not just the page chrome -- a German
+    UI session should get a German answer even though the evidence
+    itself (a real primary source) never gets translated."""
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+    client, session = _client("Die Brücke wurde 1849 repariert.")
+
+    from dhra.chat import answer
+
+    answer(repo, client, question="Tokat", history=[], lang="de")
+
+    system_prompt = session.calls[0]["json"]["messages"][0]["content"]
+    assert "German" in system_prompt
+
+    # default (no lang passed) stays English
+    client2, session2 = _client("It was repaired in 1849.")
+    answer(repo, client2, question="Tokat", history=[])
+    assert "English" in session2.calls[0]["json"]["messages"][0]["content"]

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Locator -- DHRA{% endblock %}
 {% block content %}
-<h1>Resolved passage</h1>
+<h1>{{ t('locator.title') }}</h1>
 <div class="card evidence">
   <blockquote>&ldquo;{{ passage.text }}&rdquo;</blockquote>
   <div class="meta">
@@ -14,40 +14,40 @@
 {% endif %}
 
 {% if item %}
-<h2>Provenance</h2>
+<h2>{{ t('locator.provenance') }}</h2>
 <table>
-  <tr><th>source</th><td>{{ item.acquisition.source_id }}</td></tr>
-  <tr><th>method</th><td>{{ item.acquisition.method }}</td></tr>
-  <tr><th>retrieved</th><td>{{ item.acquisition.retrieved_at }}</td></tr>
-  <tr><th>access basis</th><td>{{ item.acquisition.access_basis }}</td></tr>
-  <tr><th>licence</th><td>{{ item.acquisition.licence_id or '(unknown)' }}</td></tr>
-  <tr><th>redistributable</th><td>{{ item.acquisition.redistributable if item.acquisition.redistributable is not none else '(unknown -- unknown is not permission)' }}</td></tr>
-  <tr><th>original reference</th><td>{{ item.acquisition.original_reference or '' }}</td></tr>
+  <tr><th>{{ t('locator.source') }}</th><td>{{ item.acquisition.source_id }}</td></tr>
+  <tr><th>{{ t('locator.method') }}</th><td>{{ item.acquisition.method }}</td></tr>
+  <tr><th>{{ t('locator.retrieved') }}</th><td>{{ item.acquisition.retrieved_at }}</td></tr>
+  <tr><th>{{ t('locator.access_basis') }}</th><td>{{ item.acquisition.access_basis }}</td></tr>
+  <tr><th>{{ t('locator.licence') }}</th><td>{{ item.acquisition.licence_id or t('locator.unknown') }}</td></tr>
+  <tr><th>{{ t('locator.redistributable') }}</th><td>{{ item.acquisition.redistributable if item.acquisition.redistributable is not none else t('locator.redistributable_unknown') }}</td></tr>
+  <tr><th>{{ t('locator.original_reference') }}</th><td>{{ item.acquisition.original_reference or '' }}</td></tr>
 </table>
 {% endif %}
 
 {% if rep %}
-<h2>Representation</h2>
+<h2>{{ t('locator.representation') }}</h2>
 <table>
-  <tr><th>kind</th><td>{{ rep.kind }}</td></tr>
-  <tr><th>producer</th><td>{{ rep.producer }} {{ rep.producer_version }}</td></tr>
+  <tr><th>{{ t('locator.kind') }}</th><td>{{ rep.kind }}</td></tr>
+  <tr><th>{{ t('locator.producer') }}</th><td>{{ rep.producer }} {{ rep.producer_version }}</td></tr>
   {% if rep.quality and rep.quality.mean_char_confidence is not none %}
-  <tr><th>OCR quality signal</th><td>{{ '%.2f' | format(rep.quality.mean_char_confidence) }} (transcription quality, not an epistemic judgement)</td></tr>
+  <tr><th>{{ t('locator.ocr_quality') }}</th><td>{{ '%.2f' | format(rep.quality.mean_char_confidence) }} {{ t('locator.ocr_quality_note') | safe }}</td></tr>
   {% endif %}
 </table>
 {% endif %}
 
-<h2>Annotations</h2>
+<h2>{{ t('locator.annotations') }}</h2>
 {% for a in thread %}
-  <p><strong>{{ a.actor }}</strong> ({{ a.ts }}){% if a.resolved %} <span class="muted">resolved</span>{% endif %}<br>{{ a.text }}</p>
+  <p><strong>{{ a.actor }}</strong> ({{ a.ts }}){% if a.resolved %} <span class="muted">{{ t('locator.resolved') }}</span>{% endif %}<br>{{ a.text }}</p>
 {% else %}
-  <p class="muted">No annotations yet.</p>
+  <p class="muted">{{ t('locator.no_annotations') }}</p>
 {% endfor %}
 <form method="post" action="/annotate">
   <input type="hidden" name="target_type" value="item">
   <input type="hidden" name="target_id" value="{{ locator.item_id }}">
-  <p><label>Your name<br><input type="text" name="actor" required></label></p>
-  <p><label>Note<br><textarea name="text" rows="2" required></textarea></label></p>
-  <button type="submit">Add annotation</button>
+  <p><label>{{ t('locator.your_name') }}<br><input type="text" name="actor" required></label></p>
+  <p><label>{{ t('locator.note') }}<br><textarea name="text" rows="2" required></textarea></label></p>
+  <button type="submit">{{ t('locator.add_annotation') }}</button>
 </form>
 {% endblock %}

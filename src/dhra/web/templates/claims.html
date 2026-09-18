@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Claims -- DHRA{% endblock %}
 {% block content %}
-<h1>Claims</h1>
-<p><a href="/claims/new">+ assess a new claim</a></p>
+<h1>{{ t('claims.title') }}</h1>
+<p><a href="/claims/new">{{ t('claims.new_link') }}</a></p>
 <table>
-  <tr><th>status</th><th>claim</th></tr>
+  <tr><th>{{ t('claims.col_status') }}</th><th>{{ t('claims.col_claim') }}</th></tr>
   {% for c in claims %}
   <tr>
-    <td><span class="status-code" data-tone="{{ status_tone(c.status) }}" title="{{ status_meaning(c.status) }}">{{ c.status.value }}</span></td>
+    <td><span class="status-code" data-tone="{{ status_tone(c.status) }}" title="{{ status_meaning(c.status, lang) }}">{{ c.status.value }}</span></td>
     <td><a href="/claims/{{ c.claim_id }}">{{ c.claim_text }}</a></td>
   </tr>
   {% else %}
-  <tr><td colspan="2" class="muted">No claims assessed yet.</td></tr>
+  <tr><td colspan="2" class="muted">{{ t('claims.none') }}</td></tr>
   {% endfor %}
 </table>
 {% endblock %}

@@ -13,21 +13,28 @@ authority -- section 15's "misconduct detection on student work"
 anti-requirement is a harder line than this (that's plagiarism/cheating
 detection, not rubric feedback), but the same caution applies.
 
-`draft_reading_list` is the one function here that lets the model speak
-from its own training knowledge (book chapters, articles it recalls)
-rather than only real retrieved corpus excerpts -- every other
+`draft_reading_list` is the one function here that can let the model
+speak from its own training knowledge (book chapters, articles it
+recalls) rather than only real retrieved corpus excerpts -- every other
 LLM-backed function in this repo (research_assistant, peer_review, the
 other two here) only ever shows the model real evidence and treats its
-output as commentary on that evidence. This is different and riskier:
-the model can misremember or invent a citation that sounds plausible.
-The prompt forces those suggestions into their own clearly-labelled
-section (see `_READING_LIST_SYSTEM_PROMPT`) precisely so this draft
-can't be mistaken for verified evidence the way everything else in this
-repo is -- an instructor still has to check every non-corpus citation
-before it goes on a syllabus. A real web-search tool (SearXNG was
-suggested for this) would ground these suggestions in something
-retrieved rather than recalled; not built here -- see
-OPEN_QUESTIONS.md.
+output as commentary on that evidence. Recall-only is riskier: the
+model can misremember or invent a citation that sounds plausible.
+
+OPEN_QUESTIONS.md #28 (2026-09-20): when a `websearch_client`
+(`dhra.websearch.WebSearchClient`, a real SearXNG instance the
+researcher points at) is passed in, secondary-reading suggestions are
+grounded in real, retrieved search results instead -- the model is told
+to cite only titles/URLs actually present in those results, and the
+raw result list is appended to the draft verbatim so a researcher can
+check the model's summary against what was really retrieved, the same
+"never trust the narrative alone" discipline as corpus locators
+elsewhere in this repo. With no `websearch_client` (the default --
+nothing self-hosts a search backend for this repo), the previous
+recall-only behaviour is unchanged: suggestions land in their own
+clearly-labelled, explicitly-unverified section (see
+`_READING_LIST_SYSTEM_PROMPT`), and an instructor still has to check
+every citation before it goes on a syllabus.
 """
 
 from __future__ import annotations
@@ -36,6 +43,7 @@ from dhra.drafting import create_draft
 from dhra.evidence import search as evidence_search
 from dhra.llm import LLMClient, log_and_complete
 from dhra.repo import DHRARepo
+from dhra.websearch import WebSearchClient, WebSearchError, web_search
 
 _EXAM_SYSTEM_PROMPT = (
     "You draft exam questions from course material for an instructor to review and edit. "
@@ -102,6 +110,21 @@ _READING_LIST_SYSTEM_PROMPT = (
     "or invented -- say so explicitly. Never present this section as verified."
 )
 
+_READING_LIST_SYSTEM_PROMPT_GROUNDED = (
+    "You help an instructor draft a reading list / syllabus for a course, at the start of "
+    "term. You will be given real excerpts already retrieved from the instructor's own "
+    "primary-source corpus, a course topic, and real web search results for that topic.\n\n"
+    "Structure your response in exactly two sections, in this order:\n\n"
+    "PRIMARY SOURCES FROM YOUR CORPUS:\n"
+    "Suggest how the given excerpts could be used as primary-source readings. Reference only "
+    "the excerpts you were given -- do not invent corpus items that were not shown to you.\n\n"
+    "SECONDARY READINGS FROM WEB SEARCH:\n"
+    "Suggest which of the given search results would make useful secondary readings, and why. "
+    "Cite only titles and URLs that appear in the search results given below -- do not invent "
+    "a title, author or URL that is not in that list. If none of the results are actually "
+    "relevant to the course topic, say so plainly instead of forcing a fit."
+)
+
 
 def draft_reading_list(
     repo: DHRARepo,
@@ -110,14 +133,16 @@ def draft_reading_list(
     course_topic: str,
     actor: str,
     max_passages: int = 10,
+    websearch_client: WebSearchClient | None = None,
     task: str | None = None,
 ) -> str:
     """Two-part draft: real corpus excerpts (grounded, like every other
-    LLM-backed function here) plus model-recalled external suggestions
-    (NOT grounded -- see the module docstring). Never raises on no
-    corpus matches, unlike `suggest_research_questions`: a reading list
-    should still be produced, just honestly noting the corpus had
-    nothing relevant."""
+    LLM-backed function here) plus, depending on `websearch_client`,
+    either real retrieved web results (grounded) or model-recalled
+    external suggestions (NOT grounded -- see the module docstring).
+    Never raises on no corpus matches, unlike
+    `suggest_research_questions`: a reading list should still be
+    produced, just honestly noting the corpus had nothing relevant."""
     response = evidence_search(repo, course_topic, task=task)
     if response.evidence:
         excerpts = "\n".join(
@@ -127,10 +152,36 @@ def draft_reading_list(
     else:
         excerpts = "(no matching items found in the corpus for this topic)"
 
-    messages = [
-        {"role": "system", "content": _READING_LIST_SYSTEM_PROMPT},
-        {"role": "user", "content": f"Course topic: {course_topic}\n\nCorpus excerpts:\n{excerpts}"},
-    ]
+    web_results = []
+    web_search_note = None
+    if websearch_client is not None:
+        try:
+            web_results = web_search(repo, websearch_client, course_topic, task=task)
+        except WebSearchError as exc:
+            web_search_note = f"(web search failed: {exc} -- falling back to the model's own recall, unverified)"
+
+    if web_results:
+        results_block = "\n".join(f"- \"{r.title}\" {r.url} -- {r.snippet}" for r in web_results)
+        messages = [
+            {"role": "system", "content": _READING_LIST_SYSTEM_PROMPT_GROUNDED},
+            {"role": "user", "content": f"Course topic: {course_topic}\n\nCorpus excerpts:\n{excerpts}\n\nWeb search results:\n{results_block}"},
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": _READING_LIST_SYSTEM_PROMPT},
+            {"role": "user", "content": f"Course topic: {course_topic}\n\nCorpus excerpts:\n{excerpts}"},
+        ]
+
     body = log_and_complete(client, repo, purpose="reading_list_drafting", messages=messages, task=task)
-    draft_text = f"Reading list for: {course_topic}\n(corpus version {repo.corpus_version().manifest_hash[:12]})\n\n{body}"
+
+    parts = [f"Reading list for: {course_topic}", f"(corpus version {repo.corpus_version().manifest_hash[:12]})"]
+    if web_search_note:
+        parts.append(web_search_note)
+    parts.append("")
+    parts.append(body)
+    if web_results:
+        parts.append("")
+        parts.append("REAL WEB SEARCH RESULTS (as retrieved, for checking the summary above against):")
+        parts.extend(f"- \"{r.title}\" {r.url}" for r in web_results)
+    draft_text = "\n".join(parts)
     return create_draft(repo, kind="reading_list", text=draft_text, actor=actor, task=task)

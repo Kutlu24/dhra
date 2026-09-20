@@ -24,6 +24,16 @@
   </div>
 
   <div class="card">
+    <h3>{{ t('assistant.disconfirm_title') }}</h3>
+    <p class="muted">{{ t('assistant.disconfirm_desc') }}</p>
+    <form method="post" action="/assistant/disconfirm">
+      <p><label>{{ t('assistant.claim_text_label') }}<br><textarea name="claim_text" rows="3" required></textarea></label></p>
+      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
+      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.disconfirm_button') }}</button>
+    </form>
+  </div>
+
+  <div class="card">
     <h3>{{ t('assistant.review_title') }}</h3>
     <p class="muted">{{ t('assistant.review_desc') }}</p>
     <form method="post" action="/assistant/peer-review">
@@ -68,6 +78,7 @@
   <div class="card">
     <h3>{{ t('assistant.reading_list_title') }}</h3>
     <p class="muted">{{ t('assistant.reading_list_desc') }}</p>
+    <p class="muted">{{ t('assistant.reading_list_websearch_on') if websearch_configured else t('assistant.reading_list_websearch_off') }}</p>
     <form method="post" action="/assistant/reading-list">
       <p><label>{{ t('assistant.course_topic_label') }}<br><input type="text" name="course_topic" required></label></p>
       <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>

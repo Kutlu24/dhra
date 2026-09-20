@@ -23,11 +23,13 @@ import os
 import pytest
 import requests
 
+from dhra.disconfirm import propose_and_run_disconfirmation, propose_disconfirmation_queries
 from dhra.llm import LLMClient, LLMConfig, LLMError, log_and_complete
 from dhra.peer_review import extract_claims, review_paper
 from dhra.repo import DHRARepo
 from dhra.research_assistant import suggest_research_questions
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
+from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError, web_search
 
 
 @pytest.fixture
@@ -65,6 +67,38 @@ def _client(content: str) -> tuple[LLMClient, _FakeSession]:
     config = LLMConfig(base_url="https://glm.example.unibe.ch/v1", api_key="test-key", model="glm-4.6")
     session = _FakeSession(content)
     return LLMClient(config, session=session), session
+
+
+class _FakeSearchResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        pass
+
+    def json(self):
+        return self._payload
+
+
+class _FakeSearchSession:
+    """Same shape as SearXNG's real JSON search response (verified
+    against docs.searxng.org before writing dhra.websearch, not
+    assumed) -- good enough to prove request-building/response-parsing,
+    same discipline as _FakeSession above for dhra.llm."""
+
+    def __init__(self, results: list[dict]):
+        self.results = results
+        self.calls: list[dict] = []
+
+    def get(self, url, *, params, timeout):
+        self.calls.append({"url": url, "params": params, "timeout": timeout})
+        return _FakeSearchResponse({"results": self.results})
+
+
+def _websearch_client(results: list[dict]) -> tuple[WebSearchClient, _FakeSearchSession]:
+    config = WebSearchConfig(base_url="https://searx.example.org")
+    session = _FakeSearchSession(results)
+    return WebSearchClient(config, session=session), session
 
 
 # --- dhra.llm ----------------------------------------------------------------
@@ -271,6 +305,125 @@ def test_draft_reading_list_works_with_no_corpus_matches(repo):
     assert draft is not None  # does not raise, unlike suggest_research_questions
     sent_content = session.calls[0]["json"]["messages"][1]["content"]
     assert "no matching items found" in sent_content
+
+
+def test_draft_reading_list_grounds_in_real_web_results_when_configured(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+    ws_client, ws_session = _websearch_client(
+        [{"title": "Ottoman Infrastructure Studies", "url": "https://example.org/a", "content": "A survey of 19th-century Ottoman bridges."}]
+    )
+    llm_client, llm_session = _client(
+        "PRIMARY SOURCES FROM YOUR CORPUS:\n1. The Tokat bridge repair record.\n\n"
+        "SECONDARY READINGS FROM WEB SEARCH:\n1. Ottoman Infrastructure Studies -- https://example.org/a"
+    )
+
+    draft_id = draft_reading_list(repo, llm_client, course_topic="Tokat", actor="instructor", websearch_client=ws_client)
+    from dhra.drafting import get_draft
+
+    draft = get_draft(repo, draft_id)
+    assert "SECONDARY READINGS FROM WEB SEARCH" in draft.text
+    assert "REAL WEB SEARCH RESULTS" in draft.text
+    assert "https://example.org/a" in draft.text
+    assert "UNVERIFIED SUGGESTIONS" not in draft.text  # grounded prompt used, not the recall-only one
+
+    # the model was actually shown the real retrieved result, not asked to recall from memory
+    sent_content = llm_session.calls[0]["json"]["messages"][1]["content"]
+    assert "https://example.org/a" in sent_content
+    assert ws_session.calls  # a real search call was made
+
+
+def test_draft_reading_list_falls_back_when_web_search_fails(repo):
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+    config = WebSearchConfig(base_url="https://searx.example.org")
+
+    class _FailingSession:
+        def get(self, url, *, params, timeout):
+            raise requests.exceptions.ConnectionError("refused")
+
+    ws_client = WebSearchClient(config, session=_FailingSession())
+    llm_client, _session = _client(
+        "UNVERIFIED SUGGESTIONS (check before using -- not grounded in retrieved evidence):\n1. Some Book."
+    )
+
+    draft_id = draft_reading_list(repo, llm_client, course_topic="Tokat", actor="instructor", websearch_client=ws_client)
+    from dhra.drafting import get_draft
+
+    draft = get_draft(repo, draft_id)
+    assert "web search failed" in draft.text
+    assert "UNVERIFIED SUGGESTIONS" in draft.text  # degraded to the old recall-only prompt, not a crash
+
+
+# --- dhra.websearch --------------------------------------------------------------
+
+
+def test_websearch_config_from_env_requires_url(monkeypatch):
+    monkeypatch.delenv("DHRA_SEARXNG_URL", raising=False)
+    with pytest.raises(WebSearchError):
+        WebSearchConfig.from_env()
+
+
+def test_websearch_client_parses_real_response_shape():
+    client, session = _websearch_client(
+        [
+            {"title": "A", "url": "https://a.example", "content": "snippet a"},
+            {"title": "B", "url": "https://b.example", "content": "snippet b"},
+        ]
+    )
+    results = client.search("some query", max_results=1)
+    assert len(results) == 1
+    assert results[0].title == "A"
+    assert results[0].url == "https://a.example"
+    assert session.calls[0]["params"] == {"q": "some query", "format": "json"}
+
+
+def test_websearch_client_raises_on_connection_failure():
+    config = WebSearchConfig(base_url="https://searx.example.org")
+
+    class _FailingSession:
+        def get(self, url, *, params, timeout):
+            raise requests.exceptions.ConnectionError("refused")
+
+    client = WebSearchClient(config, session=_FailingSession())
+    with pytest.raises(WebSearchError):
+        client.search("query")
+
+
+def test_web_search_logs_a_tool_invocation(repo):
+    client, _session = _websearch_client([{"title": "A", "url": "https://a.example", "content": "x"}])
+    web_search(repo, client, "some query")
+    events = [e for e in repo.events.read_all() if e["type"] == "tool.invoked"]
+    assert any(e["tool"] == "web_search" and e["parameters"]["query"] == "some query" for e in events)
+
+
+# --- dhra.disconfirm (LLM-proposed queries) ---------------------------------
+
+
+def test_propose_disconfirmation_queries_strips_list_markers(repo):
+    client, _session = _client("1. bridge was never repaired\n- repair was abandoned\n* third phrase\n\n")
+    queries = propose_disconfirmation_queries(client, repo, claim_text="the bridge was repaired")
+    assert queries == ["bridge was never repaired", "repair was abandoned", "third phrase"]
+
+
+def test_propose_and_run_disconfirmation_creates_a_reviewable_draft(repo):
+    repo.ingest_text("the bridge at Tokat was fully repaired by the autumn", source_id="s")
+    client, session = _client("bridge was never repaired\nrepair was abandoned")
+
+    draft_id = propose_and_run_disconfirmation(repo, client, claim_text="the bridge was repaired", actor="researcher")
+    from dhra.drafting import get_draft
+
+    draft = get_draft(repo, draft_id)
+    assert draft.kind == "disconfirmation"
+    assert "QUERY: bridge was never repaired" in draft.text
+    assert "QUERY: repair was abandoned" in draft.text
+    # the claim went to the model, not straight into a corpus search
+    sent_content = session.calls[0]["json"]["messages"][1]["content"]
+    assert "the bridge was repaired" in sent_content
+
+
+def test_propose_and_run_disconfirmation_raises_when_nothing_proposed(repo):
+    client, _session = _client("   \n\n")
+    with pytest.raises(ValueError):
+        propose_and_run_disconfirmation(repo, client, claim_text="a claim", actor="researcher")
 
 
 # --- dhra.peer_review ----------------------------------------------------------

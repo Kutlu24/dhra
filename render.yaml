@@ -24,3 +24,9 @@ services:
         sync: false
       - key: DHRA_GLM_MODEL
         sync: false
+      # SearXNG instance for real web search grounding in draft_reading_list
+      # (OPEN_QUESTIONS.md #28) -- optional, same "researcher supplies their
+      # own infrastructure" framing as GLM above. Not required: reading-list
+      # drafting falls back to the model's own (unverified) recall without it.
+      - key: DHRA_SEARXNG_URL
+        sync: false

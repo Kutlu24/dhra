@@ -38,6 +38,7 @@ from dhra.aggregate import aggregate_by_source
 from dhra.annotation import add_annotation, annotations_for
 from dhra.bias import compute_bias_report
 from dhra.chat import answer as chat_answer
+from dhra.disconfirm import propose_and_run_disconfirmation
 from dhra.drafting import list_drafts
 from dhra.evidence import search as evidence_search
 from dhra.literature_watch import (
@@ -60,8 +61,9 @@ from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
 from dhra.trace import trace_decisions, trace_raw, trace_summary
+from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError
 
-RESEARCH_DRAFT_KINDS = ("research_questions", "peer_review")
+RESEARCH_DRAFT_KINDS = ("research_questions", "peer_review", "disconfirmation")
 TEACHING_DRAFT_KINDS = ("exam_questions", "rubric_assessment", "reading_list")
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -176,6 +178,12 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         try:
             return LLMClient(LLMConfig.from_env())
         except LLMError:
+            return None
+
+    def _websearch_client_or_none() -> WebSearchClient | None:
+        try:
+            return WebSearchClient(WebSearchConfig.from_env())
+        except WebSearchError:
             return None
 
     # --- Chat (grounded: no evidence, no LLM call, no answer -- I10's
@@ -503,6 +511,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
                 lang=lang,
                 wide=True,
                 llm_configured=_llm_client_or_none() is not None,
+                websearch_configured=_websearch_client_or_none() is not None,
                 research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),
                 teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
             ),
@@ -530,6 +539,17 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         client = _require_llm()
         try:
             suggest_research_questions(repo, client, context_query=context_query, actor=actor)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        return RedirectResponse("/assistant", status_code=303)
+
+    @app.post("/assistant/disconfirm")
+    def assistant_disconfirm(claim_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        client = _require_llm()
+        try:
+            propose_and_run_disconfirmation(repo, client, claim_text=claim_text, actor=actor)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LLMError as exc:
@@ -569,7 +589,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     def assistant_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
         try:
-            draft_reading_list(repo, client, course_topic=course_topic, actor=actor)
+            draft_reading_list(repo, client, course_topic=course_topic, actor=actor, websearch_client=_websearch_client_or_none())
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)

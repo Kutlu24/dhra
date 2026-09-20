@@ -205,6 +205,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.topic_label": "Topic / query",
         "assistant.your_name_label": "Your name",
         "assistant.suggest_button": "Suggest",
+        "assistant.disconfirm_title": "Disconfirmation search",
+        "assistant.disconfirm_desc": "The model proposes refutation-oriented search phrases for a claim; real corpus search runs each one for real.",
+        "assistant.claim_text_label": "Claim to try to disprove",
+        "assistant.disconfirm_button": "Search for refutation",
         "assistant.review_title": "Review a paper against your corpus",
         "assistant.review_desc": "Extracts candidate claims (proposal), finds real corpus evidence for each. Never assigns a status.",
         "assistant.paper_text_label": "Paper text",
@@ -223,6 +227,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.reading_list_desc": "Two parts: real excerpts from your own corpus, and separately-labelled "
         "<strong>unverified</strong> suggestions (book chapters, articles) from the "
         "model's own knowledge &mdash; check every one before adding it to a syllabus.",
+        "assistant.reading_list_websearch_on": "Web search is configured: secondary readings are grounded in real, retrieved results instead of the model's own recall.",
+        "assistant.reading_list_websearch_off": "No web search backend configured (<code>DHRA_SEARXNG_URL</code>) &mdash; secondary readings still come from the model's own recall, unverified.",
         "assistant.course_topic_label": "Course topic",
         "assistant.reading_list_button": "Draft reading list",
         # --- tutorial.html ------------------------------------------------------------------
@@ -474,6 +480,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.topic_label": "Thema / Suchanfrage",
         "assistant.your_name_label": "Ihr Name",
         "assistant.suggest_button": "Vorschlagen",
+        "assistant.disconfirm_title": "Widerlegungssuche",
+        "assistant.disconfirm_desc": "Das Modell schlägt widerlegungsorientierte Suchphrasen für eine Behauptung vor; die echte Korpussuche führt jede davon wirklich aus.",
+        "assistant.claim_text_label": "Zu widerlegende Behauptung",
+        "assistant.disconfirm_button": "Nach Widerlegung suchen",
         "assistant.review_title": "Einen Aufsatz gegen Ihr Korpus prüfen",
         "assistant.review_desc": "Extrahiert mögliche Behauptungen (Vorschlag), findet für jede echte Korpusbelege. Vergibt nie einen Status.",
         "assistant.paper_text_label": "Text des Aufsatzes",
@@ -492,6 +502,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.reading_list_desc": "Zwei Teile: echte Ausschnitte aus Ihrem eigenen Korpus und getrennt "
         "gekennzeichnete, <strong>unverifizierte</strong> Vorschläge (Buchkapitel, "
         "Artikel) aus dem Wissen des Modells &mdash; jeden einzeln prüfen, bevor er in einen Syllabus kommt.",
+        "assistant.reading_list_websearch_on": "Websuche ist konfiguriert: Sekundärliteratur basiert auf echten, abgerufenen Ergebnissen statt auf dem Wissen des Modells.",
+        "assistant.reading_list_websearch_off": "Kein Websuche-Backend konfiguriert (<code>DHRA_SEARXNG_URL</code>) &mdash; Sekundärliteratur stammt weiterhin aus dem Wissen des Modells, unverifiziert.",
         "assistant.course_topic_label": "Kursthema",
         "assistant.reading_list_button": "Leseliste entwerfen",
         # --- tutorial.html ------------------------------------------------------------------
@@ -747,6 +759,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.topic_label": "Sujet / requête",
         "assistant.your_name_label": "Votre nom",
         "assistant.suggest_button": "Suggérer",
+        "assistant.disconfirm_title": "Recherche de réfutation",
+        "assistant.disconfirm_desc": "Le modèle propose des formulations de recherche orientées réfutation pour une affirmation ; la recherche réelle dans le corpus exécute chacune d'elles pour de vrai.",
+        "assistant.claim_text_label": "Affirmation à tenter de réfuter",
+        "assistant.disconfirm_button": "Rechercher une réfutation",
         "assistant.review_title": "Confronter un article à votre corpus",
         "assistant.review_desc": "Extrait des affirmations candidates (proposition), trouve pour chacune de vraies preuves du corpus. N'attribue jamais de statut.",
         "assistant.paper_text_label": "Texte de l'article",
@@ -765,6 +781,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "assistant.reading_list_desc": "Deux parties : de vrais extraits de votre propre corpus, et des suggestions "
         "<strong>non vérifiées</strong> clairement séparées (chapitres de livres, "
         "articles) issues des connaissances du modèle &mdash; à vérifier une par une avant de les ajouter à un syllabus.",
+        "assistant.reading_list_websearch_on": "La recherche web est configurée : les lectures secondaires s'appuient sur de vrais résultats récupérés plutôt que sur les connaissances du modèle.",
+        "assistant.reading_list_websearch_off": "Aucun backend de recherche web configuré (<code>DHRA_SEARXNG_URL</code>) &mdash; les lectures secondaires proviennent toujours des connaissances du modèle, non vérifiées.",
         "assistant.course_topic_label": "Sujet du cours",
         "assistant.reading_list_button": "Rédiger la liste de lecture",
         # --- tutorial.html ------------------------------------------------------------------

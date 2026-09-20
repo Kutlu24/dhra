@@ -185,6 +185,30 @@ def test_assistant_research_questions_creates_draft_shown_on_page(repo, client, 
     assert "research_questions" in page.text
 
 
+def test_assistant_disconfirm_creates_draft_shown_on_page(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    repo.ingest_text("the bridge at Tokat was fully repaired by the autumn", source_id="s")
+
+    import requests
+
+    class _FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "bridge was never repaired\nrepair was abandoned"}}]}
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **kw: _FakeResp())
+
+    resp = client.post("/assistant/disconfirm", data={"claim_text": "the bridge was repaired", "actor": "researcher"}, follow_redirects=False)
+    assert resp.status_code == 303
+
+    page = client.get("/assistant")
+    assert "QUERY: bridge was never repaired" in page.text
+    assert "disconfirmation" in page.text
+
+
 def test_chat_shows_evidence_without_llm_configured(repo, client, monkeypatch):
     monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
     monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
@@ -315,6 +339,49 @@ def test_assistant_route_returns_502_not_500_when_llm_backend_fails(repo, client
 
     resp = client.post("/assistant/research-questions", data={"context_query": "Tokat", "actor": "researcher"}, follow_redirects=False)
     assert resp.status_code == 502
+
+
+def test_assistant_page_shows_websearch_status(client, monkeypatch):
+    monkeypatch.delenv("DHRA_SEARXNG_URL", raising=False)
+    resp = client.get("/assistant")
+    assert "No web search backend configured" in resp.text
+
+    monkeypatch.setenv("DHRA_SEARXNG_URL", "https://searx.example.org")
+    resp = client.get("/assistant")
+    assert "Web search is configured" in resp.text
+
+
+def test_assistant_reading_list_uses_real_web_search_when_configured(repo, client, monkeypatch):
+    monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
+    monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
+    monkeypatch.setenv("DHRA_SEARXNG_URL", "https://searx.example.org")
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="s")
+
+    import requests
+
+    class _FakeLLMResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "SECONDARY READINGS FROM WEB SEARCH:\n1. Ottoman Infrastructure Studies"}}]}
+
+    class _FakeSearchResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"results": [{"title": "Ottoman Infrastructure Studies", "url": "https://example.org/a", "content": "a survey"}]}
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **kw: _FakeLLMResp())
+    monkeypatch.setattr(requests.Session, "get", lambda self, *a, **kw: _FakeSearchResp())
+
+    resp = client.post("/assistant/reading-list", data={"course_topic": "Tokat", "actor": "instructor"}, follow_redirects=False)
+    assert resp.status_code == 303
+
+    page = client.get("/assistant")
+    assert "https://example.org/a" in page.text
+    assert "REAL WEB SEARCH RESULTS" in page.text
 
 
 def test_updates_page_shows_queries_and_new_candidates(repo, client, monkeypatch):

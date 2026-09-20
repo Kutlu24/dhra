@@ -45,11 +45,13 @@ in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md), not another phase.
   (`check_monitor`/`check_monitors`), reporting only genuinely new
   matches since the last check. No scheduler/daemon (#20) — there is
   nowhere honest for one to live in a local-first prototype.
-- **Not built: "teaching support"** (#18) — the spec names it as a Phase
-  4 deliverable but never elaborates what it means anywhere else in the
-  document; guessing at a data model/UI for it would violate section 0
-  rule 4 ("prefer refusing to guessing"). Needs a real answer from the
-  researcher.
+- **"Teaching support"** (#18) — built as `src/dhra/teaching.py`: exam
+  question drafting and a first-pass, per-criterion rubric reading of
+  student work, both `PermissionClass.PREPARE` drafts for the instructor
+  to approve or edit; `assess_paper_against_rubric` never assigns a
+  grade (checked in `tests/acceptance/test_llm_features.py`). Not built:
+  anonymised/synthetic example corpora for classroom use, and a
+  restricted "training mode" — neither was asked for.
 
 **Exit test** (`tests/acceptance/test_phase4.py`): "a generated methods
 statement contains everything Section 11.4 requires and round-trips
@@ -175,6 +177,21 @@ export):
   corpus search (deterministic) — never assigns an epistemic status
   itself; that stays a separate, manual `assess_claim` step, per section
   10's boundary.
+- **`propose_and_run_disconfirmation`** (`dhra.disconfirm`, added
+  2026-09-20) — the model proposes 2-4 literal, refutation-oriented
+  search phrases for a claim; `disconfirm_search` (deterministic,
+  unchanged) runs them for real and the outcome is stored as a
+  reviewable draft — same "model proposes, deterministic code
+  executes" shape as everything else here.
+- **`draft_reading_list`**'s external-suggestions section (`dhra.teaching`)
+  is grounded in real web search when `DHRA_SEARXNG_URL` points at a
+  SearXNG instance (`dhra.websearch`, added 2026-09-20) — the model
+  cites only titles/URLs actually present in real retrieved results,
+  which are also shown verbatim in the draft. Falls back to the
+  previous training-data-recall behaviour, clearly labelled unverified,
+  when no web search backend is configured or it fails. See
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#open-questions-llm-features--dhrallm-research_assistant-teaching-peer_review)
+  #28.
 
 Live as of 2026-09-18 on the demo deployment (a free-tier Z.AI API key,
 `glm-4.5-flash` — `glm-4.6` is a paid model and 429s on a free key, see
@@ -427,14 +444,11 @@ pytest tests/acceptance/test_phase0.py
 
 All four spec phases (section 17's build order) are implemented. What
 remains is the open-questions list in
-[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) — 20 items across the four
-phases, all but one (#18, "teaching support") a real, working default
-that was either confirmed with the researcher or reasoned and recorded
-rather than silently assumed. The ones most worth reading before relying
-on this against real archival material:
+[`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) — every item a real, working
+default that was either confirmed with the researcher or reasoned and
+recorded rather than silently assumed. The ones most worth reading
+before relying on this against real archival material:
 
-- **#18** — "teaching support" (Phase 4) isn't built at all; the spec
-  never says what it means.
 - **#15** — redistribution restriction is recorded on every `Item` but
   nothing reads it yet, because nothing has needed to share/export to
   a third party for real yet.

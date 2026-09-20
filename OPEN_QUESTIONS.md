@@ -313,11 +313,18 @@ still open:
     `test_live_zenodo_acquisition_end_to_end` records for a different
     real backend, now closed for this one.
 
-25. **`disconfirm_search` not yet wired to `dhra.llm`.** See #11 above —
-    `dhra.research_assistant`/`dhra.teaching`/`dhra.peer_review` were
-    built as the concretely-requested features; disconfirmation-query
-    generation is the same shape of problem and should follow the same
-    pattern (`log_and_complete` + a system prompt), just not done yet.
+25. **Resolved 2026-09-20 — `disconfirm_search` wired to `dhra.llm`.**
+    `dhra.disconfirm.propose_and_run_disconfirmation` follows the same
+    pattern as #11's other resolution: the model proposes 2-4 literal,
+    refutation-oriented search phrases for a claim (`propose_disconfirmation_queries`,
+    `log_and_complete` + a system prompt), `disconfirm_search` itself
+    (unchanged) runs them for real, and the outcome is stored as a
+    reviewable `disconfirmation` draft — same PREPARE-class,
+    model-proposes/deterministic-code-executes shape as
+    `suggest_research_questions`. Wired into the web UI
+    (`/assistant/disconfirm`), not the CLI/MCP server — same reasoning
+    as #27. `disconfirm_search` itself keeps taking queries as a plain
+    argument, so every existing direct caller is unaffected.
 
 26. **`dhra.peer_review`'s literal-search limitation is real, not just
     disclosed.** A claim only surfaces candidate evidence when the
@@ -337,17 +344,36 @@ still open:
     suggest-questions` CLI command or MCP tool yet — same reasoning as
     before, real GLM credentials make wiring worth it (#24).
 
-28. **No real web-search tool — `draft_reading_list`'s external
-    suggestions are recalled, not retrieved.** Adrian suggested a
-    local, self-hosted agentic-search stack (searxng + llamafile + the
-    "pi" harness) in the same Discord discussion that prompted these
-    features. Wiring something like that in would let the "UNVERIFIED
-    SUGGESTIONS" section of a reading list become real, locator-bound
-    evidence like everything else in this repo, instead of the one
-    place the model is allowed to speak from memory. Not built —
-    a real search backend (self-hosted or otherwise) is its own
-    infrastructure decision, same category as GLM hosting (#24), not
-    something to wire against blindly.
+28. **Resolved 2026-09-20 — real web search wired to `draft_reading_list`,
+    scoped to that one function.** `dhra.websearch.WebSearchClient` is a
+    real HTTP client against SearXNG's JSON search API (`GET
+    /search?q=...&format=json`), the stack Adrian suggested in the same
+    Discord discussion. Same infrastructure-choice framing as GLM
+    hosting (#24): the researcher points DHRA at their own instance via
+    `DHRA_SEARXNG_URL` — nothing here self-hosts a search backend.
+    **Decision: not a general-purpose search tool used everywhere** —
+    wired only into `draft_reading_list`, the one place #28 was raised
+    about. When configured, its "UNVERIFIED SUGGESTIONS" section is
+    replaced by "SECONDARY READINGS FROM WEB SEARCH": the model is
+    shown real retrieved results and told to cite only titles/URLs
+    actually present in them, and the raw result list is appended to
+    the draft verbatim so a researcher can check the model's summary
+    against what was really retrieved (the same "never trust the
+    narrative alone" discipline as corpus locators elsewhere in this
+    repo — an external URL is real, but the model's paraphrase of it
+    still isn't self-verifying). Every call is logged via
+    `DHRARepo.log_tool_invocation` (tool="web_search"), feeding the
+    methods export the same way `evidence.search` already does.
+    Degrades to the old recall-only behaviour, not a crash, if
+    `DHRA_SEARXNG_URL` is unset or the backend fails
+    (`WebSearchError`, same shape as `LLMError`). Most public SearXNG
+    instances disable `format=json` by default (their own
+    anti-scraping setting), so this needs a researcher-controlled
+    instance, same caveat #24 already carries for GLM.
+    **Still not built:** `suggest_research_questions`/`review_paper`
+    stay corpus-only by design (section 10's "only shows the model real
+    evidence" boundary applies to them, not to a reading list's
+    explicitly-external section) — no scope creep to other features.
 
 29. **Literature watch (`dhra.literature_watch`, 2026-09-18) covers a
     related but distinct gap from #28 — new-publication metadata, not

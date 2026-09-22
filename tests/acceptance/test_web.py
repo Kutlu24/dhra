@@ -605,3 +605,61 @@ def test_sitemap_includes_v2_routes(client):
     assert resp.status_code == 200
     for path in ["/evidence</loc>", "/how-it-works</loc>", "/about</loc>", "/evidence-based-research</loc>", "<loc>", "/sources</loc>", "/teaching</loc>"]:
         assert path in resp.text
+
+
+CONTENT_PAGES_BATCH_2 = [
+    "/digital-humanities-research",
+    "/research-assistant",
+    "/claims-and-evidence",
+    "/digital-humanities-ai",
+    "/historical-document-research",
+    "/documentation",
+    "/blog",
+    "/welcome",
+]
+
+
+@pytest.mark.parametrize("path", CONTENT_PAGES_BATCH_2)
+def test_content_page_batch_2_renders(client, path):
+    resp = client.get(path)
+    assert resp.status_code == 200
+    assert 'name="description"' in resp.text
+    assert "<h1>" in resp.text
+
+
+@pytest.mark.parametrize("path", CONTENT_PAGES_BATCH_2)
+def test_content_page_batch_2_has_lang_prefixed_variants(client, path):
+    for lang in ("en", "de", "fr"):
+        resp = client.get(f"/{lang}{path}")
+        assert resp.status_code == 200, f"{lang}{path}"
+        assert f'lang="{lang}"' in resp.text
+
+
+def test_sitemap_includes_content_page_batch_2(client):
+    resp = client.get("/sitemap.xml")
+    for path in CONTENT_PAGES_BATCH_2:
+        assert f"{path}</loc>" in resp.text
+
+
+def test_documentation_page_has_real_cli_reference(client):
+    resp = client.get("/documentation")
+    assert "dhra ingest" in resp.text
+    assert "dhra web --accounts-dir" in resp.text
+
+
+def test_blog_has_a_real_inaugural_post_not_a_placeholder(client):
+    resp = client.get("/blog")
+    assert "Why DHRA Never Lets the Model Decide" in resp.text
+    assert "deterministic function" in resp.text
+
+
+def test_welcome_page_shows_try_cta_always_and_signup_cta_only_with_accounts(repo, tmp_path):
+    no_accounts_client = TestClient(build_app(repo))
+    resp = no_accounts_client.get("/welcome")
+    assert "Try the demo" in resp.text
+    assert "Sign up for your own workspace" not in resp.text
+
+    with_accounts_client = TestClient(build_app(repo, accounts_dir=tmp_path / "accounts", session_secret="x"))
+    resp = with_accounts_client.get("/welcome")
+    assert "Try the demo" in resp.text
+    assert "Sign up for your own workspace" in resp.text

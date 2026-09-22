@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}AI for Digital Humanities: Grounded, Not Guessing{% endblock %}
+{% block description %}Most AI research tools optimize for a fluent answer. DHRA optimizes for a defensible one -- reachable as a web interface, a scriptable CLI, and an MCP server, over the same evidence-bound corpus.{% endblock %}
+{% block content %}
+<h1>{{ t('dh_ai_page.title') }}</h1>
+{{ t('dh_ai_page.body') | safe }}
+<p><a href="/about">{{ t('about.title') }} &rarr;</a></p>
+{% endblock %}

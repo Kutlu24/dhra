@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Working With Historical Documents and Primary Sources{% endblock %}
+{% block description %}Upload a scan, a PDF, or a TEI file -- DHRA keeps the full transcription/translation lineage and OCR quality signal attached to every passage, never hidden behind a clean-looking final text.{% endblock %}
+{% block content %}
+<h1>{{ t('historical_docs_page.title') }}</h1>
+{{ t('historical_docs_page.body') | safe }}
+<p><a href="/ingest">{{ t('nav.add_sources') }} &rarr;</a></p>
+{% endblock %}

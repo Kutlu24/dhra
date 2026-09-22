@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Digital Humanities Research Software Built Around Evidence{% endblock %}
+{% block description %}A research workspace for digital humanities scholars working with TEI, IIIF, archives and OCR pipelines -- built around the connective tissue between a source and a conclusion, not cataloguing or publishing.{% endblock %}
+{% block content %}
+<h1>{{ t('dh_research.title') }}</h1>
+{{ t('dh_research.body') | safe }}
+<p><a href="/how-it-works">{{ t('how_it_works.title') }} &rarr;</a> &middot; <a href="/evidence-based-research">{{ t('evidence_based_research.title') }} &rarr;</a></p>
+{% endblock %}

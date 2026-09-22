@@ -449,6 +449,112 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "auth.guest_label": "Guest -- shared demo",
         "auth.sign_up": "Sign up",
         "auth.log_in": "Log in",
+        # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------
+        "dh_research.title": "Digital Humanities Research Software Built Around Evidence",
+        "dh_research.body": "<p>Digital humanities researchers already work across TEI editions, IIIF image servers, "
+        "archival finding aids and OCR pipelines -- but most tools in that stack optimize for cataloguing or "
+        "publishing a source, not for the connective tissue between a source and a conclusion you draw from it. "
+        "DHRA is not a digital-edition tool or a repository; it's the research workspace that sits after "
+        "acquisition and before publication.</p>"
+        "<p>Ingest what you already have -- scans, transcriptions, plain text, TEI/XML -- and DHRA keeps the full "
+        "chain from blob to transcription to translation intact, never collapsing it into one clean-looking final "
+        "text. Search is literal and locator-bound, not a semantic guess. Claims you build carry a status computed "
+        "by deterministic code from the evidence you actually linked, never asserted by a model.</p>"
+        '<p>See <a href="/how-it-works">how it works</a> or read the case for '
+        '<a href="/evidence-based-research">evidence-based research</a>.</p>',
+        "research_assistant_page.title": "An AI Research Assistant That Only Proposes, Never Decides",
+        "research_assistant_page.body": "<p>DHRA's research assistant -- chat, research-question suggestions, "
+        "disconfirmation search, and paper review -- is grounded the same way as every other surface in the tool: "
+        "it drafts, you review, nothing is applied automatically.</p>"
+        "<p>Chat never answers without first running a real search of your corpus -- no evidence, no answer, not "
+        "even a hedge. Disconfirmation search asks the model to propose refutation-oriented search phrasings for a "
+        "claim, then runs each one as a real search against your sources -- the model never gets to decide whether "
+        "the claim actually held up. Paper review extracts candidate claims from a paper and finds real corpus "
+        "evidence for each one; it never assigns a verdict.</p>"
+        "<p>Every output lands as a reviewable draft, timestamped and attributed, sitting next to the real search "
+        "results that produced it -- not folded into prose you'd have to take on faith.</p>",
+        "claims_evidence_page.title": "How DHRA Decides a Claim's Status",
+        "claims_evidence_page.body": "<p>Every claim you assess in DHRA gets one of eight status codes -- E1 "
+        "attested, E2 corroborated, E3 inferred, E4 contested, E5 single witness, E6 unsupported, E7 negative, E8 "
+        "out of scope -- and every one of them is computed by a small, deterministic function reading the evidence "
+        "locators you linked. There is no code path anywhere in DHRA where a language model assigns a status.</p>"
+        "<p>The rules are simple and fixed: any contradicting locator makes a claim E4 (contested) regardless of "
+        "how much supporting evidence exists -- disagreement between sources is itself the finding, not something "
+        "to average away. A claim's status can fall freely as evidence changes, but it can only rise when the "
+        "evidence set backing it strictly grows -- re-asking the same question, or rephrasing it, can never "
+        "upgrade a claim's status on its own.</p>"
+        '<p>See the full status table in <a href="/tutorial">Getting started</a>, or read the broader case for '
+        '<a href="/evidence-based-research">evidence-based research</a>.</p>',
+        "dh_ai_page.title": "AI for Digital Humanities: Grounded, Not Guessing",
+        "dh_ai_page.body": "<p>Most \"AI for research\" tools are optimized for producing a fluent, confident-"
+        "sounding answer quickly. DHRA is optimized for producing a defensible one -- even when that means "
+        "answering more slowly, or not answering at all. The difference shows up everywhere: a chat that refuses "
+        "to answer without evidence, a claim status a model is structurally barred from assigning, a bias report "
+        "that runs before any aggregate view rather than after you've already drawn a conclusion.</p>"
+        "<p>DHRA is also reachable three ways over the exact same corpus -- a web interface for reading and "
+        "reviewing, a scriptable command-line tool for batch work, and an MCP server so an AI coding agent (Claude "
+        "Code, Claude Desktop, or any other MCP client) can search, ingest and assess claims directly, under the "
+        "same evidence rules as everything else. Use whichever surface fits the moment -- the underlying corpus "
+        "and the rules governing it never change.</p>",
+        "historical_docs_page.title": "Working With Historical Documents and Primary Sources",
+        "historical_docs_page.body": "<p>A historical source rarely arrives as clean text. It's a scan, then an "
+        "OCR or manual transcription, sometimes a translation or normalisation on top of that -- each step a real "
+        "transformation with its own producer, version, and error rate. DHRA models this explicitly as a chain of "
+        "representations (transcription &rarr; translation &rarr; normalisation, each with a parent pointing back "
+        "toward the original blob) instead of quietly discarding it once a clean-looking final text exists.</p>"
+        "<p>Upload a PDF, a scanned image, or a TEI/XML file directly. OCR confidence and other quality signals "
+        "stay attached to the passage they describe -- shown as a transcription-quality note, never smoothed over "
+        "or hidden. When a scan is genuinely too poor to search reliably, it's excluded (never deleted) with a "
+        "stated, reversible reason, and stays out of aggregates and search until restored.</p>"
+        '<p>See <a href="/how-it-works">how it works</a> for the full add-source-to-claim path.</p>',
+        "documentation_page.title": "Documentation",
+        "documentation_page.body": "<p>DHRA is reachable three ways over the same corpus: this web interface, a "
+        "scriptable command-line tool, and an MCP server for AI-agent workflows. The in-app "
+        '<a href="/tutorial">Getting started</a> walkthrough covers the web UI step by step, including the '
+        "terminal-equivalent command for each step. Below is a short reference for working from a terminal or "
+        "script directly.</p>",
+        "documentation_page.cli_note": "Every command above talks to the same store directory as the web UI -- point --store (or DHRA_STORE_DIR) at it.",
+        "documentation_page.source_link": "Source code and full README on GitHub",
+        "blog_page.title": "Blog",
+        "blog_page.lede": "Notes on building an evidence-grounded research tool -- design decisions and why DHRA works the way it does.",
+        "blog_page.post1_title": "Why DHRA Never Lets the Model Decide",
+        "blog_page.post1_body": "<p>The single design decision that shapes everything else in DHRA is this: a "
+        "claim's epistemic status -- attested, contested, single witness, unsupported -- is never something a "
+        "language model gets to assign. It's computed by a small, deterministic function reading the evidence "
+        "locators a researcher (or a verified independence check) has already linked to that claim.</p>"
+        "<p>This sounds like a small technical detail, but it changes what the tool can honestly claim about "
+        "itself. A model that assigns confidence scores is making a judgement call dressed up as a number -- "
+        "impossible for anyone else to audit, and trivially wrong in ways that sound authoritative. Deterministic "
+        "code reading an explicit evidence set is boring by comparison, and that's the point: you can read the "
+        "function, you can see exactly why a claim is E1 instead of E4, and the answer doesn't change depending on "
+        "which model happened to answer, or how the question was phrased.</p>"
+        "<p>Everywhere else DHRA uses a language model -- chat, research-question suggestions, disconfirmation "
+        "search, paper review -- the same discipline applies: the model proposes, and something checkable (a real "
+        "search, a real locator, a researcher's own review) decides. It's a narrower job for AI than most research "
+        "tools ask of it, and that narrowness is the whole value proposition.</p>",
+        "welcome_page.hero_title": "Research From Evidence, Not Assumptions.",
+        "welcome_page.hero_lede": "DHRA helps humanities researchers find, test and trace claims across their own source corpus.",
+        "welcome_page.cta_try": "Try the demo",
+        "welcome_page.cta_signup": "Sign up for your own workspace",
+        "welcome_page.flow_heading": "From source to claim",
+        "welcome_page.flow_source": "SOURCE",
+        "welcome_page.flow_evidence": "EVIDENCE",
+        "welcome_page.flow_claim": "CLAIM",
+        "welcome_page.flow_contradiction": "CONTRADICTION",
+        "welcome_page.flow_audit": "AUDIT",
+        "welcome_page.why_heading": "Why DHRA is different",
+        "welcome_page.why1_title": "Every result has a locator",
+        "welcome_page.why1_body": "Not a paraphrase -- the exact source, page, and passage a result came from.",
+        "welcome_page.why2_title": "Claims are traceable to evidence",
+        "welcome_page.why2_body": "Every status is computed from linked locators, never asserted by a model.",
+        "welcome_page.why3_title": "Contradicting evidence is preserved",
+        "welcome_page.why3_body": "When sources disagree, that disagreement is the finding -- shown, not resolved for you.",
+        "welcome_page.why4_title": "Sources are excluded, never silently deleted",
+        "welcome_page.why4_body": "A reversible, reasoned annotation -- the original item is never gone.",
+        "welcome_page.why5_title": "Every research action is auditable",
+        "welcome_page.why5_body": "Searches, exclusions, and claim assessments are all in one readable trail.",
+        "welcome_page.why6_title": "AI proposes, humans decide",
+        "welcome_page.why6_body": "The model drafts; deterministic code and your own review decide what stands.",
     },
     "de": {
         # --- app chrome / nav ---------------------------------------------------
@@ -873,6 +979,122 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "auth.guest_label": "Gast -- gemeinsame Demo",
         "auth.sign_up": "Registrieren",
         "auth.log_in": "Anmelden",
+        # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------
+        "dh_research.title": "Software für Digital-Humanities-Forschung, aufgebaut um Belege",
+        "dh_research.body": "<p>Digital-Humanities-Forscher arbeiten bereits mit TEI-Editionen, IIIF-Bildservern, "
+        "Archivfindmitteln und OCR-Pipelines -- aber die meisten Werkzeuge in dieser Kette sind auf die "
+        "Katalogisierung oder Veröffentlichung einer Quelle ausgelegt, nicht auf das Bindeglied zwischen einer "
+        "Quelle und der Schlussfolgerung, die man aus ihr zieht. DHRA ist kein Digital-Edition-Werkzeug und kein "
+        "Repositorium; es ist der Forschungsarbeitsbereich, der nach dem Erwerb und vor der Veröffentlichung steht.</p>"
+        "<p>Laden Sie hoch, was Sie bereits haben -- Scans, Transkriptionen, Klartext, TEI/XML -- und DHRA hält die "
+        "gesamte Kette vom Rohdatum über die Transkription bis zur Übersetzung intakt, statt sie zu einem sauber "
+        "aussehenden Endtext zusammenzufalten. Die Suche ist wörtlich und an Fundstellen gebunden, keine "
+        "semantische Vermutung. Behauptungen, die Sie aufbauen, tragen einen Status, der von deterministischem "
+        "Code aus den tatsächlich verknüpften Belegen berechnet wird, nie von einem Modell behauptet.</p>"
+        '<p>Siehe <a href="/how-it-works">So funktioniert es</a> oder lesen Sie das Argument für '
+        '<a href="/evidence-based-research">beleggestützte Forschung</a>.</p>',
+        "research_assistant_page.title": "Ein KI-Forschungsassistent, der nur vorschlägt, nie entscheidet",
+        "research_assistant_page.body": "<p>DHRAs Forschungsassistent -- Chat, Vorschläge für Forschungsfragen, "
+        "Widerlegungssuche und Papierprüfung -- ist auf dieselbe Weise verankert wie jede andere Oberfläche des "
+        "Werkzeugs: er entwirft, Sie prüfen, nichts wird automatisch übernommen.</p>"
+        "<p>Der Chat antwortet nie, ohne zuvor eine echte Suche in Ihrem Korpus durchzuführen -- kein Beleg, keine "
+        "Antwort, nicht einmal eine Einschränkung. Die Widerlegungssuche bittet das Modell, widerlegungsorientierte "
+        "Suchformulierungen für eine Behauptung vorzuschlagen, und führt dann jede als echte Suche gegen Ihre "
+        "Quellen aus -- das Modell darf nie selbst entscheiden, ob die Behauptung standhielt. Die Papierprüfung "
+        "extrahiert Kandidatenbehauptungen aus einem Papier und findet für jede echte Korpusbelege; sie vergibt nie "
+        "ein Urteil.</p>"
+        "<p>Jedes Ergebnis landet als prüfbarer Entwurf, mit Zeitstempel und Zuordnung, direkt neben den echten "
+        "Suchergebnissen, die es hervorgebracht haben -- nicht in Prosa verpackt, der man einfach vertrauen müsste.</p>",
+        "claims_evidence_page.title": "Wie DHRA den Status einer Behauptung bestimmt",
+        "claims_evidence_page.body": "<p>Jede Behauptung, die Sie in DHRA prüfen, erhält einen von acht "
+        "Statuscodes -- E1 belegt, E2 bestätigt, E3 gefolgert, E4 umstritten, E5 Einzelquelle, E6 unbelegt, E7 "
+        "verneint, E8 außerhalb des Umfangs -- und jeder davon wird von einer kleinen, deterministischen Funktion "
+        "berechnet, die die verknüpften Belegfundstellen liest. Es gibt in DHRA keinen Codepfad, in dem ein "
+        "Sprachmodell einen Status vergibt.</p>"
+        "<p>Die Regeln sind einfach und fest: Jede widersprechende Fundstelle macht eine Behauptung E4 (umstritten), "
+        "unabhängig davon, wie viel stützender Beleg existiert -- Uneinigkeit zwischen Quellen ist selbst der "
+        "Befund, nichts, das man wegmitteln sollte. Der Status einer Behauptung kann mit sich ändernden Belegen "
+        "frei fallen, aber nur steigen, wenn die zugrundeliegende Belegmenge tatsächlich strikt wächst -- dieselbe "
+        "Frage erneut zu stellen oder umzuformulieren kann den Status einer Behauptung nie von selbst anheben.</p>"
+        '<p>Die vollständige Statustabelle finden Sie unter <a href="/tutorial">Erste Schritte</a>, oder lesen Sie '
+        'das breitere Argument für <a href="/evidence-based-research">beleggestützte Forschung</a>.</p>',
+        "dh_ai_page.title": "KI für Digital Humanities: verankert, nicht ratend",
+        "dh_ai_page.body": "<p>Die meisten \"KI für Forschung\"-Werkzeuge sind darauf ausgelegt, schnell eine "
+        "flüssig und selbstsicher klingende Antwort zu liefern. DHRA ist darauf ausgelegt, eine vertretbare zu "
+        "liefern -- selbst wenn das langsamer bedeutet, oder gar keine Antwort. Der Unterschied zeigt sich überall: "
+        "ein Chat, der ohne Beleg nicht antwortet, ein Behauptungsstatus, den ein Modell strukturell nicht vergeben "
+        "darf, ein Bias-Bericht, der vor jeder Aggregatansicht läuft statt nachdem Sie bereits eine Schlussfolgerung "
+        "gezogen haben.</p>"
+        "<p>DHRA ist außerdem auf drei Wegen über dasselbe Korpus erreichbar -- eine Weboberfläche zum Lesen und "
+        "Prüfen, ein skriptfähiges Kommandozeilenwerkzeug für Stapelarbeiten, und ein MCP-Server, damit ein "
+        "KI-Coding-Agent (Claude Code, Claude Desktop oder jeder andere MCP-Client) direkt suchen, aufnehmen und "
+        "Behauptungen prüfen kann, unter denselben Belegregeln wie alles andere. Nutzen Sie, was gerade passt -- "
+        "das zugrundeliegende Korpus und seine Regeln ändern sich nie.</p>",
+        "historical_docs_page.title": "Arbeiten mit historischen Dokumenten und Primärquellen",
+        "historical_docs_page.body": "<p>Eine historische Quelle kommt selten als sauberer Text an. Es ist ein "
+        "Scan, dann eine OCR- oder manuelle Transkription, manchmal darauf eine Übersetzung oder Normalisierung -- "
+        "jeder Schritt eine echte Transformation mit eigenem Ersteller, eigener Version und Fehlerrate. DHRA "
+        "modelliert dies explizit als Kette von Repräsentationen (Transkription &rarr; Übersetzung &rarr; "
+        "Normalisierung, jede mit einem Elternverweis zurück zum ursprünglichen Rohdatum), statt sie stillschweigend "
+        "zu verwerfen, sobald ein sauber aussehender Endtext existiert.</p>"
+        "<p>Laden Sie ein PDF, ein gescanntes Bild oder eine TEI/XML-Datei direkt hoch. OCR-Konfidenz und andere "
+        "Qualitätssignale bleiben an die Textstelle geheftet, die sie beschreiben -- als "
+        "Transkriptionsqualitätshinweis angezeigt, nie geglättet oder verborgen. Wenn ein Scan tatsächlich zu "
+        "schlecht ist, um zuverlässig durchsucht zu werden, wird er ausgeschlossen (nie gelöscht), mit einem "
+        "angegebenen, umkehrbaren Grund, und bleibt bis zur Wiederherstellung aus Suche und Aggregaten heraus.</p>"
+        '<p>Siehe <a href="/how-it-works">So funktioniert es</a> für den vollständigen Weg von der Quelle zur '
+        'Behauptung.</p>',
+        "documentation_page.title": "Dokumentation",
+        "documentation_page.body": "<p>DHRA ist auf drei Wegen über dasselbe Korpus erreichbar: diese "
+        "Weboberfläche, ein skriptfähiges Kommandozeilenwerkzeug und ein MCP-Server für KI-Agenten-Workflows. Die "
+        'App-interne <a href="/tutorial">Erste-Schritte</a>-Anleitung führt Schritt für Schritt durch die '
+        "Weboberfläche, inklusive des Terminal-Äquivalents für jeden Schritt. Unten folgt eine kurze Referenz für "
+        "die Arbeit direkt vom Terminal oder Skript aus.</p>",
+        "documentation_page.cli_note": "Jeder obige Befehl spricht mit demselben Store-Verzeichnis wie die Weboberfläche -- richten Sie --store (oder DHRA_STORE_DIR) darauf.",
+        "documentation_page.source_link": "Quellcode und vollständiges README auf GitHub",
+        "blog_page.title": "Blog",
+        "blog_page.lede": "Notizen zum Aufbau eines beleggestützten Forschungswerkzeugs -- Designentscheidungen und warum DHRA so funktioniert, wie es funktioniert.",
+        "blog_page.post1_title": "Warum DHRA das Modell nie entscheiden lässt",
+        "blog_page.post1_body": "<p>Die eine Designentscheidung, die alles andere in DHRA prägt, ist diese: Der "
+        "epistemische Status einer Behauptung -- belegt, umstritten, Einzelquelle, unbelegt -- ist niemals etwas, "
+        "das ein Sprachmodell vergeben darf. Er wird von einer kleinen, deterministischen Funktion berechnet, die "
+        "die Belegfundstellen liest, die ein Forscher (oder eine verifizierte Unabhängigkeitsprüfung) bereits mit "
+        "dieser Behauptung verknüpft hat.</p>"
+        "<p>Das klingt nach einem kleinen technischen Detail, ändert aber, was das Werkzeug ehrlich über sich "
+        "selbst behaupten kann. Ein Modell, das Konfidenzwerte vergibt, trifft eine Ermessensentscheidung, "
+        "verkleidet als Zahl -- für niemand anderen prüfbar, und auf eine Weise trivial falsch sein kann, die "
+        "dennoch autoritativ klingt. Deterministischer Code, der eine explizite Belegmenge liest, ist im Vergleich "
+        "langweilig, und das ist der Punkt: Sie können die Funktion lesen, Sie sehen genau, warum eine Behauptung "
+        "E1 statt E4 ist, und die Antwort ändert sich nicht danach, welches Modell gerade geantwortet hat oder wie "
+        "die Frage formuliert war.</p>"
+        "<p>Überall sonst, wo DHRA ein Sprachmodell nutzt -- Chat, Vorschläge für Forschungsfragen, "
+        "Widerlegungssuche, Papierprüfung -- gilt dieselbe Disziplin: Das Modell schlägt vor, und etwas Prüfbares "
+        "(eine echte Suche, eine echte Fundstelle, die eigene Prüfung des Forschers) entscheidet. Das ist eine "
+        "engere Aufgabe für KI, als die meisten Forschungswerkzeuge ihr geben, und genau diese Enge ist das ganze "
+        "Wertversprechen.</p>",
+        "welcome_page.hero_title": "Forschung aus Belegen, nicht aus Annahmen.",
+        "welcome_page.hero_lede": "DHRA hilft Geisteswissenschaftlern, Behauptungen im eigenen Quellenkorpus zu finden, zu prüfen und zurückzuverfolgen.",
+        "welcome_page.cta_try": "Demo ausprobieren",
+        "welcome_page.cta_signup": "Eigenen Arbeitsbereich registrieren",
+        "welcome_page.flow_heading": "Von der Quelle zur Behauptung",
+        "welcome_page.flow_source": "QUELLE",
+        "welcome_page.flow_evidence": "BELEG",
+        "welcome_page.flow_claim": "BEHAUPTUNG",
+        "welcome_page.flow_contradiction": "WIDERSPRUCH",
+        "welcome_page.flow_audit": "PRÜFUNG",
+        "welcome_page.why_heading": "Warum DHRA anders ist",
+        "welcome_page.why1_title": "Jedes Ergebnis hat eine Fundstelle",
+        "welcome_page.why1_body": "Keine Paraphrase -- die genaue Quelle, Seite und Textstelle, aus der ein Ergebnis stammt.",
+        "welcome_page.why2_title": "Behauptungen sind bis zum Beleg zurückverfolgbar",
+        "welcome_page.why2_body": "Jeder Status wird aus verknüpften Fundstellen berechnet, nie von einem Modell behauptet.",
+        "welcome_page.why3_title": "Widersprechende Belege bleiben erhalten",
+        "welcome_page.why3_body": "Wenn Quellen widersprechen, ist dieser Widerspruch selbst der Befund -- gezeigt, nicht für Sie aufgelöst.",
+        "welcome_page.why4_title": "Quellen werden ausgeschlossen, nie stillschweigend gelöscht",
+        "welcome_page.why4_body": "Eine umkehrbare, begründete Annotation -- das ursprüngliche Objekt ist nie weg.",
+        "welcome_page.why5_title": "Jede Forschungsaktion ist prüfbar",
+        "welcome_page.why5_body": "Suchen, Ausschlüsse und Behauptungsprüfungen stehen alle in einem lesbaren Protokoll.",
+        "welcome_page.why6_title": "KI schlägt vor, Menschen entscheiden",
+        "welcome_page.why6_body": "Das Modell entwirft; deterministischer Code und Ihre eigene Prüfung entscheiden, was Bestand hat.",
     },
     "fr": {
         # --- app chrome / nav ---------------------------------------------------
@@ -1301,6 +1523,125 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "auth.guest_label": "Invité -- démo partagée",
         "auth.sign_up": "S'inscrire",
         "auth.log_in": "Se connecter",
+        # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------
+        "dh_research.title": "Un logiciel de recherche en humanités numériques construit autour des preuves",
+        "dh_research.body": "<p>Les chercheurs en humanités numériques travaillent déjà avec des éditions TEI, "
+        "des serveurs d'images IIIF, des instruments de recherche d'archives et des chaînes OCR -- mais la plupart "
+        "des outils de cette chaîne sont optimisés pour le catalogage ou la publication d'une source, pas pour le "
+        "tissu conjonctif entre une source et la conclusion qu'on en tire. DHRA n'est ni un outil d'édition "
+        "numérique ni un dépôt ; c'est l'espace de recherche qui se situe après l'acquisition et avant la "
+        "publication.</p>"
+        "<p>Importez ce que vous avez déjà -- scans, transcriptions, texte brut, TEI/XML -- et DHRA garde intacte "
+        "toute la chaîne, du fichier brut à la transcription puis à la traduction, sans jamais la réduire à un "
+        "texte final d'apparence propre. La recherche est littérale et liée à un repère précis, pas une "
+        "supposition sémantique. Les affirmations que vous construisez portent un statut calculé par du code "
+        "déterministe à partir des preuves réellement liées, jamais affirmé par un modèle.</p>"
+        '<p>Voir <a href="/how-it-works">comment ça marche</a> ou lire l\'argumentaire pour la '
+        '<a href="/evidence-based-research">recherche fondée sur des preuves</a>.</p>',
+        "research_assistant_page.title": "Un assistant de recherche IA qui ne fait que proposer, jamais décider",
+        "research_assistant_page.body": "<p>L'assistant de recherche de DHRA -- chat, suggestions de questions de "
+        "recherche, recherche de réfutation et examen d'articles -- est ancré de la même manière que toute autre "
+        "surface de l'outil : il rédige, vous examinez, rien n'est appliqué automatiquement.</p>"
+        "<p>Le chat ne répond jamais sans avoir d'abord effectué une recherche réelle dans votre corpus -- pas de "
+        "preuve, pas de réponse, pas même une réserve. La recherche de réfutation demande au modèle de proposer des "
+        "formulations de recherche orientées vers la réfutation d'une affirmation, puis exécute chacune comme une "
+        "recherche réelle dans vos sources -- le modèle ne décide jamais lui-même si l'affirmation a tenu. "
+        "L'examen d'articles extrait des affirmations candidates d'un article et trouve pour chacune de vraies "
+        "preuves du corpus ; il n'attribue jamais de verdict.</p>"
+        "<p>Chaque résultat arrive comme un brouillon à examiner, horodaté et attribué, à côté des vrais résultats "
+        "de recherche qui l'ont produit -- jamais noyé dans une prose qu'il faudrait croire sur parole.</p>",
+        "claims_evidence_page.title": "Comment DHRA détermine le statut d'une affirmation",
+        "claims_evidence_page.body": "<p>Chaque affirmation que vous évaluez dans DHRA reçoit l'un de huit codes "
+        "de statut -- E1 attesté, E2 corroboré, E3 déduit, E4 contesté, E5 témoin unique, E6 non étayé, E7 négatif, "
+        "E8 hors champ -- et chacun est calculé par une petite fonction déterministe qui lit les repères de preuve "
+        "que vous avez liés. Il n'existe dans DHRA aucun chemin de code où un modèle de langage attribue un "
+        "statut.</p>"
+        "<p>Les règles sont simples et fixes : tout repère contradictoire rend une affirmation E4 (contestée), "
+        "quelle que soit la quantité de preuves à l'appui -- le désaccord entre sources est lui-même le résultat, "
+        "pas quelque chose à moyenner. Le statut d'une affirmation peut baisser librement à mesure que les preuves "
+        "changent, mais ne peut monter que si l'ensemble de preuves sous-jacent croît réellement strictement -- "
+        "reposer la même question, ou la reformuler, ne peut jamais à lui seul faire monter le statut d'une "
+        "affirmation.</p>"
+        '<p>Voir le tableau complet des statuts dans <a href="/tutorial">Premiers pas</a>, ou lire l\'argumentaire '
+        'plus large pour la <a href="/evidence-based-research">recherche fondée sur des preuves</a>.</p>',
+        "dh_ai_page.title": "L'IA pour les humanités numériques : ancrée, pas devinée",
+        "dh_ai_page.body": "<p>La plupart des outils \"IA pour la recherche\" sont optimisés pour produire "
+        "rapidement une réponse fluide et sûre d'elle-même. DHRA est optimisé pour produire une réponse défendable "
+        "-- même si cela signifie répondre plus lentement, ou ne pas répondre du tout. La différence se voit "
+        "partout : un chat qui refuse de répondre sans preuve, un statut d'affirmation qu'un modèle ne peut "
+        "structurellement pas attribuer, un rapport de biais qui s'exécute avant toute vue agrégée plutôt qu'après "
+        "que vous ayez déjà tiré une conclusion.</p>"
+        "<p>DHRA est aussi accessible de trois façons sur exactement le même corpus -- une interface web pour lire "
+        "et examiner, un outil en ligne de commande scriptable pour le travail par lots, et un serveur MCP pour "
+        "qu'un agent de codage IA (Claude Code, Claude Desktop, ou tout autre client MCP) puisse chercher, "
+        "importer et évaluer des affirmations directement, sous les mêmes règles de preuve que tout le reste. "
+        "Utilisez la surface qui convient au moment -- le corpus sous-jacent et les règles qui le gouvernent ne "
+        "changent jamais.</p>",
+        "historical_docs_page.title": "Travailler avec des documents historiques et des sources primaires",
+        "historical_docs_page.body": "<p>Une source historique arrive rarement comme un texte propre. C'est un "
+        "scan, puis une transcription OCR ou manuelle, parfois une traduction ou une normalisation par-dessus -- "
+        "chaque étape une vraie transformation avec son propre producteur, sa propre version, son propre taux "
+        "d'erreur. DHRA modélise cela explicitement comme une chaîne de représentations (transcription &rarr; "
+        "traduction &rarr; normalisation, chacune avec un parent pointant vers le fichier brut d'origine) au lieu "
+        "de la faire discrètement disparaître une fois qu'un texte final d'apparence propre existe.</p>"
+        "<p>Téléversez un PDF, une image scannée ou un fichier TEI/XML directement. La confiance OCR et les autres "
+        "signaux de qualité restent attachés au passage qu'ils décrivent -- affichés comme une note de qualité de "
+        "transcription, jamais lissés ou cachés. Quand un scan est réellement trop mauvais pour être recherché de "
+        "façon fiable, il est exclu (jamais supprimé) avec un motif énoncé et réversible, et reste hors des "
+        "recherches et agrégats jusqu'à sa restauration.</p>"
+        '<p>Voir <a href="/how-it-works">comment ça marche</a> pour le parcours complet, de la source à '
+        "l'affirmation.</p>",
+        "documentation_page.title": "Documentation",
+        "documentation_page.body": "<p>DHRA est accessible de trois façons sur le même corpus : cette interface "
+        "web, un outil en ligne de commande scriptable, et un serveur MCP pour les workflows d'agents IA. Le guide "
+        '<a href="/tutorial">Premiers pas</a> intégré à l\'application couvre l\'interface web étape par étape, '
+        "avec la commande terminal équivalente pour chaque étape. Ci-dessous, une courte référence pour travailler "
+        "directement depuis un terminal ou un script.</p>",
+        "documentation_page.cli_note": "Chaque commande ci-dessus s'adresse au même répertoire de stockage que l'interface web -- pointez --store (ou DHRA_STORE_DIR) vers lui.",
+        "documentation_page.source_link": "Code source et README complet sur GitHub",
+        "blog_page.title": "Blog",
+        "blog_page.lede": "Notes sur la construction d'un outil de recherche fondé sur des preuves -- décisions de conception et pourquoi DHRA fonctionne ainsi.",
+        "blog_page.post1_title": "Pourquoi DHRA ne laisse jamais le modèle décider",
+        "blog_page.post1_body": "<p>La décision de conception unique qui façonne tout le reste dans DHRA est "
+        "celle-ci : le statut épistémique d'une affirmation -- attestée, contestée, témoin unique, non étayée -- "
+        "n'est jamais quelque chose qu'un modèle de langage peut attribuer. Il est calculé par une petite fonction "
+        "déterministe qui lit les repères de preuve qu'un chercheur (ou une vérification d'indépendance validée) a "
+        "déjà liés à cette affirmation.</p>"
+        "<p>Cela ressemble à un petit détail technique, mais cela change ce que l'outil peut honnêtement affirmer "
+        "sur lui-même. Un modèle qui attribue des scores de confiance prend une décision arbitraire déguisée en "
+        "nombre -- impossible à auditer pour quiconque d'autre, et pouvant se tromper de façon triviale tout en "
+        "paraissant autoritaire. Un code déterministe qui lit un ensemble de preuves explicite est ennuyeux en "
+        "comparaison, et c'est précisément le but : vous pouvez lire la fonction, vous voyez exactement pourquoi "
+        "une affirmation est E1 plutôt que E4, et la réponse ne change pas selon le modèle qui a répondu, ni "
+        "selon la formulation de la question.</p>"
+        "<p>Partout ailleurs où DHRA utilise un modèle de langage -- chat, suggestions de questions de recherche, "
+        "recherche de réfutation, examen d'articles -- la même discipline s'applique : le modèle propose, et "
+        "quelque chose de vérifiable (une vraie recherche, un vrai repère, l'examen du chercheur lui-même) décide. "
+        "C'est un rôle plus étroit pour l'IA que ce que demandent la plupart des outils de recherche, et cette "
+        "étroitesse est toute la proposition de valeur.</p>",
+        "welcome_page.hero_title": "La recherche à partir de preuves, pas d'hypothèses.",
+        "welcome_page.hero_lede": "DHRA aide les chercheurs en humanités à trouver, tester et retracer des affirmations dans leur propre corpus de sources.",
+        "welcome_page.cta_try": "Essayer la démo",
+        "welcome_page.cta_signup": "S'inscrire pour votre propre espace",
+        "welcome_page.flow_heading": "De la source à l'affirmation",
+        "welcome_page.flow_source": "SOURCE",
+        "welcome_page.flow_evidence": "PREUVE",
+        "welcome_page.flow_claim": "AFFIRMATION",
+        "welcome_page.flow_contradiction": "CONTRADICTION",
+        "welcome_page.flow_audit": "AUDIT",
+        "welcome_page.why_heading": "Pourquoi DHRA est différent",
+        "welcome_page.why1_title": "Chaque résultat a un repère",
+        "welcome_page.why1_body": "Pas une paraphrase -- la source, la page et le passage exacts d'où provient un résultat.",
+        "welcome_page.why2_title": "Les affirmations sont traçables jusqu'à la preuve",
+        "welcome_page.why2_body": "Chaque statut est calculé à partir de repères liés, jamais affirmé par un modèle.",
+        "welcome_page.why3_title": "Les preuves contradictoires sont préservées",
+        "welcome_page.why3_body": "Quand les sources se contredisent, cette contradiction est elle-même le résultat -- montrée, pas résolue à votre place.",
+        "welcome_page.why4_title": "Les sources sont exclues, jamais supprimées silencieusement",
+        "welcome_page.why4_body": "Une annotation réversible et motivée -- l'objet original n'a jamais disparu.",
+        "welcome_page.why5_title": "Chaque action de recherche est vérifiable",
+        "welcome_page.why5_body": "Recherches, exclusions et évaluations d'affirmations figurent toutes dans un journal lisible.",
+        "welcome_page.why6_title": "L'IA propose, les humains décident",
+        "welcome_page.why6_body": "Le modèle rédige ; le code déterministe et votre propre examen décident ce qui tient.",
     },
 }
 

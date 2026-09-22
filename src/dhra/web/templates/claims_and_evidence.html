@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}How DHRA Decides a Claim's Status{% endblock %}
+{% block description %}E1 attested, E4 contested, E5 single witness, E6 unsupported -- every claim's epistemic status is computed by deterministic code from the evidence linked to it, never assigned by a model.{% endblock %}
+{% block content %}
+<h1>{{ t('claims_evidence_page.title') }}</h1>
+{{ t('claims_evidence_page.body') | safe }}
+<p><a href="/claims">{{ t('nav.claims') }} &rarr;</a> &middot; <a href="/tutorial">{{ t('nav.help') }} &rarr;</a></p>
+{% endblock %}

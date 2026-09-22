@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Blog{% endblock %}
+{% block description %}Notes on building an evidence-grounded research tool -- design decisions, trade-offs, and why DHRA is built the way it is.{% endblock %}
+{% block content %}
+<h1>{{ t('blog_page.title') }}</h1>
+<p class="lede">{{ t('blog_page.lede') }}</p>
+
+<article class="card">
+  <p class="muted">2026-09-22</p>
+  <h2 style="margin-top:0;">{{ t('blog_page.post1_title') }}</h2>
+  {{ t('blog_page.post1_body') | safe }}
+</article>
+{% endblock %}

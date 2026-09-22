@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}An AI Research Assistant That Only Proposes, Never Decides{% endblock %}
+{% block description %}DHRA's research assistant drafts research questions, disconfirmation searches and paper reviews -- always grounded in a real search of your corpus, always a reviewable draft, never an applied fact.{% endblock %}
+{% block content %}
+<h1>{{ t('research_assistant_page.title') }}</h1>
+{{ t('research_assistant_page.body') | safe }}
+<p><a href="/tutorial">{{ t('nav.help') }} &rarr;</a></p>
+{% endblock %}

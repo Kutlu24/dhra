@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}DHRA -- Evidence Before Narrative{% endblock %}
+{% block description %}DHRA helps humanities researchers find, test and trace claims across their own source corpus. Every result has a locator. Contradicting evidence is preserved, never hidden. AI proposes, humans decide.{% endblock %}
+{% block content %}
+<h1>{{ t('welcome_page.hero_title') }}</h1>
+<p class="lede">{{ t('welcome_page.hero_lede') }}</p>
+<div class="action-buttons">
+  <a href="/start"><button type="button">{{ t('welcome_page.cta_try') }}</button></a>
+  {% if accounts_enabled is defined and accounts_enabled %}
+  <a href="/signup"><button type="button" class="secondary">{{ t('welcome_page.cta_signup') }}</button></a>
+  {% endif %}
+</div>
+
+<h2>{{ t('welcome_page.flow_heading') }}</h2>
+<div class="card">
+  <p style="font-family: var(--font-mono); font-size: .95rem;">
+    {{ t('welcome_page.flow_source') }} &rarr;
+    {{ t('welcome_page.flow_evidence') }} &rarr;
+    {{ t('welcome_page.flow_claim') }} &rarr;
+    {{ t('welcome_page.flow_contradiction') }} &rarr;
+    {{ t('welcome_page.flow_audit') }}
+  </p>
+</div>
+
+<h2>{{ t('welcome_page.why_heading') }}</h2>
+<div class="card">&#128269; <strong>{{ t('welcome_page.why1_title') }}</strong><br><span class="muted">{{ t('welcome_page.why1_body') }}</span></div>
+<div class="card">&#129513; <strong>{{ t('welcome_page.why2_title') }}</strong><br><span class="muted">{{ t('welcome_page.why2_body') }}</span></div>
+<div class="card">&#9878; <strong>{{ t('welcome_page.why3_title') }}</strong><br><span class="muted">{{ t('welcome_page.why3_body') }}</span></div>
+<div class="card">&#128465; <strong>{{ t('welcome_page.why4_title') }}</strong><br><span class="muted">{{ t('welcome_page.why4_body') }}</span></div>
+<div class="card">&#128337; <strong>{{ t('welcome_page.why5_title') }}</strong><br><span class="muted">{{ t('welcome_page.why5_body') }}</span></div>
+<div class="card">&#129302; <strong>{{ t('welcome_page.why6_title') }}</strong><br><span class="muted">{{ t('welcome_page.why6_body') }}</span></div>
+
+<p><a href="/how-it-works">{{ t('how_it_works.title') }} &rarr;</a> &middot; <a href="/about">{{ t('about.title') }} &rarr;</a></p>
+{% endblock %}

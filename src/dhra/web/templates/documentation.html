@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Documentation{% endblock %}
+{% block description %}DHRA reference: the web interface, the scriptable CLI, and the MCP server -- three surfaces over the same evidence-bound corpus.{% endblock %}
+{% block content %}
+<h1>{{ t('documentation_page.title') }}</h1>
+{{ t('documentation_page.body') | safe }}
+
+<h2>CLI reference</h2>
+<pre><code>dhra ingest --text "..." --source-id my_archive
+dhra search "literal query"
+dhra claims assess --claim-id c1 --claim-text "..." --supporting item_id,rep_id,start,end
+dhra aggregate
+dhra trace
+dhra web --accounts-dir ./accounts   # launch the web UI, accounts optional</code></pre>
+<p class="muted">{{ t('documentation_page.cli_note') }}</p>
+
+<p>
+  <a href="/tutorial">{{ t('nav.help') }} &rarr;</a> &middot;
+  <a href="https://github.com/Kutlu24/dhra">{{ t('documentation_page.source_link') }} &rarr;</a>
+</p>
+{% endblock %}

@@ -346,7 +346,12 @@ def build_app(
         single_lang_paths = ["/ingest", "/claims", "/aggregate", "/exclusions", "/trace", "/sources", "/teaching"]
         # real per-language URLs -- these are what actually let Google index
         # the German/French content separately, which a cookie never could
-        content_paths = ["/", "/chat", "/tutorial", "/assistant", "/updates", "/evidence", "/how-it-works", "/about", "/evidence-based-research"]
+        content_paths = [
+            "/", "/chat", "/tutorial", "/assistant", "/updates", "/evidence",
+            "/how-it-works", "/about", "/evidence-based-research",
+            "/digital-humanities-research", "/research-assistant", "/claims-and-evidence",
+            "/digital-humanities-ai", "/historical-document-research", "/documentation", "/blog", "/welcome",
+        ]
         urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in single_lang_paths)
         urls += "".join(f"<url><loc>{origin}/{code}{p}</loc></url>" for code in LANGUAGES for p in content_paths)
         xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
@@ -725,43 +730,45 @@ def build_app(
         resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
-    # --- Content pages (SEO -- real crawlable content, not just app chrome) --
+    # --- Content pages (SEO -- real crawlable content, not just app chrome).
+    # Registered from one table instead of a route-pair per page -- eleven
+    # pages (three from the v2 pass, eight added after it: the doc review's
+    # remaining keyword pages, a documentation index, a blog with a real
+    # inaugural post, and a marketing landing page now that accounts exist
+    # to give "sign up" somewhere real to send a first-time visitor). -------
 
-    def _content_page(request: Request, template_name: str, active: str, lang: str | None) -> HTMLResponse:
-        return templates.TemplateResponse(request, template_name, _ctx(active, request, lang=lang))
+    CONTENT_PAGES: list[tuple[str, str]] = [
+        ("how-it-works", "how_it_works.html"),
+        ("about", "about.html"),
+        ("evidence-based-research", "evidence_based_research.html"),
+        ("digital-humanities-research", "digital_humanities_research.html"),
+        ("research-assistant", "research_assistant_overview.html"),
+        ("claims-and-evidence", "claims_and_evidence.html"),
+        ("digital-humanities-ai", "digital_humanities_ai.html"),
+        ("historical-document-research", "historical_document_research.html"),
+        ("documentation", "documentation.html"),
+        ("blog", "blog.html"),
+        ("welcome", "welcome.html"),
+    ]
 
-    @app.get("/how-it-works", response_class=HTMLResponse)
-    def how_it_works(request: Request) -> HTMLResponse:
-        return _content_page(request, "how_it_works.html", "", lang=None)
+    def _content_page(request: Request, template_name: str, lang: str | None) -> HTMLResponse:
+        return templates.TemplateResponse(request, template_name, _ctx("", request, lang=lang))
 
-    @app.get("/{lang}/how-it-works", response_class=HTMLResponse)
-    def how_it_works_lang(request: Request, lang: str) -> HTMLResponse:
-        lang = _valid_lang(lang)
-        resp = _content_page(request, "how_it_works.html", "", lang=lang)
-        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
-        return resp
+    def _register_content_page(slug: str, template_name: str) -> None:
+        async def page(request: Request) -> HTMLResponse:
+            return _content_page(request, template_name, lang=None)
 
-    @app.get("/about", response_class=HTMLResponse)
-    def about(request: Request) -> HTMLResponse:
-        return _content_page(request, "about.html", "", lang=None)
+        async def page_lang(request: Request, lang: str) -> HTMLResponse:
+            lang = _valid_lang(lang)
+            resp = _content_page(request, template_name, lang=lang)
+            resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+            return resp
 
-    @app.get("/{lang}/about", response_class=HTMLResponse)
-    def about_lang(request: Request, lang: str) -> HTMLResponse:
-        lang = _valid_lang(lang)
-        resp = _content_page(request, "about.html", "", lang=lang)
-        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
-        return resp
+        app.add_api_route(f"/{slug}", page, methods=["GET"], response_class=HTMLResponse)
+        app.add_api_route(f"/{{lang}}/{slug}", page_lang, methods=["GET"], response_class=HTMLResponse)
 
-    @app.get("/evidence-based-research", response_class=HTMLResponse)
-    def evidence_based_research(request: Request) -> HTMLResponse:
-        return _content_page(request, "evidence_based_research.html", "", lang=None)
-
-    @app.get("/{lang}/evidence-based-research", response_class=HTMLResponse)
-    def evidence_based_research_lang(request: Request, lang: str) -> HTMLResponse:
-        lang = _valid_lang(lang)
-        resp = _content_page(request, "evidence_based_research.html", "", lang=lang)
-        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
-        return resp
+    for _slug, _template_name in CONTENT_PAGES:
+        _register_content_page(_slug, _template_name)
 
     # --- Onboarding (stateless -- no accounts to save progress against;
     # step tracked entirely via ?step=N, see start.html) --------------------

@@ -431,6 +431,24 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         '<p>This is what separates an evidence-based research assistant from a general-purpose chatbot: '
         'DHRA never answers without evidence, and never hides what it could not find. See '
         '<a href="/how-it-works">how it works</a> or <a href="/tutorial">get started</a>.</p>',
+        # --- signup.html / login.html (accounts) ---------------------------------------------
+        "signup.title": "Sign up",
+        "signup.lede": "Create your own private workspace -- a corpus, claims, and audit trail only you can see.",
+        "signup.ephemeral_note": "This deployment's storage resets on restart, your account included. For a real, persistent private copy, self-host DHRA or use a deployment with persistent storage.",
+        "signup.username_label": "Username",
+        "signup.password_label": "Password",
+        "signup.password_confirm_label": "Confirm password",
+        "signup.submit": "Create account",
+        "signup.have_account": 'Already have an account? <a href="/login">Log in</a>.',
+        "login.title": "Log in",
+        "login.submit": "Log in",
+        "login.no_account": 'No account yet? <a href="/signup">Sign up</a>.',
+        # --- base.html sidebar auth status --------------------------------------------------
+        "auth.signed_in_as": "Signed in as {username}",
+        "auth.log_out": "Log out",
+        "auth.guest_label": "Guest -- shared demo",
+        "auth.sign_up": "Sign up",
+        "auth.log_in": "Log in",
     },
     "de": {
         # --- app chrome / nav ---------------------------------------------------
@@ -837,6 +855,24 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         '<p>Das unterscheidet einen beleggestützten Forschungsassistenten von einem allgemeinen Chatbot: DHRA antwortet nie ohne '
         'Belege und verbirgt nie, was es nicht finden konnte. Siehe <a href="/how-it-works">So funktioniert es</a> oder '
         '<a href="/tutorial">Erste Schritte</a>.</p>',
+        # --- signup.html / login.html (accounts) ---------------------------------------------
+        "signup.title": "Registrieren",
+        "signup.lede": "Erstellen Sie Ihren eigenen privaten Arbeitsbereich -- ein Korpus, Behauptungen und einen Prüfpfad, die nur Sie sehen.",
+        "signup.ephemeral_note": "Der Speicher dieses Deployments wird bei jedem Neustart zurückgesetzt, Ihr Konto eingeschlossen. Für eine echte, dauerhafte private Kopie hosten Sie DHRA selbst oder nutzen Sie ein Deployment mit dauerhaftem Speicher.",
+        "signup.username_label": "Benutzername",
+        "signup.password_label": "Passwort",
+        "signup.password_confirm_label": "Passwort bestätigen",
+        "signup.submit": "Konto erstellen",
+        "signup.have_account": 'Bereits ein Konto? <a href="/login">Anmelden</a>.',
+        "login.title": "Anmelden",
+        "login.submit": "Anmelden",
+        "login.no_account": 'Noch kein Konto? <a href="/signup">Registrieren</a>.',
+        # --- base.html sidebar auth status --------------------------------------------------
+        "auth.signed_in_as": "Angemeldet als {username}",
+        "auth.log_out": "Abmelden",
+        "auth.guest_label": "Gast -- gemeinsame Demo",
+        "auth.sign_up": "Registrieren",
+        "auth.log_in": "Anmelden",
     },
     "fr": {
         # --- app chrome / nav ---------------------------------------------------
@@ -1247,6 +1283,24 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         '<p>C\'est ce qui distingue un assistant de recherche fondé sur des preuves d\'un chatbot généraliste : DHRA ne répond '
         'jamais sans preuve, et ne cache jamais ce qu\'il n\'a pas pu trouver. Voir <a href="/how-it-works">comment ça '
         'marche</a> ou <a href="/tutorial">premiers pas</a>.</p>',
+        # --- signup.html / login.html (accounts) ---------------------------------------------
+        "signup.title": "S'inscrire",
+        "signup.lede": "Créez votre propre espace de travail privé -- un corpus, des affirmations et un journal d'audit que vous seul pouvez voir.",
+        "signup.ephemeral_note": "Le stockage de ce déploiement est réinitialisé à chaque redémarrage, votre compte y compris. Pour une copie privée réellement persistante, hébergez DHRA vous-même ou utilisez un déploiement avec stockage persistant.",
+        "signup.username_label": "Nom d'utilisateur",
+        "signup.password_label": "Mot de passe",
+        "signup.password_confirm_label": "Confirmer le mot de passe",
+        "signup.submit": "Créer un compte",
+        "signup.have_account": 'Déjà un compte ? <a href="/login">Se connecter</a>.',
+        "login.title": "Se connecter",
+        "login.submit": "Se connecter",
+        "login.no_account": 'Pas encore de compte ? <a href="/signup">S\'inscrire</a>.',
+        # --- base.html sidebar auth status --------------------------------------------------
+        "auth.signed_in_as": "Connecté en tant que {username}",
+        "auth.log_out": "Se déconnecter",
+        "auth.guest_label": "Invité -- démo partagée",
+        "auth.sign_up": "S'inscrire",
+        "auth.log_in": "Se connecter",
     },
 }
 

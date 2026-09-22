@@ -71,6 +71,17 @@
     ], active) }}
   </nav>
   <div class="nav-footer"><a href="/tutorial">{{ t('nav.help') }}</a></div>
+  {% if accounts_enabled is defined and accounts_enabled %}
+  <div class="nav-footer auth-status">
+    {% if current_user %}
+      {{ t('auth.signed_in_as', username=current_user.username) }}
+      <form method="post" action="/logout" class="inline"><button type="submit" class="link-button">{{ t('auth.log_out') }}</button></form>
+    {% else %}
+      {{ t('auth.guest_label') }}
+      <a href="/signup">{{ t('auth.sign_up') }}</a> &middot; <a href="/login">{{ t('auth.log_in') }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main class="{{ 'wide' if wide else '' }}">

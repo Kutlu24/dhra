@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Log in -- DHRA{% endblock %}
+{% block content %}
+<h1>{{ t('login.title') }}</h1>
+
+{% if error %}
+<div class="warning">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/login">
+  <p><label>{{ t('signup.username_label') }}<br><input type="text" name="username" required autofocus></label></p>
+  <p><label>{{ t('signup.password_label') }}<br><input type="password" name="password" required></label></p>
+  <button type="submit">{{ t('login.submit') }}</button>
+</form>
+<p class="muted">{{ t('login.no_account') | safe }}</p>
+{% endblock %}

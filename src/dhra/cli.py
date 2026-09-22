@@ -266,8 +266,12 @@ def cmd_web(args: argparse.Namespace) -> None:
     repo = _repo(args)
     expected = set(args.expected_language) if args.expected_language else None
     demo_banner = os.environ.get("DHRA_DEMO_BANNER") or None
-    app = build_app(repo, expected_languages=expected, demo_banner=demo_banner)
-    print(f"DHRA web UI: http://{args.host}:{args.port}  (store: {repo.root})")
+    accounts_dir_raw = args.accounts_dir or os.environ.get("DHRA_ACCOUNTS_DIR")
+    accounts_dir = Path(accounts_dir_raw) if accounts_dir_raw else None
+    session_secret = os.environ.get("DHRA_SESSION_SECRET") or None
+    app = build_app(repo, expected_languages=expected, demo_banner=demo_banner, accounts_dir=accounts_dir, session_secret=session_secret)
+    accounts_note = f", accounts: {accounts_dir}" if accounts_dir else ""
+    print(f"DHRA web UI: http://{args.host}:{args.port}  (store: {repo.root}{accounts_note})")
     uvicorn.run(app, host=args.host, port=args.port)
 
 
@@ -359,6 +363,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8420)
     p.add_argument("--expected-language", action="append")
+    p.add_argument("--accounts-dir", help="enable accounts/private workspaces, one DHRARepo store per account (default: disabled, or $DHRA_ACCOUNTS_DIR)")
     p.set_defaults(func=cmd_web)
 
     return parser

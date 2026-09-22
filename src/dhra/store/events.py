@@ -53,11 +53,18 @@ class EventLog:
     that is a Phase 3 concern (concurrent agent runs), out of scope here.
     """
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, allowed_types: frozenset[str] | None = None):
+        """`allowed_types` defaults to the corpus vocabulary (`EVENT_TYPES`
+        above) -- every existing caller (the corpus `events.jsonl`) keeps
+        that validation unchanged. A caller managing a *different*
+        append-only log (e.g. `dhra.accounts`'s `accounts.jsonl`, a
+        separate concern with its own small vocabulary) passes its own
+        set instead of overloading the corpus one with unrelated types."""
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.touch(exist_ok=True)
         self._lock = threading.Lock()
+        self._allowed_types = allowed_types if allowed_types is not None else EVENT_TYPES
 
     def _next_seq(self) -> int:
         last = 0
@@ -70,8 +77,8 @@ class EventLog:
         return last + 1
 
     def append(self, event_type: str, **fields: Any) -> dict:
-        if event_type not in EVENT_TYPES:
-            raise ValueError(f"Unknown event type {event_type!r}; add it to EVENT_TYPES deliberately.")
+        if event_type not in self._allowed_types:
+            raise ValueError(f"Unknown event type {event_type!r}; add it to the log's allowed-types set deliberately.")
         with self._lock:
             seq = self._next_seq()
             event = {

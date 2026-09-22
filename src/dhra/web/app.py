@@ -26,11 +26,19 @@ flat 10-link list -- `/` is now a dashboard (was the search screen;
 search moved to `/evidence`), and Research/Teaching split into separate
 sections/routes (`/assistant` vs `/teaching`) instead of one page with
 two columns.
+
+Accounts (optional -- `accounts_dir=None` is single-tenant, unchanged
+behaviour): every route resolves its own `DHRARepo` via `_current_repo
+(request)` instead of closing over one shared `repo` directly. No
+session/no accounts configured -> the shared `repo` (the public/guest
+corpus, unchanged); a valid session -> that account's own, isolated
+`DHRARepo` store. See `dhra.accounts`/`dhra.web.session`.
 """
 
 from __future__ import annotations
 
 import json
+import secrets
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -40,6 +48,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from dhra.accounts import Account, AccountsError, AccountStore
 from dhra.aggregate import aggregate_by_source
 from dhra.annotation import add_annotation, annotations_for
 from dhra.bias import compute_bias_report
@@ -67,6 +76,7 @@ from dhra.research_assistant import suggest_research_questions
 from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
+from dhra.web.session import SESSION_COOKIE, SESSION_MAX_AGE, make_serializer, session_cookie_value, user_id_from_cookie
 from dhra.trace import audit_narrative, trace_decisions, trace_raw, trace_summary
 from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError
 
@@ -117,7 +127,14 @@ _REASON_TO_GROUP = {reason: group for group, reasons in EXCLUSION_DISPLAY_GROUPS
 LANGUAGE_COOKIE = "dhra_lang"
 
 
-def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, demo_banner: str | None = None) -> FastAPI:
+def build_app(
+    repo: DHRARepo,
+    *,
+    expected_languages: set[str] | None = None,
+    demo_banner: str | None = None,
+    accounts_dir: Path | None = None,
+    session_secret: str | None = None,
+) -> FastAPI:
     app = FastAPI(title="DHRA", description="Digital Humanities Research Agent -- local evidence browser")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["status_meaning"] = lambda s, lang: translate(lang, STATUS_MEANING_KEYS.get(Status(s), ""))
@@ -127,6 +144,50 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     templates.env.globals["language_labels"] = LANGUAGE_LABELS
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    # --- Accounts (optional) ------------------------------------------------
+    # `accounts_dir=None` (the default -- desktop.py never passes it, and
+    # neither does any pre-existing caller) keeps every route's behaviour
+    # byte-for-byte identical to before accounts existed: `_current_repo`
+    # always returns the one shared `repo`. When set, a session cookie
+    # (signed, see dhra.web.session) selects a per-account DHRARepo instead.
+    account_store = AccountStore(accounts_dir) if accounts_dir is not None else None
+    _serializer = make_serializer(session_secret or secrets.token_urlsafe(32)) if account_store is not None else None
+    _user_repos: dict[str, DHRARepo] = {}
+
+    def _current_user(request: Request) -> Account | None:
+        if account_store is None or _serializer is None:
+            return None
+        user_id = user_id_from_cookie(_serializer, request.cookies.get(SESSION_COOKIE))
+        if user_id is None:
+            return None
+        return account_store.get_by_id(user_id)
+
+    def _current_repo(request: Request) -> DHRARepo:
+        """No accounts configured, or no valid session -> the shared
+        `repo` (the public/guest corpus -- unauthenticated visitors keep
+        using the site exactly as before accounts existed). A logged-in
+        account -> that account's own store, lazily constructed once and
+        cached per user id for the life of this process (DHRARepo
+        construction is cheap -- two mkdirs and a touch -- but there's no
+        reason to repeat it every request)."""
+        account = _current_user(request)
+        if account is None:
+            return repo
+        if account.user_id not in _user_repos:
+            _user_repos[account.user_id] = DHRARepo(account_store.user_store_path(account.user_id))  # type: ignore[union-attr]
+        return _user_repos[account.user_id]
+
+    def _set_session_cookie(resp: RedirectResponse, account: Account) -> RedirectResponse:
+        assert _serializer is not None
+        resp.set_cookie(
+            SESSION_COOKIE,
+            session_cookie_value(_serializer, account.user_id),
+            max_age=SESSION_MAX_AGE,
+            httponly=True,
+            samesite="lax",
+        )
+        return resp
 
     def _ctx(active: str, request: Request, *, lang: str | None = None, **extra: Any) -> dict[str, Any]:
         """`lang=None` (every pre-existing call site): derived from the
@@ -145,14 +206,17 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             lang_urls = {code: f"/{code}{rest}" for code in LANGUAGES}
         else:
             lang_urls = {code: f"/lang/{code}" for code in LANGUAGES}
+        current_repo = _current_repo(request)
         return {
             "active": active,
-            "corpus_version": repo.corpus_version().manifest_hash[:12],
+            "corpus_version": current_repo.corpus_version().manifest_hash[:12],
             "demo_banner": demo_banner,
             "lang": lang,
             "lang_urls": lang_urls,
             "lang_url_based": lang_url_based,
             "t": lambda key, **kw: translate(lang, key, **kw),
+            "current_user": _current_user(request),
+            "accounts_enabled": account_store is not None,
             **extra,
         }
 
@@ -168,11 +232,57 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         resp.set_cookie(LANGUAGE_COOKIE, resolve_language(code), max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
+    # --- Signup / login / logout --------------------------------------------
+
+    def _require_accounts() -> AccountStore:
+        if account_store is None:
+            raise HTTPException(status_code=404, detail="Accounts are not enabled on this deployment.")
+        return account_store
+
+    @app.get("/signup", response_class=HTMLResponse)
+    def signup_form(request: Request) -> HTMLResponse:
+        _require_accounts()
+        return templates.TemplateResponse(request, "signup.html", _ctx("", request, error=None))
+
+    @app.post("/signup", response_model=None)
+    def signup_submit(
+        request: Request, username: str = Form(...), password: str = Form(...), password_confirm: str = Form(...)
+    ) -> HTMLResponse | RedirectResponse:
+        store = _require_accounts()
+        if password != password_confirm:
+            return templates.TemplateResponse(request, "signup.html", _ctx("", request, error="Passwords don't match."))
+        try:
+            account = store.create_account(username, password)
+        except AccountsError as exc:
+            return templates.TemplateResponse(request, "signup.html", _ctx("", request, error=str(exc)))
+        return _set_session_cookie(RedirectResponse("/", status_code=303), account)
+
+    @app.get("/login", response_class=HTMLResponse)
+    def login_form(request: Request) -> HTMLResponse:
+        _require_accounts()
+        return templates.TemplateResponse(request, "login.html", _ctx("", request, error=None))
+
+    @app.post("/login", response_model=None)
+    def login_submit(request: Request, username: str = Form(...), password: str = Form(...)) -> HTMLResponse | RedirectResponse:
+        store = _require_accounts()
+        try:
+            account = store.authenticate(username, password)
+        except AccountsError as exc:
+            return templates.TemplateResponse(request, "login.html", _ctx("", request, error=str(exc)))
+        return _set_session_cookie(RedirectResponse("/", status_code=303), account)
+
+    @app.post("/logout")
+    def logout(request: Request) -> RedirectResponse:
+        resp = RedirectResponse("/", status_code=303)
+        resp.delete_cookie(SESSION_COOKIE)
+        return resp
+
     # --- Dashboard (was the empty state of search.html; search itself is
     # now /evidence -- see doc review: the homepage should read as a
     # research workspace, not a bare search box) --------------------------
 
     def _dashboard_page(request: Request, lang: str | None) -> HTMLResponse:
+        repo = _current_repo(request)
         projection = repo.projection()
         claims = list(projection.claims.values())
         n_contested = sum(1 for c in claims if c.status == Status.CONTESTED)
@@ -206,6 +316,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     # was search.html's q-driven view) -------------------------------------
 
     def _evidence_page(request: Request, q: str | None, lang: str | None) -> HTMLResponse:
+        repo = _current_repo(request)
         response = None
         if q:
             response = evidence_search(repo, q)
@@ -276,6 +387,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.post("/chat", response_class=HTMLResponse)
     def chat_post(request: Request, message: str = Form(...), history_json: str = Form("[]")) -> HTMLResponse:
+        repo = _current_repo(request)
         try:
             history = json.loads(history_json)
         except json.JSONDecodeError:
@@ -319,6 +431,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.post("/ingest")
     def ingest_submit(
+        request: Request,
         source_id: str = Form(...),
         access_basis: str = Form("public_domain"),
         licence_id: str = Form(""),
@@ -326,6 +439,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         text: str = Form(""),
         file: UploadFile | None = None,
     ) -> RedirectResponse:
+        repo = _current_repo(request)
         kwargs: dict[str, Any] = {
             "source_id": source_id,
             "access_basis": access_basis,
@@ -353,6 +467,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/locator/{item_id}/{rep_id}/{start}/{end}", response_class=HTMLResponse)
     def locator_detail(request: Request, item_id: str, rep_id: str, start: int, end: int) -> HTMLResponse:
+        repo = _current_repo(request)
         locator = Locator(item_id=item_id, rep_id=rep_id, start=start, end=end)
         try:
             passage = repo.resolve(locator)
@@ -370,9 +485,10 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         )
 
     @app.get("/item/{item_id}")
-    def item_redirect(item_id: str) -> RedirectResponse:
+    def item_redirect(request: Request, item_id: str) -> RedirectResponse:
         """Drill-down target for aggregate buckets (section 8.4): every
         element of an aggregate must open to its passages in one action."""
+        repo = _current_repo(request)
         projection = repo.projection()
         rep_ids = projection.reps_by_item.get(item_id, [])
         if not rep_ids:
@@ -381,7 +497,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse(f"/locator/{item_id}/{rep_ids[0]}/0/{len(rep.text)}", status_code=307)
 
     @app.get("/blob/{item_id}")
-    def blob(item_id: str) -> Response:
+    def blob(request: Request, item_id: str) -> Response:
+        repo = _current_repo(request)
         projection = repo.projection()
         item = projection.items.get(item_id)
         if item is None:
@@ -390,7 +507,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return Response(content=data, media_type=item.media_type)
 
     @app.post("/annotate")
-    def annotate(target_type: str = Form(...), target_id: str = Form(...), text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def annotate(request: Request, target_type: str = Form(...), target_id: str = Form(...), text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         add_annotation(repo, target_type=target_type, target_id=target_id, text=text, actor=actor)
         if target_type == "item":
             projection = repo.projection()
@@ -405,6 +523,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/sources", response_class=HTMLResponse)
     def sources(request: Request) -> HTMLResponse:
+        repo = _current_repo(request)
         result = aggregate_by_source(repo, expected_languages=expected_languages)
         return templates.TemplateResponse(request, "sources.html", _ctx("sources", request, result=result))
 
@@ -412,6 +531,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/exclusions", response_class=HTMLResponse)
     def exclusions(request: Request) -> HTMLResponse:
+        repo = _current_repo(request)
         projection = repo.projection()
         grouped: dict[str, list] = {group: [] for group in EXCLUSION_DISPLAY_GROUPS}
         for item_id, excl in projection.active_exclusions.items():
@@ -420,7 +540,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return templates.TemplateResponse(request, "exclusions.html", _ctx("exclusions", request, grouped=grouped))
 
     @app.post("/exclusions/{item_id}/restore")
-    def restore(item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+    def restore(request: Request, item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        repo = _current_repo(request)
         repo.restore_item(item_id=item_id, actor=actor)
         return RedirectResponse("/exclusions", status_code=303)
 
@@ -428,6 +549,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     # extended past the corpus boundary; see literature_watch.py docstring) --
 
     def _updates_page(request: Request, error: str, lang: str | None) -> HTMLResponse:
+        repo = _current_repo(request)
         return templates.TemplateResponse(
             request,
             "updates.html",
@@ -454,17 +576,20 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return resp
 
     @app.post("/updates/queries")
-    def updates_add_query(query_text: str = Form(...), actor: str = Form("researcher")) -> RedirectResponse:
+    def updates_add_query(request: Request, query_text: str = Form(...), actor: str = Form("researcher")) -> RedirectResponse:
+        repo = _current_repo(request)
         add_watch_query(repo, query_text=query_text, actor=actor)
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/queries/{watch_id}/remove")
-    def updates_remove_query(watch_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+    def updates_remove_query(request: Request, watch_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        repo = _current_repo(request)
         remove_watch_query(repo, watch_id, actor=actor)
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/check")
-    def updates_check() -> RedirectResponse:
+    def updates_check(request: Request) -> RedirectResponse:
+        repo = _current_repo(request)
         try:
             check_for_updates(repo)
         except LiteratureWatchError as exc:
@@ -472,12 +597,14 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/candidates/{work_id}/dismiss")
-    def updates_dismiss(work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+    def updates_dismiss(request: Request, work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        repo = _current_repo(request)
         dismiss_candidate(repo, work_id, actor=actor)
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/candidates/{work_id}/restore")
-    def updates_restore(work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+    def updates_restore(request: Request, work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
+        repo = _current_repo(request)
         restore_candidate(repo, work_id, actor=actor)
         return RedirectResponse("/updates", status_code=303)
 
@@ -485,6 +612,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/aggregate", response_class=HTMLResponse)
     def aggregate(request: Request) -> HTMLResponse:
+        repo = _current_repo(request)
         result = aggregate_by_source(repo, expected_languages=expected_languages)
         return templates.TemplateResponse(request, "aggregate.html", _ctx("analysis", request, result=result))
 
@@ -492,6 +620,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/claims", response_class=HTMLResponse)
     def claims_list(request: Request) -> HTMLResponse:
+        repo = _current_repo(request)
         projection = repo.projection()
         claims = sorted(projection.claims.values(), key=lambda c: c.claim_id)
         return templates.TemplateResponse(request, "claims.html", _ctx("claims", request, claims=claims))
@@ -506,6 +635,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/claims/{claim_id}", response_class=HTMLResponse)
     def claim_detail(request: Request, claim_id: str) -> HTMLResponse:
+        repo = _current_repo(request)
         assessment = repo.get_claim_assessment(claim_id)
         if assessment is None:
             raise HTTPException(status_code=404, detail="no such claim")
@@ -532,6 +662,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.post("/claims/assess")
     def claim_assess(
+        request: Request,
         claim_id: str = Form(...),
         claim_text: str = Form(...),
         actor: str = Form("researcher"),
@@ -540,6 +671,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         negating: str = Form(""),
         run_independence: bool = Form(False),
     ) -> RedirectResponse:
+        repo = _current_repo(request)
         supporting_locs = _parse_locators(supporting)
         contradicting_locs = _parse_locators(contradicting)
         negating_locs = _parse_locators(negating)
@@ -561,6 +693,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/trace", response_class=HTMLResponse)
     def trace(request: Request, task: str | None = None) -> HTMLResponse:
+        repo = _current_repo(request)
         summary = trace_summary(repo.events, task)
         decisions = trace_decisions(repo.events, task)
         raw = trace_raw(repo.events, task) if task else []
@@ -572,7 +705,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         )
 
     @app.get("/trace/export", response_class=Response)
-    def trace_export(task: str | None = None) -> Response:
+    def trace_export(request: Request, task: str | None = None) -> Response:
+        repo = _current_repo(request)
         narrative = audit_narrative(repo.events, task)
         lines = [f"{e.ts}\t{e.type}\t{e.text}" for e in narrative]
         return Response("\n".join(lines) + "\n", media_type="text/plain")
@@ -634,6 +768,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/start", response_class=HTMLResponse)
     def start(request: Request, step: int = 1, topic: str = "", action: str = "") -> HTMLResponse:
+        repo = _current_repo(request)
         projection = repo.projection()
         return templates.TemplateResponse(
             request,
@@ -654,6 +789,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     # teaching/peer_review). Split into two routes/nav sections (v2): -------
 
     def _assistant_page(request: Request, lang: str | None) -> HTMLResponse:
+        repo = _current_repo(request)
         return templates.TemplateResponse(
             request,
             "assistant.html",
@@ -679,6 +815,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
 
     @app.get("/teaching", response_class=HTMLResponse)
     def teaching(request: Request) -> HTMLResponse:
+        repo = _current_repo(request)
         return templates.TemplateResponse(
             request,
             "teaching.html",
@@ -698,7 +835,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return client
 
     @app.post("/assistant/research-questions")
-    def assistant_research_questions(context_query: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def assistant_research_questions(request: Request, context_query: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             suggest_research_questions(repo, client, context_query=context_query, actor=actor)
@@ -709,7 +847,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/disconfirm")
-    def assistant_disconfirm(claim_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def assistant_disconfirm(request: Request, claim_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             propose_and_run_disconfirmation(repo, client, claim_text=claim_text, actor=actor)
@@ -720,7 +859,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/assistant/peer-review")
-    def assistant_peer_review(paper_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def assistant_peer_review(request: Request, paper_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             review_paper(repo, client, paper_text=paper_text, actor=actor)
@@ -731,7 +871,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/assistant", status_code=303)
 
     @app.post("/teaching/exam-questions")
-    def teaching_exam_questions(source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
+    def teaching_exam_questions(request: Request, source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
@@ -740,7 +881,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/teaching", status_code=303)
 
     @app.post("/teaching/rubric")
-    def teaching_rubric(paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def teaching_rubric(request: Request, paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
@@ -749,7 +891,8 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return RedirectResponse("/teaching", status_code=303)
 
     @app.post("/teaching/reading-list")
-    def teaching_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    def teaching_reading_list(request: Request, course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+        repo = _current_repo(request)
         client = _require_llm()
         try:
             draft_reading_list(repo, client, course_topic=course_topic, actor=actor, websearch_client=_websearch_client_or_none())

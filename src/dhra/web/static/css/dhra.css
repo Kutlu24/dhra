@@ -105,6 +105,10 @@ nav .icon { width: 1.1em; text-align: center; opacity: .8; font-size: .95em; }
 .nav-footer { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 .nav-footer a { font-size: .82rem; color: var(--text-muted); text-decoration: none; }
 .nav-footer a:hover { color: var(--accent); }
+.nav-footer.auth-status { font-size: .82rem; color: var(--text-muted); line-height: 1.6; }
+.link-button { background: none; border: none; padding: 0; margin: 0; font-size: .82rem; font-weight: 400;
+  color: var(--text-muted); text-decoration: none; cursor: pointer; }
+.link-button:hover { color: var(--accent); filter: none; }
 .corpus-version { font-size: .66rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 1.25rem;
   padding-top: .9rem; border-top: 1px solid var(--border); word-break: break-all; }
 

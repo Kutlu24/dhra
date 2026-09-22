@@ -29,6 +29,12 @@ RUN pip install --no-cache-dir --user -e .
 # temporary/demo deployment, and it's reseeded (only if empty) at startup.
 ENV DHRA_STORE_DIR=$HOME/app/store
 
+# Same container, same reset-on-restart caveat -- an account created on
+# this deployment specifically is exactly as ephemeral as the shared demo
+# corpus (see signup.html's own warning, shown whenever DHRA_DEMO_BANNER
+# is set). Real persistence needs self-hosting or a plan with a disk.
+ENV DHRA_ACCOUNTS_DIR=$HOME/app/accounts
+
 EXPOSE 7860
 
 # Shell form (not JSON-array) so ${PORT:-7860} actually expands: Render

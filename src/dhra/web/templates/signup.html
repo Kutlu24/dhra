@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sign up -- DHRA{% endblock %}
+{% block content %}
+<h1>{{ t('signup.title') }}</h1>
+<p class="lede">{{ t('signup.lede') }}</p>
+
+{% if demo_banner %}
+<div class="warning">{{ t('signup.ephemeral_note') }}</div>
+{% endif %}
+
+{% if error %}
+<div class="warning">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/signup">
+  <p><label>{{ t('signup.username_label') }}<br><input type="text" name="username" required autofocus></label></p>
+  <p><label>{{ t('signup.password_label') }}<br><input type="password" name="password" required minlength="8"></label></p>
+  <p><label>{{ t('signup.password_confirm_label') }}<br><input type="password" name="password_confirm" required minlength="8"></label></p>
+  <button type="submit">{{ t('signup.submit') }}</button>
+</form>
+<p class="muted">{{ t('signup.have_account') | safe }}</p>
+{% endblock %}

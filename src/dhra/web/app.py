@@ -20,6 +20,12 @@ described:
     so there is no route that can return buckets without it.
   - No delete routes exist anywhere in this module -- only
     exclude/restore (reversible) and approve/deny (logged either way).
+
+v2 nav (RESEARCH / SOURCES / AUDIT / TEACHING, see base.html) replaced a
+flat 10-link list -- `/` is now a dashboard (was the search screen;
+search moved to `/evidence`), and Research/Teaching split into separate
+sections/routes (`/assistant` vs `/teaching`) instead of one page with
+two columns.
 """
 
 from __future__ import annotations
@@ -55,12 +61,13 @@ from dhra.literature_watch import (
 from dhra.llm import LLMClient, LLMConfig, LLMError
 from dhra.models import ExclusionReason, Locator
 from dhra.peer_review import review_paper
+from dhra.provenance import claim_provenance
 from dhra.repo import DHRARepo
 from dhra.research_assistant import suggest_research_questions
 from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
-from dhra.trace import trace_decisions, trace_raw, trace_summary
+from dhra.trace import audit_narrative, trace_decisions, trace_raw, trace_summary
 from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError
 
 RESEARCH_DRAFT_KINDS = ("research_questions", "peer_review", "disconfirmation")
@@ -83,6 +90,30 @@ STATUS_MEANING_KEYS = {
     Status.OUT_OF_SCOPE: "status.out_of_scope",
 }
 
+STATUS_LABEL_KEYS = {
+    Status.ATTESTED: "status_label.attested",
+    Status.CORROBORATED: "status_label.corroborated",
+    Status.INFERRED: "status_label.inferred",
+    Status.CONTESTED: "status_label.contested",
+    Status.SINGLE_WITNESS: "status_label.single_witness",
+    Status.UNSUPPORTED: "status_label.unsupported",
+    Status.NEGATIVE: "status_label.negative",
+    Status.OUT_OF_SCOPE: "status_label.out_of_scope",
+}
+
+# UI-level grouping of the existing (more granular) ExclusionReason values
+# into the 5 display buckets a researcher actually scans for -- not a
+# change to the enum itself: events.jsonl is append-only, so past
+# exclusion events' stored reason values are immutable history.
+EXCLUSION_DISPLAY_GROUPS: dict[str, tuple[ExclusionReason, ...]] = {
+    "duplicate": (ExclusionReason.DESCENT_CLUSTER_MEMBER,),
+    "low_quality": (ExclusionReason.BELOW_QUALITY, ExclusionReason.BELOW_RELEVANCE, ExclusionReason.FORMAT_UNREADABLE),
+    "outside_scope": (ExclusionReason.OUT_OF_DATE_RANGE, ExclusionReason.WRONG_LANGUAGE, ExclusionReason.DATE_UNRESOLVED),
+    "acquisition_problem": (ExclusionReason.ACCESS_DENIED,),
+    "other": (ExclusionReason.RESEARCHER_EXCLUDED,),
+}
+_REASON_TO_GROUP = {reason: group for group, reasons in EXCLUSION_DISPLAY_GROUPS.items() for reason in reasons}
+
 LANGUAGE_COOKIE = "dhra_lang"
 
 
@@ -91,6 +122,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["status_meaning"] = lambda s, lang: translate(lang, STATUS_MEANING_KEYS.get(Status(s), ""))
     templates.env.globals["status_tone"] = lambda s: "warn" if Status(s) in (Status.CONTESTED, Status.UNSUPPORTED, Status.NEGATIVE) else "ok"
+    templates.env.globals["status_label"] = lambda s, lang: translate(lang, STATUS_LABEL_KEYS.get(Status(s), ""))
     templates.env.globals["languages"] = LANGUAGES
     templates.env.globals["language_labels"] = LANGUAGE_LABELS
     if STATIC_DIR.exists():
@@ -99,10 +131,10 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     def _ctx(active: str, request: Request, *, lang: str | None = None, **extra: Any) -> dict[str, Any]:
         """`lang=None` (every pre-existing call site): derived from the
         `dhra_lang` cookie, as before -- one URL, language picked client-side.
-        `lang=<code>` (the five /{lang}/... content routes below): the URL
-        itself is the language -- real, distinct, crawlable pages per
-        language, which a cookie-only switch can never give a search engine
-        (it never sends cookies, so it would only ever see English)."""
+        `lang=<code>` (the content routes below): the URL itself is the
+        language -- real, distinct, crawlable pages per language, which a
+        cookie-only switch can never give a search engine (it never sends
+        cookies, so it would only ever see English)."""
         if lang is None:
             lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
         segments = request.url.path.split("/", 2)
@@ -136,22 +168,57 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         resp.set_cookie(LANGUAGE_COOKIE, resolve_language(code), max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
-    # --- Home / search (section 12: evidence above, narrative below) -------
+    # --- Dashboard (was the empty state of search.html; search itself is
+    # now /evidence -- see doc review: the homepage should read as a
+    # research workspace, not a bare search box) --------------------------
 
-    def _home_page(request: Request, q: str | None, lang: str | None) -> HTMLResponse:
+    def _dashboard_page(request: Request, lang: str | None) -> HTMLResponse:
+        projection = repo.projection()
+        claims = list(projection.claims.values())
+        n_contested = sum(1 for c in claims if c.status == Status.CONTESTED)
+        recent = list(reversed(audit_narrative(repo.events)[-8:]))
+        return templates.TemplateResponse(
+            request,
+            "dashboard.html",
+            _ctx(
+                "overview",
+                request,
+                lang=lang,
+                n_sources=len(projection.active_item_ids()),
+                n_claims=len(claims),
+                n_contested=n_contested,
+                recent=recent,
+            ),
+        )
+
+    @app.get("/", response_class=HTMLResponse)
+    def home(request: Request) -> HTMLResponse:
+        return _dashboard_page(request, lang=None)
+
+    @app.get("/{lang}/", response_class=HTMLResponse)
+    def home_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _dashboard_page(request, lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
+
+    # --- Evidence search (section 12: evidence above, narrative below;
+    # was search.html's q-driven view) -------------------------------------
+
+    def _evidence_page(request: Request, q: str | None, lang: str | None) -> HTMLResponse:
         response = None
         if q:
             response = evidence_search(repo, q)
-        return templates.TemplateResponse(request, "search.html", _ctx("search", request, lang=lang, q=q or "", response=response))
+        return templates.TemplateResponse(request, "evidence.html", _ctx("evidence", request, lang=lang, q=q or "", response=response))
 
-    @app.get("/", response_class=HTMLResponse)
-    def home(request: Request, q: str | None = None) -> HTMLResponse:
-        return _home_page(request, q, lang=None)
+    @app.get("/evidence", response_class=HTMLResponse)
+    def evidence_page(request: Request, q: str | None = None) -> HTMLResponse:
+        return _evidence_page(request, q, lang=None)
 
-    @app.get("/{lang}/", response_class=HTMLResponse)
-    def home_lang(request: Request, lang: str, q: str | None = None) -> HTMLResponse:
+    @app.get("/{lang}/evidence", response_class=HTMLResponse)
+    def evidence_page_lang(request: Request, lang: str, q: str | None = None) -> HTMLResponse:
         lang = _valid_lang(lang)
-        resp = _home_page(request, q, lang=lang)
+        resp = _evidence_page(request, q, lang=lang)
         resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
@@ -165,10 +232,10 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         origin = f"{request.url.scheme}://{request.url.netloc}"
         # single-language pages (cookie-switched only, not worth a separate
         # crawlable URL per language)
-        single_lang_paths = ["/ingest", "/claims", "/aggregate", "/exclusions", "/trace"]
+        single_lang_paths = ["/ingest", "/claims", "/aggregate", "/exclusions", "/trace", "/sources", "/teaching"]
         # real per-language URLs -- these are what actually let Google index
         # the German/French content separately, which a cookie never could
-        content_paths = ["/", "/chat", "/tutorial", "/assistant", "/updates"]
+        content_paths = ["/", "/chat", "/tutorial", "/assistant", "/updates", "/evidence", "/how-it-works", "/about", "/evidence-based-research"]
         urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in single_lang_paths)
         urls += "".join(f"<url><loc>{origin}/{code}{p}</loc></url>" for code in LANGUAGES for p in content_paths)
         xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
@@ -217,10 +284,17 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
         result = chat_answer(repo, client, question=message, history=history, lang=lang)
 
+        # Evidence-first cards need score/rationale/source alongside the
+        # excerpt -- Passage already carries all three, this just stops
+        # dropping them on the way into the round-tripped history JSON.
+        projection = repo.projection()
         evidence_dicts = [
             {
                 "text": p.text,
                 "locator": {"item_id": p.locator.item_id, "rep_id": p.locator.rep_id, "start": p.locator.start, "end": p.locator.end},
+                "score": p.score,
+                "rationale": p.rationale,
+                "source_label": projection.items[p.locator.item_id].acquisition.source_id if p.locator.item_id in projection.items else None,
             }
             for p in result.evidence
         ]
@@ -292,7 +366,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         return templates.TemplateResponse(
             request,
             "locator.html",
-            _ctx("search", request, locator=locator, passage=passage, item=item, rep=rep, is_image=is_image, thread=thread),
+            _ctx("evidence", request, locator=locator, passage=passage, item=item, rep=rep, is_image=is_image, thread=thread),
         )
 
     @app.get("/item/{item_id}")
@@ -326,14 +400,23 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
                 return RedirectResponse(f"/locator/{target_id}/{rep_id}/0/{len(rep.text)}", status_code=303)
         return RedirectResponse("/", status_code=303)
 
+    # --- Sources (SOURCES > Corpus: browse framing, vs. Analysis's bias-
+    # report framing on the same underlying aggregate_by_source data) -----
+
+    @app.get("/sources", response_class=HTMLResponse)
+    def sources(request: Request) -> HTMLResponse:
+        result = aggregate_by_source(repo, expected_languages=expected_languages)
+        return templates.TemplateResponse(request, "sources.html", _ctx("sources", request, result=result))
+
     # --- Exclusions (section 12: grouped by reason, one-click restore) -----
 
     @app.get("/exclusions", response_class=HTMLResponse)
     def exclusions(request: Request) -> HTMLResponse:
         projection = repo.projection()
-        grouped: dict[str, list] = {}
+        grouped: dict[str, list] = {group: [] for group in EXCLUSION_DISPLAY_GROUPS}
         for item_id, excl in projection.active_exclusions.items():
-            grouped.setdefault(excl.reason.value, []).append((item_id, excl))
+            group = _REASON_TO_GROUP.get(excl.reason, "other")
+            grouped[group].append((item_id, excl))
         return templates.TemplateResponse(request, "exclusions.html", _ctx("exclusions", request, grouped=grouped))
 
     @app.post("/exclusions/{item_id}/restore")
@@ -403,7 +486,7 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
     @app.get("/aggregate", response_class=HTMLResponse)
     def aggregate(request: Request) -> HTMLResponse:
         result = aggregate_by_source(repo, expected_languages=expected_languages)
-        return templates.TemplateResponse(request, "aggregate.html", _ctx("aggregate", request, result=result))
+        return templates.TemplateResponse(request, "aggregate.html", _ctx("analysis", request, result=result))
 
     # --- Claims (section 12: status as a code, never a number) -------------
 
@@ -427,7 +510,10 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         if assessment is None:
             raise HTTPException(status_code=404, detail="no such claim")
         history = repo.claim_history(claim_id)
-        return templates.TemplateResponse(request, "claim_detail.html", _ctx("claims", request, assessment=assessment, history=history))
+        provenance = claim_provenance(repo, assessment)
+        return templates.TemplateResponse(
+            request, "claim_detail.html", _ctx("claims", request, assessment=assessment, history=history, provenance=provenance)
+        )
 
     def _parse_locators(raw: str) -> list[Locator]:
         """One 'item_id,rep_id,start,end' per line -- the plain-text
@@ -470,18 +556,26 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             )
         return RedirectResponse(f"/claims/{claim_id}", status_code=303)
 
-    # --- Trace (section 12: decision-level trace one interaction away) -----
+    # --- Trace / Research Audit Trail (section 12: decision-level trace
+    # one interaction away) --------------------------------------------------
 
     @app.get("/trace", response_class=HTMLResponse)
     def trace(request: Request, task: str | None = None) -> HTMLResponse:
         summary = trace_summary(repo.events, task)
         decisions = trace_decisions(repo.events, task)
         raw = trace_raw(repo.events, task) if task else []
+        narrative = audit_narrative(repo.events, task)
         return templates.TemplateResponse(
             request,
             "trace.html",
-            _ctx("trace", request, task=task, summary=summary, decisions=decisions, raw=raw),
+            _ctx("trace", request, task=task, summary=summary, decisions=decisions, raw=raw, narrative=narrative),
         )
+
+    @app.get("/trace/export", response_class=Response)
+    def trace_export(task: str | None = None) -> Response:
+        narrative = audit_narrative(repo.events, task)
+        lines = [f"{e.ts}\t{e.type}\t{e.text}" for e in narrative]
+        return Response("\n".join(lines) + "\n", media_type="text/plain")
 
     def _tutorial_page(request: Request, lang: str | None) -> HTMLResponse:
         return templates.TemplateResponse(request, "tutorial.html", _ctx("tutorial", request, lang=lang))
@@ -497,23 +591,78 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
+    # --- Content pages (SEO -- real crawlable content, not just app chrome) --
+
+    def _content_page(request: Request, template_name: str, active: str, lang: str | None) -> HTMLResponse:
+        return templates.TemplateResponse(request, template_name, _ctx(active, request, lang=lang))
+
+    @app.get("/how-it-works", response_class=HTMLResponse)
+    def how_it_works(request: Request) -> HTMLResponse:
+        return _content_page(request, "how_it_works.html", "", lang=None)
+
+    @app.get("/{lang}/how-it-works", response_class=HTMLResponse)
+    def how_it_works_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _content_page(request, "how_it_works.html", "", lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
+
+    @app.get("/about", response_class=HTMLResponse)
+    def about(request: Request) -> HTMLResponse:
+        return _content_page(request, "about.html", "", lang=None)
+
+    @app.get("/{lang}/about", response_class=HTMLResponse)
+    def about_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _content_page(request, "about.html", "", lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
+
+    @app.get("/evidence-based-research", response_class=HTMLResponse)
+    def evidence_based_research(request: Request) -> HTMLResponse:
+        return _content_page(request, "evidence_based_research.html", "", lang=None)
+
+    @app.get("/{lang}/evidence-based-research", response_class=HTMLResponse)
+    def evidence_based_research_lang(request: Request, lang: str) -> HTMLResponse:
+        lang = _valid_lang(lang)
+        resp = _content_page(request, "evidence_based_research.html", "", lang=lang)
+        resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
+
+    # --- Onboarding (stateless -- no accounts to save progress against;
+    # step tracked entirely via ?step=N, see start.html) --------------------
+
+    @app.get("/start", response_class=HTMLResponse)
+    def start(request: Request, step: int = 1, topic: str = "", action: str = "") -> HTMLResponse:
+        projection = repo.projection()
+        return templates.TemplateResponse(
+            request,
+            "start.html",
+            _ctx(
+                "",
+                request,
+                step=step,
+                topic=topic,
+                action=action,
+                n_sources=len(projection.active_item_ids()),
+                n_claims=len(projection.claims),
+            ),
+        )
+
     # --- Research & Teaching assistant (LLM-backed, section 10's boundary:
     # the model only ever proposes -- see dhra.llm/research_assistant/
-    # teaching/peer_review) -------------------------------------------------
+    # teaching/peer_review). Split into two routes/nav sections (v2): -------
 
     def _assistant_page(request: Request, lang: str | None) -> HTMLResponse:
         return templates.TemplateResponse(
             request,
             "assistant.html",
             _ctx(
-                "assistant",
+                "research_assistant",
                 request,
                 lang=lang,
-                wide=True,
                 llm_configured=_llm_client_or_none() is not None,
-                websearch_configured=_websearch_client_or_none() is not None,
                 research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),
-                teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
             ),
         )
 
@@ -527,6 +676,20 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
         resp = _assistant_page(request, lang=lang)
         resp.set_cookie(LANGUAGE_COOKIE, lang, max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
+
+    @app.get("/teaching", response_class=HTMLResponse)
+    def teaching(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "teaching.html",
+            _ctx(
+                "teaching",
+                request,
+                llm_configured=_llm_client_or_none() is not None,
+                websearch_configured=_websearch_client_or_none() is not None,
+                teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
+            ),
+        )
 
     def _require_llm() -> LLMClient:
         client = _llm_client_or_none()
@@ -567,31 +730,31 @@ def build_app(repo: DHRARepo, *, expected_languages: set[str] | None = None, dem
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/assistant", status_code=303)
 
-    @app.post("/assistant/exam-questions")
-    def assistant_exam_questions(source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
+    @app.post("/teaching/exam-questions")
+    def teaching_exam_questions(source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
         try:
             draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
-        return RedirectResponse("/assistant", status_code=303)
+        return RedirectResponse("/teaching", status_code=303)
 
-    @app.post("/assistant/rubric")
-    def assistant_rubric(paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    @app.post("/teaching/rubric")
+    def teaching_rubric(paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
         try:
             assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
-        return RedirectResponse("/assistant", status_code=303)
+        return RedirectResponse("/teaching", status_code=303)
 
-    @app.post("/assistant/reading-list")
-    def assistant_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
+    @app.post("/teaching/reading-list")
+    def teaching_reading_list(course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         client = _require_llm()
         try:
             draft_reading_list(repo, client, course_topic=course_topic, actor=actor, websearch_client=_websearch_client_or_none())
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
-        return RedirectResponse("/assistant", status_code=303)
+        return RedirectResponse("/teaching", status_code=303)
 
     return app

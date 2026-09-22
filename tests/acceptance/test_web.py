@@ -41,7 +41,7 @@ def test_ingest_text_then_findable_by_search(repo, client):
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/item/")
 
-    found = client.get("/?q=manually")
+    found = client.get("/evidence?q=manually")
     assert "Evidence (1)" in found.text
 
 
@@ -52,7 +52,7 @@ def test_ingest_requires_text_or_file(repo, client):
 
 def test_search_shows_evidence_above_narrative(repo, client):
     repo.ingest_text("the bridge at Tokat was repaired in 1850", source_id="s")
-    resp = client.get("/?q=Tokat")
+    resp = client.get("/evidence?q=Tokat")
     assert resp.status_code == 200
     body = resp.text
     evidence_pos = body.index("Evidence (")
@@ -63,7 +63,7 @@ def test_search_shows_evidence_above_narrative(repo, client):
 
 def test_search_zero_hits_shows_absence_note_not_narrative(repo, client):
     repo.ingest_text("an unrelated sentence", source_id="s")
-    resp = client.get("/?q=zzz_absent_zzz")
+    resp = client.get("/evidence?q=zzz_absent_zzz")
     assert resp.status_code == 200
     assert "absence-note" in resp.text
     assert "no mentions found" not in resp.text.lower()
@@ -143,15 +143,23 @@ def test_trace_level2_only_shows_discretionary_decisions(repo, client):
     assert "item.excluded" in resp.text
 
 
-def test_assistant_page_shows_research_and_teaching_columns(client, monkeypatch):
+def test_assistant_and_teaching_are_separate_pages(client, monkeypatch):
+    """v2 nav split Research and Teaching into their own routes (was one
+    page, two columns) -- each page shows only its own forms."""
     monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
     monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
-    resp = client.get("/assistant")
-    assert resp.status_code == 200
-    research_pos = resp.text.index(">Research<")
-    teaching_pos = resp.text.index(">Teaching<")
-    assert research_pos < teaching_pos  # research column renders first (left)
-    assert "No LLM backend configured" in resp.text
+
+    assistant_resp = client.get("/assistant")
+    assert assistant_resp.status_code == 200
+    assert "Suggest research questions" in assistant_resp.text
+    assert "Draft exam questions" not in assistant_resp.text
+    assert "No LLM backend configured" in assistant_resp.text
+
+    teaching_resp = client.get("/teaching")
+    assert teaching_resp.status_code == 200
+    assert "Draft exam questions" in teaching_resp.text
+    assert "Suggest research questions" not in teaching_resp.text
+    assert "No LLM backend configured" in teaching_resp.text
 
 
 def test_assistant_forms_refuse_without_llm_configured(client, monkeypatch):
@@ -341,17 +349,17 @@ def test_assistant_route_returns_502_not_500_when_llm_backend_fails(repo, client
     assert resp.status_code == 502
 
 
-def test_assistant_page_shows_websearch_status(client, monkeypatch):
+def test_teaching_page_shows_websearch_status(client, monkeypatch):
     monkeypatch.delenv("DHRA_SEARXNG_URL", raising=False)
-    resp = client.get("/assistant")
+    resp = client.get("/teaching")
     assert "No web search backend configured" in resp.text
 
     monkeypatch.setenv("DHRA_SEARXNG_URL", "https://searx.example.org")
-    resp = client.get("/assistant")
+    resp = client.get("/teaching")
     assert "Web search is configured" in resp.text
 
 
-def test_assistant_reading_list_uses_real_web_search_when_configured(repo, client, monkeypatch):
+def test_teaching_reading_list_uses_real_web_search_when_configured(repo, client, monkeypatch):
     monkeypatch.setenv("DHRA_GLM_BASE_URL", "https://glm.example.unibe.ch/v1")
     monkeypatch.setenv("DHRA_GLM_API_KEY", "secret")
     monkeypatch.setenv("DHRA_SEARXNG_URL", "https://searx.example.org")
@@ -376,10 +384,10 @@ def test_assistant_reading_list_uses_real_web_search_when_configured(repo, clien
     monkeypatch.setattr(requests.Session, "post", lambda self, *a, **kw: _FakeLLMResp())
     monkeypatch.setattr(requests.Session, "get", lambda self, *a, **kw: _FakeSearchResp())
 
-    resp = client.post("/assistant/reading-list", data={"course_topic": "Tokat", "actor": "instructor"}, follow_redirects=False)
+    resp = client.post("/teaching/reading-list", data={"course_topic": "Tokat", "actor": "instructor"}, follow_redirects=False)
     assert resp.status_code == 303
 
-    page = client.get("/assistant")
+    page = client.get("/teaching")
     assert "https://example.org/a" in page.text
     assert "REAL WEB SEARCH RESULTS" in page.text
 
@@ -494,7 +502,22 @@ def test_pages_carry_seo_meta_tags(client):
     assert 'property="og:title"' in resp.text
     assert 'property="og:description"' in resp.text
     assert 'rel="canonical"' in resp.text
-    assert "Literal, locator-bound evidence search" in resp.text  # page-specific description, not the generic default
+    assert "DHRA keeps every historical claim traceable" in resp.text  # dashboard's own description, not the generic default
+
+    evidence_resp = client.get("/evidence")
+    assert "Literal, locator-bound evidence search" in evidence_resp.text  # evidence.html's own page-specific description
+
+
+def test_homepage_has_valid_jsonld(client):
+    import json
+    import re
+
+    resp = client.get("/")
+    match = re.search(r'<script type="application/ld\+json">(.*?)</script>', resp.text, re.S)
+    assert match is not None
+    data = json.loads(match.group(1))
+    types = {entry["@type"] for entry in data["@graph"]}
+    assert {"Organization", "WebSite", "WebApplication"} <= types
 
 
 def test_demo_banner_renders_as_real_html_not_escaped_text(repo):
@@ -506,3 +529,79 @@ def test_demo_banner_renders_as_real_html_not_escaped_text(repo):
     resp = banner_client.get("/")
     assert '<a href="https://example.com/releases">Download it</a>' in resp.text
     assert "&lt;a href" not in resp.text
+
+
+def test_claim_detail_shows_evidence_graph_with_excerpt_text(repo, client):
+    """v2: claim detail is built around a provenance walk (dhra.provenance)
+    -- supporting/contradicting evidence render with their real excerpt
+    text (not just bare locator links, as before)."""
+    supp_id, supp_rep = repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="archive_x")
+    contra_id, contra_rep = repo.ingest_text("The bridge at Tokat was never repaired.", source_id="archive_y")
+    client.post(
+        "/claims/assess",
+        data={
+            "claim_id": "c1",
+            "claim_text": "the bridge was repaired",
+            "actor": "tester",
+            "supporting": f"{supp_id},{supp_rep},0,20",
+            "contradicting": f"{contra_id},{contra_rep},0,20",
+            "negating": "",
+        },
+    )
+    resp = client.get("/claims/c1")
+    assert resp.status_code == 200
+    assert "archive_x" in resp.text
+    assert "archive_y" in resp.text
+    assert "provenance-graph" in resp.text
+    assert "The bridge at Tokat" in resp.text  # real excerpt text, not just a locator link
+
+
+def test_exclusions_grouped_into_display_buckets(repo, client):
+    """v2: exclusions are shown grouped into 5 researcher-facing buckets
+    (Duplicate/Low quality/Outside scope/Acquisition problem/Other)
+    instead of the raw, more granular ExclusionReason values -- but the
+    exact reason is still shown per-row for auditability (I4: nothing
+    about the underlying record is hidden, just organised)."""
+    item_id, _rep_id = repo.ingest_text("a low quality scan", source_id="s")
+    repo.exclude_item(item_id=item_id, reason=ExclusionReason.BELOW_QUALITY, actor="researcher")
+
+    resp = client.get("/exclusions")
+    assert resp.status_code == 200
+    assert "Low quality" in resp.text  # display bucket
+    assert "below_quality_threshold" in resp.text  # exact underlying reason, still visible
+    assert "Excluded sources remain auditable" in resp.text
+
+
+def test_chat_evidence_cards_carry_source_label(repo, client, monkeypatch):
+    """v2: chat_post() no longer drops Passage.rationale/score/source when
+    flattening to history JSON -- evidence renders as a card with its
+    source, not just quoted text."""
+    monkeypatch.delenv("DHRA_GLM_BASE_URL", raising=False)
+    monkeypatch.delenv("DHRA_GLM_API_KEY", raising=False)
+    repo.ingest_text("The bridge at Tokat was repaired in 1849.", source_id="archive_x")
+
+    resp = client.post("/chat", data={"message": "Tokat", "history_json": "[]"})
+    assert resp.status_code == 200
+    assert "archive_x" in resp.text
+    assert "evidence-card" in resp.text
+
+
+def test_trace_shows_human_readable_audit_narrative(repo, client):
+    """v2: /trace leads with a human-readable Research Audit Trail
+    (dhra.trace.audit_narrative), not just raw event-type tables."""
+    item_id, rep_id = repo.ingest_text("a traced source", source_id="s")
+    client.post(
+        "/claims/assess",
+        data={"claim_id": "c1", "claim_text": "a traced claim", "actor": "tester", "supporting": f"{item_id},{rep_id},0,5", "contradicting": "", "negating": ""},
+    )
+    resp = client.get("/trace")
+    assert resp.status_code == 200
+    assert "Research Audit Trail" in resp.text
+    assert "Claim created" in resp.text
+
+
+def test_sitemap_includes_v2_routes(client):
+    resp = client.get("/sitemap.xml")
+    assert resp.status_code == 200
+    for path in ["/evidence</loc>", "/how-it-works</loc>", "/about</loc>", "/evidence-based-research</loc>", "<loc>", "/sources</loc>", "/teaching</loc>"]:
+        assert path in resp.text

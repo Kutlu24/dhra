@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/cards.html" import status_badge with context %}
 {% block title %}Claims -- DHRA{% endblock %}
 {% block content %}
 <h1>{{ t('claims.title') }}</h1>
@@ -7,7 +8,7 @@
   <tr><th>{{ t('claims.col_status') }}</th><th>{{ t('claims.col_claim') }}</th></tr>
   {% for c in claims %}
   <tr>
-    <td><span class="status-code" data-tone="{{ status_tone(c.status) }}" title="{{ status_meaning(c.status, lang) }}">{{ c.status.value }}</span></td>
+    <td>{{ status_badge(c.status, lang) }}</td>
     <td><a href="/claims/{{ c.claim_id }}">{{ c.claim_text }}</a></td>
   </tr>
   {% else %}

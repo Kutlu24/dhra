@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros/cards.html" import stat_tile with context %}
+{% block title %}DHRA -- Evidence-Grounded Research{% endblock %}
+{% block description %}DHRA keeps every historical claim traceable to a source, and tells you plainly when it can't. Evidence-first search, locator-bound citations, and AI research assistance for historians.{% endblock %}
+{% block content %}
+<h1>{{ t('dashboard.h1') }}</h1>
+<p class="lede">{{ t('dashboard.lede') }}</p>
+
+<form method="get" action="/evidence" class="search-box">
+  <input type="text" name="q" placeholder="{{ t('dashboard.search_placeholder') }}" autofocus>
+  <button type="submit">{{ t('dashboard.search_button') }}</button>
+</form>
+
+{% if n_sources == 0 %}
+<p class="muted">{{ t('dashboard.first_visit_cta') | safe }}</p>
+{% endif %}
+
+<div class="stat-tiles">
+  {{ stat_tile(t('dashboard.stat_sources'), n_sources, href='/sources') }}
+  {{ stat_tile(t('dashboard.stat_claims'), n_claims, href='/claims') }}
+  {{ stat_tile(t('dashboard.stat_contested'), n_contested, href='/claims') }}
+</div>
+
+<h2>{{ t('dashboard.how_it_works_heading') }}</h2>
+<div class="stat-tiles">
+  <div class="stat-tile"><strong>1. {{ t('dashboard.step1_heading') }}</strong><p class="muted">{{ t('dashboard.step1_body') }}</p></div>
+  <div class="stat-tile"><strong>2. {{ t('dashboard.step2_heading') }}</strong><p class="muted">{{ t('dashboard.step2_body') }}</p></div>
+  <div class="stat-tile"><strong>3. {{ t('dashboard.step3_heading') }}</strong><p class="muted">{{ t('dashboard.step3_body') }}</p></div>
+  <div class="stat-tile"><strong>4. {{ t('dashboard.step4_heading') }}</strong><p class="muted">{{ t('dashboard.step4_body') }}</p></div>
+</div>
+
+<h2>{{ t('dashboard.recent_heading') }}</h2>
+{% if recent %}
+<table>
+  <tr><th>{{ t('trace.col_ts') }}</th><th>{{ t('trace.col_type') }}</th></tr>
+  {% for e in recent %}
+  <tr><td>{{ e.ts }}</td><td>{{ e.text }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ t('dashboard.recent_none') | safe }}</p>
+{% endif %}
+{% endblock %}

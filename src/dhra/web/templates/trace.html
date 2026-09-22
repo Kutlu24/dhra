@@ -1,12 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Trace -- DHRA{% endblock %}
+{% block title %}Research Audit Trail -- DHRA{% endblock %}
 {% block content %}
-<h1>{{ t('trace.title') }}</h1>
+<h1>{{ t('trace.audit_heading') }}</h1>
 <form method="get" action="/trace">
   <input type="text" name="task" value="{{ task or '' }}" placeholder="{{ t('trace.filter_placeholder') }}">
   <button type="submit">{{ t('trace.filter_button') }}</button>
 </form>
 
+{% if narrative %}
+<table>
+  <tr><th>{{ t('trace.col_ts') }}</th><th></th></tr>
+  {% for e in narrative %}
+  <tr><td class="muted">{{ e.ts }}</td><td>{{ e.text }}</td></tr>
+  {% endfor %}
+</table>
+<p class="muted"><a href="/trace/export{{ '?task=' ~ task if task else '' }}">{{ t('trace.export') }}</a></p>
+{% else %}
+<p class="muted">{{ t('trace.audit_none') }}</p>
+{% endif %}
+
+<details>
+<summary>{{ t('trace.decisions_toggle') }}</summary>
 <h2>{{ t('trace.level1') }}</h2>
 <p>{{ t('trace.event_count', n=summary.event_count) }}{% if summary.task %} {{ t('trace.for_task') }} <code>{{ summary.task }}</code>{% endif %}.</p>
 <table>
@@ -26,14 +40,17 @@
   <tr><td colspan="3" class="muted">{{ t('trace.none_pick_task') if not summary.task else t('trace.none') }}</td></tr>
   {% endfor %}
 </table>
+</details>
 
 {% if task %}
-<h2>{{ t('trace.level3') }}</h2>
+<details>
+<summary>{{ t('trace.raw_toggle') }}</summary>
 <table>
   <tr><th>{{ t('trace.col_seq') }}</th><th>{{ t('trace.col_ts') }}</th><th>{{ t('trace.col_type') }}</th></tr>
   {% for e in raw %}
   <tr><td>{{ e.seq }}</td><td>{{ e.ts }}</td><td>{{ e.type }}</td></tr>
   {% endfor %}
 </table>
+</details>
 {% endif %}
 {% endblock %}

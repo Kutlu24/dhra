@@ -499,11 +499,9 @@ class DHRARepo:
     def log_model_invocation(self, *, model: str, purpose: str, prompt_sha256: str | None = None, parameters: dict | None = None, task: str | None = None) -> None:
         """Section 5.1: "Every model.invoked event records model identity,
         version, purpose, prompt hash and parameters -- this is what makes
-        the disclosure in the methods statement honest." Not called
-        anywhere in this repo yet -- there is no LLM-calling layer built
-        (see OPEN_QUESTIONS.md #7/#11/#14) -- but the event type and this
-        wrapper exist so the methods export has somewhere real to read
-        from once one is."""
+        the disclosure in the methods statement honest." Called by every
+        real LLM call site via `dhra.llm.log_and_complete` (chat, research
+        assistant, disconfirmation, teaching, peer review) -- not a stub."""
         self.events.append("model.invoked", model=model, purpose=purpose, prompt_sha256=prompt_sha256, parameters=parameters or {}, task=task)
 
     # --- reads ---------------------------------------------------------------

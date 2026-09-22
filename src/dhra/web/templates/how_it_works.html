@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}How DHRA works{% endblock %}
+{% block description %}Four steps from a source on your desk to an auditable, evidence-bound conclusion: add sources, find evidence, build claims, audit your research.{% endblock %}
+{% block content %}
+<h1>{{ t('how_it_works.title') }}</h1>
+<p class="lede">{{ t('how_it_works.lede') }}</p>
+
+<div class="card">
+  <h3>1. {{ t('dashboard.step1_heading') }}</h3>
+  <p>{{ t('dashboard.step1_body') }}</p>
+</div>
+<div class="card">
+  <h3>2. {{ t('dashboard.step2_heading') }}</h3>
+  <p>{{ t('dashboard.step2_body') }}</p>
+</div>
+<div class="card">
+  <h3>3. {{ t('dashboard.step3_heading') }}</h3>
+  <p>{{ t('dashboard.step3_body') }}</p>
+</div>
+<div class="card">
+  <h3>4. {{ t('dashboard.step4_heading') }}</h3>
+  <p>{{ t('dashboard.step4_body') }}</p>
+</div>
+
+<p><a href="/tutorial">{{ t('nav.help') }} &rarr;</a> &middot; <a href="/start">{{ t('start.title') }} &rarr;</a></p>
+{% endblock %}

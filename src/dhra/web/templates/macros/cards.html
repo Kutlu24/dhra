@@ -1,0 +1,75 @@
+{% macro evidence_card(locator, text, rationale=None, source_label=None, use_as_evidence_url=None, open_source_url=None) %}
+<div class="card evidence-card">
+  <blockquote>&ldquo;{{ text }}&rdquo;</blockquote>
+  <div class="meta">
+    <a class="locator" href="/locator/{{ locator.item_id }}/{{ locator.rep_id }}/{{ locator.start }}/{{ locator.end }}">{{ locator.item_id }} / {{ locator.rep_id }} [{{ locator.start }}:{{ locator.end }}]</a>
+    {% if source_label %}<span>{{ source_label }}</span>{% endif %}
+    {% if rationale %}<span class="rationale">{{ rationale }}</span>{% endif %}
+  </div>
+  {% if use_as_evidence_url or open_source_url %}
+  <div class="actions">
+    {% if open_source_url %}<a href="{{ open_source_url }}">{{ t('evidence.open_source') }}</a>{% endif %}
+    {% if use_as_evidence_url %}<a href="{{ use_as_evidence_url }}">{{ t('search.use_as_evidence') | safe }}</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro status_badge(status, lang) %}
+<span class="status-badge">
+  <span class="status-code" data-tone="{{ status_tone(status) }}" title="{{ status_meaning(status, lang) }}">{{ status.value }}</span>
+  <span class="status-label">{{ status_label(status, lang) }}</span>
+</span>
+{% endmacro %}
+
+{% macro claim_card(assessment, lang, provenance=None) %}
+<div class="card claim-card">
+  <div>{{ status_badge(assessment.status, lang) }}</div>
+  <p class="claim-text">&ldquo;{{ assessment.claim_text }}&rdquo;</p>
+  <p class="status-explain">{{ assessment.note }}</p>
+
+  {% set supporting_nodes = provenance.supporting if provenance else [] %}
+  {% set contradicting_nodes = provenance.contradicting if provenance else [] %}
+  {% set negating_nodes = provenance.negating if provenance else [] %}
+
+  {% if supporting_nodes %}
+  <div class="evidence-group-title">{{ t('claim_detail.supporting') }}</div>
+  {% for node in supporting_nodes %}
+    {{ evidence_card(node.locator, node.resolved_text, source_label=node.source_id,
+       open_source_url='/locator/' ~ node.locator.item_id ~ '/' ~ node.locator.rep_id ~ '/' ~ node.locator.start ~ '/' ~ node.locator.end) }}
+  {% endfor %}
+  {% elif assessment.supporting %}
+    {% for loc in assessment.supporting %}
+    <div class="card evidence-card"><div class="meta"><a class="locator" href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></div></div>
+    {% endfor %}
+  {% endif %}
+
+  {% if contradicting_nodes %}
+  <div class="evidence-group-title contradicting">{{ t('claim_detail.contradicting') }}</div>
+  {% for node in contradicting_nodes %}
+    {{ evidence_card(node.locator, node.resolved_text, source_label=node.source_id,
+       open_source_url='/locator/' ~ node.locator.item_id ~ '/' ~ node.locator.rep_id ~ '/' ~ node.locator.start ~ '/' ~ node.locator.end) }}
+  {% endfor %}
+  {% endif %}
+
+  {% if negating_nodes %}
+  <div class="evidence-group-title">{{ t('claim_detail.negating') }}</div>
+  {% for node in negating_nodes %}
+    {{ evidence_card(node.locator, node.resolved_text, source_label=node.source_id,
+       open_source_url='/locator/' ~ node.locator.item_id ~ '/' ~ node.locator.rep_id ~ '/' ~ node.locator.start ~ '/' ~ node.locator.end) }}
+  {% endfor %}
+  {% endif %}
+
+  <div class="actions">
+    <a href="/claims/new?item_id=&amp;rep_id=&amp;start=&amp;end=">{{ t('claim_detail.reassess') }}</a>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro stat_tile(label, value, href=None, sublabel=None) %}
+{% if href %}<a class="stat-tile" href="{{ href }}">{% else %}<div class="stat-tile">{% endif %}
+  <span class="value">{{ value }}</span>
+  <span class="label">{{ label }}</span>
+  {% if sublabel %}<span class="sublabel">{{ sublabel }}</span>{% endif %}
+{% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}

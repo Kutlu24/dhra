@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/cards.html" import evidence_card with context %}
 {% block title %}Chat -- DHRA{% endblock %}
 {% block description %}Ask questions about your corpus and get answers grounded in a real search, cited by locator. No evidence, no answer -- the model never guesses.{% endblock %}
 {% block content %}
@@ -13,13 +14,12 @@
   {% if turn.role == 'user' %}
     <div class="card chat-user"><strong>{{ t('chat.you') }}</strong> {{ turn.text }}</div>
   {% else %}
-    <div class="card chat-assistant">
+    <div class="chat-assistant">
       {% if turn.evidence %}
         <div class="muted">{{ t('chat.evidence_label') }}</div>
         {% for p in turn.evidence %}
-          <blockquote>&ldquo;{{ p.text }}&rdquo;
-            <a href="/locator/{{ p.locator.item_id }}/{{ p.locator.rep_id }}/{{ p.locator.start }}/{{ p.locator.end }}" class="muted">{{ t('chat.source_link') }}</a>
-          </blockquote>
+          {{ evidence_card(p.locator, p.text, rationale=p.rationale, source_label=p.source_label,
+             use_as_evidence_url='/claims/new?item_id=' ~ p.locator.item_id ~ '&rep_id=' ~ p.locator.rep_id ~ '&start=' ~ p.locator.start ~ '&end=' ~ p.locator.end) }}
         {% endfor %}
       {% endif %}
       {% if turn.absence_note %}
@@ -37,6 +37,15 @@
     </div>
   {% endif %}
 {% endfor %}
+
+{% if history %}
+<div class="action-buttons">
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Find supporting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_supporting') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Find contradicting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_contradicting') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Compare the sources you just used"><button type="submit" class="secondary">{{ t('chat.action_compare_sources') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="What gaps are there in the evidence so far?"><button type="submit" class="secondary">{{ t('chat.action_identify_gaps') }}</button></form>
+</div>
+{% endif %}
 
 <form method="post" action="/chat" class="search-box">
   <input type="hidden" name="history_json" value="{{ history_json }}">

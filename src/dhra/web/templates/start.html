@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Start a research project -- DHRA{% endblock %}
+{% block content %}
+<h1>{{ t('start.title') }}</h1>
+
+{% if step == 1 %}
+<div class="card">
+  <p><strong>{{ t('start.step1_heading') }}</strong></p>
+  <form method="get" action="/start">
+    <input type="hidden" name="step" value="2">
+    <p><input type="text" name="topic" placeholder="{{ t('start.step1_placeholder') }}" autofocus></p>
+    <button type="submit">{{ t('start.continue') | safe }}</button>
+  </form>
+</div>
+
+{% elif step == 2 %}
+<div class="card">
+  <p><strong>{{ t('start.step2_heading') }}</strong></p>
+  <p class="muted">{{ t('start.step2_body') }}</p>
+  <p><a href="/ingest">{{ t('start.step2_add') | safe }}</a></p>
+  <form method="get" action="/start">
+    <input type="hidden" name="step" value="3">
+    <input type="hidden" name="topic" value="{{ topic }}">
+    <button type="submit" class="secondary">{{ t('start.step2_skip') | safe }}</button>
+  </form>
+</div>
+
+{% elif step == 3 %}
+<div class="card">
+  <p><strong>{{ t('start.step3_heading') }}</strong></p>
+  <form method="get" action="/start">
+    <input type="hidden" name="step" value="4">
+    <input type="hidden" name="topic" value="{{ topic }}">
+    <p><label><input type="radio" name="action" value="evidence" checked> {{ t('start.step3_evidence') }}</label></p>
+    <p><label><input type="radio" name="action" value="claim"> {{ t('start.step3_claim') }}</label></p>
+    <p><label><input type="radio" name="action" value="paper"> {{ t('start.step3_paper') }}</label></p>
+    <button type="submit">{{ t('start.continue') | safe }}</button>
+  </form>
+</div>
+
+{% else %}
+<div class="card">
+  <p><strong>{{ t('start.step4_heading') }}</strong></p>
+  <p class="muted">{{ t('start.step4_body') }}</p>
+  <div class="stat-tiles">
+    <div class="stat-tile"><span class="value">{{ n_sources }}</span><span class="label">{{ t('dashboard.stat_sources') }}</span></div>
+    <div class="stat-tile"><span class="value">{{ n_claims }}</span><span class="label">{{ t('dashboard.stat_claims') }}</span></div>
+  </div>
+  {% if action == 'claim' %}
+    <p><a href="/claims/new">{{ t('start.step4_cta_claims') | safe }}</a></p>
+  {% elif action == 'paper' %}
+    <p><a href="/assistant">{{ t('start.step4_cta_claims') | safe }}</a></p>
+  {% else %}
+    <p><a href="/evidence?q={{ topic }}">{{ t('start.step4_cta_evidence') | safe }}</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -20,160 +20,57 @@
 <meta name="twitter:title" content="{% block twitter_title %}DHRA -- Digital Humanities Research Agent{% endblock %}">
 <meta name="twitter:description" content="{% block twitter_description %}Evidence-first research tool for historians.{% endblock %}">
 <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-<style>
-  @font-face {
-    font-family: 'Fredoka'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/fredoka-latin.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
-  }
-  @font-face {
-    font-family: 'Fredoka'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/fredoka-latin-ext.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+1E00-1EFF;
-  }
-  @font-face {
-    font-family: 'Quicksand'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/quicksand-latin.woff2') format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122, U+2212;
-  }
-  @font-face {
-    font-family: 'Quicksand'; font-style: normal; font-weight: 400 700; font-display: swap;
-    src: url('/static/fonts/quicksand-latin-ext.woff2') format('woff2');
-    unicode-range: U+0100-02BA, U+1E00-1EFF;
-  }
-  :root {
-    color-scheme: light dark;
-    --bg: #f7f5ef; --surface: #ffffff; --border: #e4e0d4; --text: #262319; --text-muted: #8a8474;
-    --accent: #2a5f6b; --accent-2: #3f7d8a; --accent-soft: #e7f0ee;
-    --amber: #a3650a; --amber-soft: #fbf1e2;
-    --radius: 12px;
-    --font-display: 'Fredoka', system-ui, sans-serif;
-    --font-ui: 'Quicksand', system-ui, sans-serif;
-    --shadow-sm: 0 1px 2px rgba(30, 25, 10, .05), 0 2px 10px rgba(30, 25, 10, .04);
-    --shadow-md: 0 2px 6px rgba(30, 25, 10, .07), 0 8px 24px rgba(30, 25, 10, .06);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #14171a; --surface: #1d2023; --border: #32373b; --text: #e9e7e0; --text-muted: #8b9096;
-      --accent: #7bc3cf; --accent-2: #5fa4b0; --accent-soft: #1c3034;
-      --amber: #d9a34d; --amber-soft: #332a1a;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .25), 0 2px 10px rgba(0, 0, 0, .2);
-      --shadow-md: 0 2px 6px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: var(--font-display);
-    display: flex; min-height: 100vh;
-  }
-  aside {
-    width: 232px; flex: 0 0 232px; padding: 1.75rem 1.25rem; border-right: 1px solid var(--border);
-    position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
-    background: linear-gradient(180deg, var(--accent-soft) 0%, transparent 140px);
-  }
-  .wordmark { display: flex; align-items: center; gap: .75rem; font-family: var(--font-display); font-weight: 700; font-size: 2rem; letter-spacing: 0; margin-bottom: .25rem; }
-  .wordmark img { width: 52px; height: 52px; border-radius: 13px; flex: none; box-shadow: var(--shadow-sm); }
-  .tagline { font-size: .74rem; color: var(--text-muted); margin: 0 0 1.75rem; line-height: 1.45; font-family: var(--font-ui); font-weight: 600; }
-  nav { display: flex; flex-direction: column; gap: .15rem; font-family: var(--font-ui); font-size: .92rem; }
-  nav a { text-decoration: none; color: var(--text); opacity: .8; padding: .45rem .6rem; border-radius: 7px; display: flex; align-items: center; gap: .55rem; }
-  nav a:hover { opacity: 1; background: var(--accent-soft); }
-  nav a.active { opacity: 1; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  nav .icon { width: 1.1em; text-align: center; opacity: .85; }
-  .corpus-version { font-size: .68rem; color: var(--text-muted); font-family: ui-monospace, monospace; margin-top: 1.5rem;
-    padding-top: 1rem; border-top: 1px solid var(--border); word-break: break-all; }
-  .lang-switch { display: flex; gap: .2rem; margin: .7rem 0 1.1rem; font-family: var(--font-ui); font-size: .74rem; font-weight: 700;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: .2rem; width: fit-content; }
-  .lang-switch a { color: var(--text-muted); text-decoration: none; padding: .3rem .6rem; border-radius: 6px; letter-spacing: .03em; }
-  .lang-switch a:hover { background: var(--accent-soft); color: var(--accent); }
-  .lang-switch a.active { color: #fff; background: var(--accent); }
-  main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 780px; }
-  main.wide { max-width: 1100px; }
-  h1 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 600; letter-spacing: -.005em; margin: 0 0 .4rem; }
-  h2 { font-size: 1.02rem; margin: 1.9rem 0 .65rem; font-family: var(--font-ui); text-transform: uppercase;
-       letter-spacing: .06em; color: var(--text-muted); font-weight: 600; }
-  p, li { font-family: var(--font-ui); font-size: .96rem; }
-  .lede { color: var(--text-muted); font-family: var(--font-ui); font-size: .92rem; margin-top: 0; }
-  .card {
-    border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
-    padding: 1.1rem 1.3rem; margin: .85rem 0; box-shadow: var(--shadow-sm);
-    transition: box-shadow .15s ease;
-  }
-  .card:hover { box-shadow: var(--shadow-md); }
-  .evidence blockquote { margin: 0 0 .6rem; font-size: 1.15rem; line-height: 1.55; font-family: var(--font-display); font-weight: 500; }
-  .evidence .meta { font-size: .78rem; color: var(--text-muted); display: flex; gap: 1.1rem; flex-wrap: wrap; font-family: var(--font-ui); }
-  .evidence .meta a { color: var(--accent); }
-  .narrative { border: 1px dashed var(--amber); border-radius: var(--radius); padding: 1rem 1.3rem; margin-top: 1.5rem; background: var(--amber-soft); }
-  .narrative .badge { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--amber); font-weight: 700;
-                       font-family: var(--font-ui); }
-  .absence-note { border-left: 3px solid var(--text-muted); padding: .6rem 1.1rem; color: var(--text-muted); font-family: var(--font-ui); background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; }
-  .status-code { font-family: ui-monospace, monospace; font-weight: 700; font-size: .85rem; border-radius: 5px;
-                 padding: .15em .55em; cursor: help; background: var(--accent-soft); color: var(--accent); }
-  .status-code[data-tone="warn"] { background: var(--amber-soft); color: var(--amber); }
-  .warning { border-left: 3px solid var(--amber); padding: .55rem 1rem; margin: .5rem 0; background: var(--amber-soft);
-             border-radius: 0 var(--radius) var(--radius) 0; font-family: var(--font-ui); font-size: .92rem; }
-  table { border-collapse: collapse; width: 100%; margin: .5rem 0; font-family: var(--font-ui); }
-  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border); font-size: .88rem; }
-  th { color: var(--text-muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
-  form.inline { display: inline; }
-  button, input[type=submit] {
-    cursor: pointer; font-family: var(--font-ui); background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: #fff; border: none;
-    border-radius: 8px; padding: .55rem 1.1rem; font-size: .88rem; font-weight: 600; box-shadow: var(--shadow-sm);
-    transition: filter .15s ease, box-shadow .15s ease;
-  }
-  button:hover, input[type=submit]:hover { filter: brightness(1.08); box-shadow: var(--shadow-md); }
-  textarea, input[type=text], select, input[type=file] {
-    font-family: var(--font-ui); width: 100%; box-sizing: border-box; padding: .55rem .7rem;
-    border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: .9rem;
-    transition: border-color .15s ease;
-  }
-  textarea:focus, input[type=text]:focus, select:focus { outline: none; border-color: var(--accent); }
-  label { display: block; font-size: .82rem; color: var(--text-muted); font-family: var(--font-ui); margin-bottom: .3rem; }
-  .muted { color: var(--text-muted); font-size: .85rem; font-family: var(--font-ui); }
-  code { font-size: .88em; background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; }
-  pre { background: var(--accent-soft); border-radius: var(--radius); padding: .9rem 1.1rem; overflow-x: auto; font-size: .84rem; }
-  pre code { background: none; padding: 0; }
-  a { color: var(--accent); }
-  .search-box { display: flex; gap: .5rem; margin: 1rem 0 1.5rem; }
-  .search-box input[type=text] { font-size: 1rem; padding: .65rem .9rem; }
-  .passage-image { max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); margin: .75rem 0 1.25rem; display: block; }
-  .assistant-columns { display: flex; gap: 1.75rem; align-items: flex-start; }
-  .assistant-col { flex: 1 1 0; min-width: 0; }
-  .assistant-col h2 { margin-top: 0; }
-  .assistant-col h3 { font-size: .95rem; margin: 0 0 .3rem; font-family: var(--font-ui); }
-  .assistant-col .card pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
-  button[disabled] { opacity: .5; cursor: not-allowed; }
-  .chat-user { background: var(--accent-soft); font-family: var(--font-ui); }
-  .chat-assistant blockquote { margin: .3rem 0; font-size: .95rem; }
-  @media (max-width: 900px) {
-    .assistant-columns { flex-direction: column; }
-  }
-  @media (max-width: 720px) {
-    body { flex-direction: column; }
-    aside { width: auto; flex: none; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
-    main { padding: 1.5rem 1.25rem 3rem; }
-  }
-</style>
+<link rel="stylesheet" href="/static/css/dhra.css?v={{ corpus_version if corpus_version is defined else '1' }}">
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {"@type": "Organization", "name": "DHRA", "url": "{{ request.url.scheme }}://{{ request.url.netloc }}/"},
+    {"@type": "WebSite", "name": "DHRA", "url": "{{ request.url.scheme }}://{{ request.url.netloc }}/",
+     "potentialAction": {"@type": "SearchAction",
+       "target": "{{ request.url.scheme }}://{{ request.url.netloc }}/evidence?q={search_term_string}",
+       "query-input": "required name=search_term_string"}},
+    {"@type": "WebApplication", "name": "DHRA", "applicationCategory": "ResearchApplication",
+     "operatingSystem": "Web",
+     "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+     "description": "Evidence-grounded research workspace for the humanities -- every claim traceable to a source."}
+  ]
+}
+</script>
+{% endblock %}
 </head>
 <body>
+{% from "macros/nav.html" import nav_section with context %}
 <aside>
-  <div class="wordmark"><img src="/static/logo.svg" alt="" width="52" height="52"> DHRA</div>
+  <div class="wordmark"><img src="/static/logo.svg" alt="" width="40" height="40"> DHRA</div>
   <div class="lang-switch">
     {% for code in languages %}<a href="{{ lang_urls[code] if lang_urls is defined else '/lang/' ~ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
   </div>
   <p class="tagline">{{ t('app.tagline') | safe }}</p>
   <nav>
-    <a href="/" class="{{ 'active' if active == 'search' }}"><span class="icon">&#128269;</span> {{ t('nav.search') }}</a>
-    <a href="/chat" class="{{ 'active' if active == 'chat' }}"><span class="icon">&#128172;</span> {{ t('nav.chat') }}</a>
-    <a href="/ingest" class="{{ 'active' if active == 'ingest' }}"><span class="icon">&#128228;</span> {{ t('nav.add_item') }}</a>
-    <a href="/claims" class="{{ 'active' if active == 'claims' }}"><span class="icon">&#128203;</span> {{ t('nav.claims') }}</a>
-    <a href="/aggregate" class="{{ 'active' if active == 'aggregate' }}"><span class="icon">&#128202;</span> {{ t('nav.aggregate') }}</a>
-    <a href="/exclusions" class="{{ 'active' if active == 'exclusions' }}"><span class="icon">&#8635;</span> {{ t('nav.exclusions') }}</a>
-    <a href="/trace" class="{{ 'active' if active == 'trace' }}"><span class="icon">&#128337;</span> {{ t('nav.trace') }}</a>
-    <a href="/updates" class="{{ 'active' if active == 'updates' }}"><span class="icon">&#128240;</span> {{ t('nav.updates') }}</a>
-    <a href="/assistant" class="{{ 'active' if active == 'assistant' }}"><span class="icon">&#129504;</span> {{ t('nav.assistant') | safe }}</a>
-    <a href="/tutorial" class="{{ 'active' if active == 'tutorial' }}"><span class="icon">&#128218;</span> {{ t('nav.tutorial') }}</a>
+    {{ nav_section(t('nav.section_research'), [
+      ('/', '&#127968;', t('nav.overview'), 'overview'),
+      ('/evidence', '&#128269;', t('nav.evidence'), 'evidence'),
+      ('/chat', '&#128172;', t('nav.chat'), 'chat'),
+      ('/claims', '&#128203;', t('nav.claims'), 'claims'),
+      ('/assistant', '&#129504;', t('nav.research_assistant'), 'research_assistant'),
+      ('/aggregate', '&#128202;', t('nav.analysis'), 'analysis'),
+    ], active) }}
+    {{ nav_section(t('nav.section_sources'), [
+      ('/sources', '&#128193;', t('nav.corpus'), 'sources'),
+      ('/ingest', '&#128228;', t('nav.add_sources'), 'ingest'),
+      ('/exclusions', '&#8635;', t('nav.exclusions'), 'exclusions'),
+    ], active) }}
+    {{ nav_section(t('nav.section_audit'), [
+      ('/trace', '&#128337;', t('nav.trace'), 'trace'),
+      ('/updates', '&#128240;', t('nav.updates'), 'updates'),
+    ], active) }}
+    {{ nav_section(t('nav.section_teaching'), [
+      ('/teaching', '&#127891;', t('teaching.title'), 'teaching'),
+    ], active) }}
   </nav>
+  <div class="nav-footer"><a href="/tutorial">{{ t('nav.help') }}</a></div>
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main class="{{ 'wide' if wide else '' }}">
@@ -182,8 +79,14 @@
    deployment (via render.yaml/the Render dashboard), not by a site
    visitor -- treating it as trusted HTML is what lets it carry a real
    link (e.g. to a downloadable copy), same trust level as any other
-   server-side config value rendered elsewhere in this app. #}
-<div class="warning" style="margin-bottom:1.25rem;">{{ demo_banner | safe }}</div>
+   server-side config value rendered elsewhere in this app. Styling here
+   is purely presentational -- the banner's own wording stays whatever
+   the operator configured (see OPEN_QUESTIONS.md #31: softening it past
+   what's actually true was tried once and deliberately reverted). #}
+<div class="demo-banner">
+  <span class="icon">&#9432;</span>
+  <div><span class="label">{{ t('demo_banner.label') }}</span>{{ demo_banner | safe }}</div>
+</div>
 {% endif %}
 {% block content %}{% endblock %}
 </main>

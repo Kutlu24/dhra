@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}About DHRA{% endblock %}
+{% block description %}DHRA is an evidence-grounded research workspace for the humanities. Evidence before narrative, always -- reachable from a web interface, a CLI, and an MCP server, over the same corpus.{% endblock %}
+{% block content %}
+<h1>{{ t('about.title') }}</h1>
+{{ t('about.body') | safe }}
+<p><a href="/tutorial">{{ t('nav.help') }} &rarr;</a></p>
+{% endblock %}

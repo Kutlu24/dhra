@@ -1,36 +1,15 @@
 {% extends "base.html" %}
+{% from "macros/cards.html" import claim_card with context %}
+{% from "macros/graph.html" import provenance_graph with context %}
 {% block title %}{{ assessment.claim_id }} -- DHRA{% endblock %}
 {% block content %}
-<h1>{{ assessment.claim_text }}</h1>
-<p>
-  <span class="status-code" data-tone="{{ status_tone(assessment.status) }}" title="{{ status_meaning(assessment.status, lang) }}">{{ assessment.status.value }}</span>
-  <span class="muted">{{ t('claim_detail.hover_note') | safe }}</span>
-</p>
-<p>{{ assessment.note }}</p>
+{{ claim_card(assessment, lang, provenance=provenance) }}
 
-{% if assessment.supporting %}
-<h2>{{ t('claim_detail.supporting') }}</h2>
-<ul>
-  {% for loc in assessment.supporting %}
-  <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
-  {% endfor %}
-</ul>
-{% endif %}
-{% if assessment.contradicting %}
-<h2>{{ t('claim_detail.contradicting') }}</h2>
-<ul>
-  {% for loc in assessment.contradicting %}
-  <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
-  {% endfor %}
-</ul>
-{% endif %}
-{% if assessment.negating %}
-<h2>{{ t('claim_detail.negating') }}</h2>
-<ul>
-  {% for loc in assessment.negating %}
-  <li><a href="/locator/{{ loc.item_id }}/{{ loc.rep_id }}/{{ loc.start }}/{{ loc.end }}">{{ loc.item_id }} / {{ loc.rep_id }} [{{ loc.start }}:{{ loc.end }}]</a></li>
-  {% endfor %}
-</ul>
+{% if provenance.supporting or provenance.contradicting %}
+<details>
+  <summary>{{ t('claim_detail.view_provenance') }}</summary>
+  {{ provenance_graph(assessment, provenance, lang) }}
+</details>
 {% endif %}
 
 <h2>{{ t('claim_detail.history') }}</h2>
@@ -43,5 +22,4 @@
   </tr>
   {% endfor %}
 </table>
-<p><a href="/claims/new?item_id=&rep_id=&start=&end=">{{ t('claim_detail.reassess') }}</a></p>
 {% endblock %}

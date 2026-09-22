@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Corpus -- DHRA{% endblock %}
+{% block content %}
+<h1>{{ t('sources.title') }}</h1>
+<p class="lede">{{ t('sources.lede') }}</p>
+<p><a href="/ingest">{{ t('nav.add_sources') }} &rarr;</a></p>
+<table>
+  <tr><th>{{ t('sources.col_source') }}</th><th>{{ t('sources.col_items') }}</th></tr>
+  {% for b in result.buckets %}
+  <tr>
+    <td>{{ b.label }}</td>
+    <td>
+      {% for iid in b.item_ids %}
+        <a href="/item/{{ iid }}">{{ iid }}</a>{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="2" class="muted">{{ t('sources.none') }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

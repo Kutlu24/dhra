@@ -1,97 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Research & Teaching -- DHRA{% endblock %}
-{% block description %}AI-assisted research questions, paper review against your corpus, exam questions, rubric-based first-pass reading, and reading lists -- the model only ever proposes, every result is a reviewable draft.{% endblock %}
+{% block title %}Research Assistant -- DHRA{% endblock %}
+{% block description %}AI-assisted research questions, disconfirmation search, and paper review against your corpus -- the model only ever proposes, every result is a reviewable draft.{% endblock %}
 {% block content %}
-<h1>{{ t('assistant.title') }}</h1>
-<p class="lede">{{ t('assistant.lede') }}</p>
+<h1>{{ t('assistant.title_v2') }}</h1>
+<p class="lede">{{ t('assistant.lede') | safe }}</p>
 
 {% if not llm_configured %}
-<div class="warning">{{ t('assistant.not_configured') }}</div>
+<div class="warning">{{ t('assistant.not_configured') | safe }}</div>
 {% endif %}
 
-<div class="assistant-columns">
-<section class="assistant-col">
-  <h2>{{ t('assistant.research_heading') }}</h2>
-
-  <div class="card">
-    <h3>{{ t('assistant.suggest_title') }}</h3>
-    <p class="muted">{{ t('assistant.suggest_desc') }}</p>
-    <form method="post" action="/assistant/research-questions">
-      <p><label>{{ t('assistant.topic_label') }}<br><input type="text" name="context_query" required></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.suggest_button') }}</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>{{ t('assistant.disconfirm_title') }}</h3>
-    <p class="muted">{{ t('assistant.disconfirm_desc') }}</p>
-    <form method="post" action="/assistant/disconfirm">
-      <p><label>{{ t('assistant.claim_text_label') }}<br><textarea name="claim_text" rows="3" required></textarea></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.disconfirm_button') }}</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>{{ t('assistant.review_title') }}</h3>
-    <p class="muted">{{ t('assistant.review_desc') }}</p>
-    <form method="post" action="/assistant/peer-review">
-      <p><label>{{ t('assistant.paper_text_label') }}<br><textarea name="paper_text" rows="6" required></textarea></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="reviewer" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.review_button') }}</button>
-    </form>
-  </div>
-
-  {% for d in research_drafts %}
-  <div class="card">
-    <p class="muted">{{ d.kind }} &middot; {{ d.ts }} &middot; {{ d.created_by }}</p>
-    <pre>{{ d.text }}</pre>
-  </div>
-  {% endfor %}
-</section>
-
-<section class="assistant-col">
-  <h2>{{ t('assistant.teaching_heading') }}</h2>
-
-  <div class="card">
-    <h3>{{ t('assistant.exam_title') }}</h3>
-    <form method="post" action="/assistant/exam-questions">
-      <p><label>{{ t('assistant.course_material_label') }}<br><textarea name="source_text" rows="5" required></textarea></label></p>
-      <p><label>{{ t('assistant.n_questions_label') }}<br><input type="text" name="n_questions" value="5" required></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.draft_button') }}</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>{{ t('assistant.rubric_title') }}</h3>
-    <p class="muted">{{ t('assistant.rubric_desc') }}</p>
-    <form method="post" action="/assistant/rubric">
-      <p><label>{{ t('assistant.rubric_label') }}<br><textarea name="rubric_text" rows="3" required></textarea></label></p>
-      <p><label>{{ t('assistant.student_submission_label') }}<br><textarea name="paper_text" rows="5" required></textarea></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.read_button') }}</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>{{ t('assistant.reading_list_title') }}</h3>
-    <p class="muted">{{ t('assistant.reading_list_desc') }}</p>
-    <p class="muted">{{ t('assistant.reading_list_websearch_on') if websearch_configured else t('assistant.reading_list_websearch_off') }}</p>
-    <form method="post" action="/assistant/reading-list">
-      <p><label>{{ t('assistant.course_topic_label') }}<br><input type="text" name="course_topic" required></label></p>
-      <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="instructor" required></label></p>
-      <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.reading_list_button') }}</button>
-    </form>
-  </div>
-
-  {% for d in teaching_drafts %}
-  <div class="card">
-    <p class="muted">{{ d.kind }} &middot; {{ d.ts }} &middot; {{ d.created_by }}</p>
-    <pre>{{ d.text }}</pre>
-  </div>
-  {% endfor %}
-</section>
+<div class="card">
+  <h3>{{ t('assistant.suggest_title') }}</h3>
+  <p class="muted">{{ t('assistant.suggest_desc') }}</p>
+  <form method="post" action="/assistant/research-questions">
+    <p><label>{{ t('assistant.topic_label') }}<br><input type="text" name="context_query" required></label></p>
+    <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
+    <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.suggest_button') }}</button>
+  </form>
 </div>
+
+<div class="card">
+  <h3>{{ t('assistant.disconfirm_title') }}</h3>
+  <p class="muted">{{ t('assistant.disconfirm_desc') }}</p>
+  <form method="post" action="/assistant/disconfirm">
+    <p><label>{{ t('assistant.claim_text_label') }}<br><textarea name="claim_text" rows="3" required></textarea></label></p>
+    <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="researcher" required></label></p>
+    <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.disconfirm_button') }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>{{ t('assistant.review_title') }}</h3>
+  <p class="muted">{{ t('assistant.review_desc') }}</p>
+  <form method="post" action="/assistant/peer-review">
+    <p><label>{{ t('assistant.paper_text_label') }}<br><textarea name="paper_text" rows="6" required></textarea></label></p>
+    <p><label>{{ t('assistant.your_name_label') }}<br><input type="text" name="actor" value="reviewer" required></label></p>
+    <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('assistant.review_button') }}</button>
+  </form>
+</div>
+
+{% for d in research_drafts %}
+<div class="card">
+  <p class="muted">{{ d.kind }} &middot; {{ d.ts }} &middot; {{ d.created_by }}</p>
+  <pre>{{ d.text }}</pre>
+</div>
+{% endfor %}
 {% endblock %}

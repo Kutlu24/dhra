@@ -69,7 +69,7 @@ def test_translate_interpolates_kwargs_and_escapes_them():
 def test_default_language_is_english(client):
     resp = client.get("/")
     assert 'lang="en"' in resp.text
-    assert "Evidence search" in resp.text
+    assert "Evidence-Grounded Research" in resp.text
 
 
 def test_switching_to_german_sets_cookie_and_translates_the_page(client):
@@ -80,8 +80,8 @@ def test_switching_to_german_sets_cookie_and_translates_the_page(client):
     client.cookies.set(LANGUAGE_COOKIE, "de")
     page = client.get("/")
     assert 'lang="de"' in page.text
-    assert "Belegsuche" in page.text
-    assert "Suche" in page.text  # nav label
+    assert "Beleggestützte Forschung" in page.text
+    assert "Übersicht" in page.text  # nav label
 
 
 def test_switching_to_french_translates_the_tutorial_page(client):
@@ -128,12 +128,12 @@ def test_apostrophes_in_translations_render_literally_not_as_html_entities(clien
 @pytest.mark.parametrize(
     "path,marker",
     [
-        ("/de/", "Belegsuche"),
+        ("/de/", "Beleggestützte Forschung"),
         ("/de/chat", "Fragen Sie etwas"),
         ("/de/tutorial", "Erste Schritte"),
-        ("/de/assistant", "Forschungs- &amp; Lehrassistent"),
+        ("/de/assistant", "Forschungsassistent"),
         ("/de/updates", "Literaturneuigkeiten"),
-        ("/fr/", "Recherche de preuves"),
+        ("/fr/", "Recherche fondée sur des preuves"),
         ("/fr/chat", "Discussion"),
     ],
 )

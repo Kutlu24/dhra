@@ -70,6 +70,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "chat.generated_badge": "Generated -- grounded only in the evidence above",
         "chat.placeholder": "Ask about your corpus...",
         "chat.send": "Send",
+        "chat.action_find_supporting": "Find supporting evidence",
+        "chat.action_find_contradicting": "Find contradicting evidence",
+        "chat.action_compare_sources": "Compare sources",
+        "chat.action_identify_gaps": "Identify gaps",
         # --- ingest.html -----------------------------------------------------------
         "ingest.title": "Add an item",
         "ingest.description": "Manual upload only (section 9.2's licence/rate-limit gating applies to "
@@ -112,6 +116,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exclusions.title": "Exclusions",
         "exclusions.description": "Reversible annotations, never deletion (I4). Restore is one click.",
         "exclusions.col_item": "item",
+        "exclusions.col_reason": "reason",
         "exclusions.col_actor": "actor",
         "exclusions.col_ts": "ts",
         "exclusions.restore": "Restore",
@@ -302,6 +307,130 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "status.unsupported": "E6 -- not found; scope of search stated. Not evidence of non-occurrence.",
         "status.negative": "E7 -- a source positively asserts non-occurrence.",
         "status.out_of_scope": "E8 -- this corpus cannot in principle address this claim.",
+        # --- status short labels (status_badge macro) -----------------------------------
+        "status_label.attested": "Attested",
+        "status_label.corroborated": "Corroborated",
+        "status_label.inferred": "Inferred",
+        "status_label.contested": "Contested",
+        "status_label.single_witness": "Single witness",
+        "status_label.unsupported": "Unsupported",
+        "status_label.negative": "Negative",
+        "status_label.out_of_scope": "Out of scope",
+        # --- v2 nav (base.html) -----------------------------------------------------------
+        "nav.section_research": "Research",
+        "nav.section_sources": "Sources",
+        "nav.section_audit": "Audit",
+        "nav.section_teaching": "Teaching",
+        "nav.overview": "Overview",
+        "nav.evidence": "Evidence",
+        "nav.research_assistant": "Research Assistant",
+        "nav.analysis": "Analysis",
+        "nav.corpus": "Corpus",
+        "nav.add_sources": "Add Sources",
+        "nav.help": "Help",
+        # --- macros/cards.html (evidence_card) ---------------------------------------------
+        "evidence.open_source": "Open source &rarr;",
+        # --- dashboard.html (new homepage, was search.html's empty state) -----------------
+        "dashboard.h1": "Evidence-Grounded Research for the Digital Humanities",
+        "dashboard.lede": "Search your sources, trace every claim to its source, and challenge your own conclusions.",
+        "dashboard.search_placeholder": "What are you researching?",
+        "dashboard.search_button": "Start research",
+        "dashboard.stat_sources": "Sources",
+        "dashboard.stat_claims": "Claims",
+        "dashboard.stat_contested": "Contested",
+        "dashboard.how_it_works_heading": "How it works",
+        "dashboard.step1_heading": "Add sources",
+        "dashboard.step1_body": "Upload a PDF, scanned image, TEI/XML file, or paste text directly.",
+        "dashboard.step2_heading": "Find evidence",
+        "dashboard.step2_body": "Literal, locator-bound search finds the exact passage, never a summary.",
+        "dashboard.step3_heading": "Build claims",
+        "dashboard.step3_body": "Write your claim, link the evidence that supports or contradicts it.",
+        "dashboard.step4_heading": "Audit your research",
+        "dashboard.step4_body": "Check source concentration, date coverage, and gaps before you trust a conclusion.",
+        "dashboard.recent_heading": "Recent",
+        "dashboard.recent_none": "Nothing yet &mdash; try a search or add your first source.",
+        "dashboard.first_visit_cta": '<a href="/start">New here? Take the 60-second tour &rarr;</a>',
+        # --- start.html (onboarding wizard) -------------------------------------------------
+        "start.title": "Start a research project",
+        "start.step1_heading": "What are you researching?",
+        "start.step1_placeholder": "e.g. Ottoman urban history",
+        "start.continue": "Continue &rarr;",
+        "start.step2_heading": "Add your sources",
+        "start.step2_body": "Upload what you have, or explore with whatever is already in this corpus.",
+        "start.step2_add": "Add sources &rarr;",
+        "start.step2_skip": "Skip for now &rarr;",
+        "start.step3_heading": "What would you like to do?",
+        "start.step3_evidence": "Find evidence",
+        "start.step3_claim": "Test a claim",
+        "start.step3_paper": "Review a paper",
+        "start.step4_heading": "Ready",
+        "start.step4_body": "Your research workspace is ready.",
+        "start.step4_cta_evidence": "Start exploring &rarr;",
+        "start.step4_cta_claims": "Assess a claim &rarr;",
+        # --- sources.html (corpus browse, new) ----------------------------------------------
+        "sources.title": "Corpus",
+        "sources.lede": "Every active source in this corpus, grouped by where it came from.",
+        "sources.col_source": "source",
+        "sources.col_items": "items",
+        "sources.col_items_list": "items",
+        "sources.none": "No sources yet.",
+        # --- claim_detail.html additions ---------------------------------------------------
+        "claim_detail.view_provenance": "View evidence graph &rarr;",
+        # --- macros/graph.html ---------------------------------------------------------------
+        "graph.none": "None.",
+        # --- trace.html / audit trail --------------------------------------------------------
+        "trace.audit_heading": "Research Audit Trail",
+        "trace.audit_none": "No activity recorded yet.",
+        "trace.export": "Export audit trail",
+        "trace.decisions_toggle": "Decision log",
+        "trace.raw_toggle": "Raw event log",
+        # --- aggregate.html (Corpus Analysis redesign) ---------------------------------------
+        "aggregate.no_warnings_heading": "&#10003; No corpus-level warnings detected",
+        "aggregate.no_warnings_body": "We checked source concentration, date coverage, language coverage and failed acquisitions.",
+        "aggregate.limitations_detected": "{n} limitation(s) detected",
+        "aggregate.source_concentration_heading": "Source concentration",
+        "aggregate.date_coverage_heading": "Date coverage",
+        "aggregate.language_heading": "Language",
+        "aggregate.gap_detected": "Gap detected",
+        # --- exclusions.html (5-bucket regroup) ----------------------------------------------
+        "exclusions.group_duplicate": "Duplicate",
+        "exclusions.group_low_quality": "Low quality",
+        "exclusions.group_outside_scope": "Outside research scope",
+        "exclusions.group_acquisition_problem": "Acquisition problem",
+        "exclusions.group_other": "Other",
+        "exclusions.remain_auditable": "Excluded sources remain auditable.",
+        "exclusions.view_history": "View exclusion history &rarr;",
+        # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
+        "assistant.title_v2": "Research Assistant",
+        "teaching.title": "Teaching",
+        "teaching.lede": "The model only ever proposes &mdash; every result below is a reviewable draft, never applied automatically.",
+        # --- demo banner (visual redesign, copy stays operator-controlled) ------------------
+        "demo_banner.label": "Demo environment",
+        # --- content pages (how-it-works / about / evidence-based-research) -----------------
+        "how_it_works.title": "How DHRA works",
+        "how_it_works.lede": "Four steps from a source on your desk to an auditable, evidence-bound conclusion.",
+        "about.title": "About DHRA",
+        "about.body": "<p>DHRA is an evidence-grounded research workspace for the humanities. Its central "
+        "rule is simple: <strong>evidence before narrative, always</strong>. Every claim you assess is "
+        "given a status &mdash; attested, contested, single witness, unsupported &mdash; by deterministic "
+        "code reading the evidence you linked to it, never by a model's judgement.</p>"
+        '<p>DHRA is not an authority and does not resolve disagreements between sources for you: when '
+        'sources disagree, that disagreement is the finding (status E4, contested), preserved and shown, '
+        'never silently picked for you.</p>'
+        '<p>The same corpus is reachable three ways: this web interface, a scriptable CLI, and an MCP '
+        'server for AI-agent workflows &mdash; see <a href="/tutorial">Getting started</a> for all three.</p>',
+        "evidence_based_research.title": "Evidence-Based Research, Grounded in Your Own Sources",
+        "evidence_based_research.body": "<p>Evidence-based research starts with a simple discipline: never assert "
+        "more than your sources actually support, and always keep the path from a conclusion back to its "
+        "source intact. DHRA builds that discipline into the tool itself rather than leaving it to "
+        "memory or footnote hygiene.</p>"
+        "<p>Every search result is locator-bound &mdash; it names the exact source, page, and passage it "
+        "came from. Every claim you assess carries an epistemic status (attested, contested, single "
+        "witness, unsupported) computed by code from the evidence you linked, not asserted by an AI "
+        "model. When two sources disagree, DHRA shows the disagreement rather than picking a side.</p>"
+        '<p>This is what separates an evidence-based research assistant from a general-purpose chatbot: '
+        'DHRA never answers without evidence, and never hides what it could not find. See '
+        '<a href="/how-it-works">how it works</a> or <a href="/tutorial">get started</a>.</p>',
     },
     "de": {
         # --- app chrome / nav ---------------------------------------------------
@@ -580,6 +709,134 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "status.unsupported": "E6 -- nicht gefunden; Suchumfang angegeben. Kein Beleg für Nicht-Eintreten.",
         "status.negative": "E7 -- eine Quelle bejaht ausdrücklich das Nicht-Eintreten.",
         "status.out_of_scope": "E8 -- dieses Korpus kann diese Behauptung prinzipiell nicht adressieren.",
+        # --- status short labels (status_badge macro) -----------------------------------
+        "status_label.attested": "Belegt",
+        "status_label.corroborated": "Bestätigt",
+        "status_label.inferred": "Gefolgert",
+        "status_label.contested": "Umstritten",
+        "status_label.single_witness": "Einzelquelle",
+        "status_label.unsupported": "Unbelegt",
+        "status_label.negative": "Verneint",
+        "status_label.out_of_scope": "Außerhalb des Umfangs",
+        # --- v2 nav (base.html) -----------------------------------------------------------
+        "nav.section_research": "Forschung",
+        "nav.section_sources": "Quellen",
+        "nav.section_audit": "Prüfpfad",
+        "nav.section_teaching": "Lehre",
+        "nav.overview": "Übersicht",
+        "nav.evidence": "Belege",
+        "nav.research_assistant": "Forschungsassistent",
+        "nav.analysis": "Analyse",
+        "nav.corpus": "Korpus",
+        "nav.add_sources": "Quellen hinzufügen",
+        "nav.help": "Hilfe",
+        # --- macros/cards.html (evidence_card) ---------------------------------------------
+        "evidence.open_source": "Quelle öffnen &rarr;",
+        # --- dashboard.html (new homepage, was search.html's empty state) -----------------
+        "dashboard.h1": "Beleggestützte Forschung für die Digital Humanities",
+        "dashboard.lede": "Durchsuchen Sie Ihre Quellen, verfolgen Sie jede Behauptung bis zur Quelle zurück und stellen Sie Ihre eigenen Schlussfolgerungen infrage.",
+        "dashboard.search_placeholder": "Was erforschen Sie?",
+        "dashboard.search_button": "Forschung starten",
+        "dashboard.stat_sources": "Quellen",
+        "dashboard.stat_claims": "Behauptungen",
+        "dashboard.stat_contested": "Umstritten",
+        "dashboard.how_it_works_heading": "So funktioniert es",
+        "dashboard.step1_heading": "Quellen hinzufügen",
+        "dashboard.step1_body": "Laden Sie ein PDF, ein gescanntes Bild, eine TEI/XML-Datei hoch oder fügen Sie Text direkt ein.",
+        "dashboard.step2_heading": "Belege finden",
+        "dashboard.step2_body": "Die wörtliche, an Fundstellen gebundene Suche findet die genaue Textstelle, nie nur eine Zusammenfassung.",
+        "dashboard.step3_heading": "Behauptungen aufbauen",
+        "dashboard.step3_body": "Formulieren Sie Ihre Behauptung, verknüpfen Sie Belege, die sie stützen oder ihr widersprechen.",
+        "dashboard.step4_heading": "Ihre Forschung prüfen",
+        "dashboard.step4_body": "Prüfen Sie Quellenkonzentration, zeitliche Abdeckung und Lücken, bevor Sie einer Schlussfolgerung vertrauen.",
+        "dashboard.recent_heading": "Zuletzt",
+        "dashboard.recent_none": "Noch nichts &mdash; probieren Sie eine Suche oder fügen Sie Ihre erste Quelle hinzu.",
+        "dashboard.first_visit_cta": '<a href="/start">Neu hier? Die 60-Sekunden-Tour &rarr;</a>',
+        # --- start.html (onboarding wizard) -------------------------------------------------
+        "start.title": "Ein Forschungsprojekt starten",
+        "start.step1_heading": "Was erforschen Sie?",
+        "start.step1_placeholder": "z.B. osmanische Stadtgeschichte",
+        "start.continue": "Weiter &rarr;",
+        "start.step2_heading": "Fügen Sie Ihre Quellen hinzu",
+        "start.step2_body": "Laden Sie hoch, was Sie haben, oder erkunden Sie mit dem, was bereits in diesem Korpus vorhanden ist.",
+        "start.step2_add": "Quellen hinzufügen &rarr;",
+        "start.step2_skip": "Vorerst überspringen &rarr;",
+        "start.step3_heading": "Was möchten Sie tun?",
+        "start.step3_evidence": "Belege finden",
+        "start.step3_claim": "Eine Behauptung prüfen",
+        "start.step3_paper": "Ein Papier begutachten",
+        "start.step4_heading": "Bereit",
+        "start.step4_body": "Ihr Forschungsarbeitsbereich ist bereit.",
+        "start.step4_cta_evidence": "Erkundung starten &rarr;",
+        "start.step4_cta_claims": "Eine Behauptung prüfen &rarr;",
+        # --- sources.html (corpus browse, new) ----------------------------------------------
+        "sources.title": "Korpus",
+        "sources.lede": "Jede aktive Quelle in diesem Korpus, gruppiert nach Herkunft.",
+        "sources.col_source": "Quelle",
+        "sources.col_items": "Objekte",
+        "sources.col_items_list": "Objekte",
+        "sources.none": "Noch keine Quellen.",
+        # --- claim_detail.html additions ---------------------------------------------------
+        "claim_detail.view_provenance": "Belegdiagramm ansehen &rarr;",
+        # --- macros/graph.html ---------------------------------------------------------------
+        "graph.none": "Keine.",
+        # --- trace.html / audit trail --------------------------------------------------------
+        "trace.audit_heading": "Forschungsprüfpfad",
+        "trace.audit_none": "Noch keine Aktivität erfasst.",
+        "trace.export": "Prüfpfad exportieren",
+        "trace.decisions_toggle": "Entscheidungsprotokoll",
+        "trace.raw_toggle": "Rohes Ereignisprotokoll",
+        # --- aggregate.html (Corpus Analysis redesign) ---------------------------------------
+        "aggregate.no_warnings_heading": "&#10003; Keine Warnungen auf Korpusebene festgestellt",
+        "aggregate.no_warnings_body": "Wir haben Quellenkonzentration, zeitliche Abdeckung, Sprachabdeckung und fehlgeschlagene Erwerbungen geprüft.",
+        "aggregate.limitations_detected": "{n} Einschränkung(en) festgestellt",
+        "aggregate.source_concentration_heading": "Quellenkonzentration",
+        "aggregate.date_coverage_heading": "Zeitliche Abdeckung",
+        "aggregate.language_heading": "Sprache",
+        "aggregate.gap_detected": "Lücke festgestellt",
+        # --- exclusions.html (5-bucket regroup) ----------------------------------------------
+        "exclusions.group_duplicate": "Duplikat",
+        "exclusions.group_low_quality": "Geringe Qualität",
+        "exclusions.group_outside_scope": "Außerhalb des Forschungsumfangs",
+        "exclusions.group_acquisition_problem": "Erwerbungsproblem",
+        "exclusions.group_other": "Sonstiges",
+        "exclusions.remain_auditable": "Ausgeschlossene Quellen bleiben prüfbar.",
+        "exclusions.view_history": "Ausschlussverlauf ansehen &rarr;",
+        "exclusions.col_reason": "Grund",
+        # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
+        "assistant.title_v2": "Forschungsassistent",
+        "teaching.title": "Lehre",
+        "teaching.lede": "Das Modell schlägt nur vor &mdash; jedes Ergebnis unten ist ein zu prüfender Entwurf, nie automatisch übernommen.",
+        # --- demo banner (visual redesign, copy stays operator-controlled) ------------------
+        "demo_banner.label": "Demo-Umgebung",
+        # --- chat.html action buttons ----------------------------------------------------------
+        "chat.action_find_supporting": "Stützende Belege finden",
+        "chat.action_find_contradicting": "Widersprechende Belege finden",
+        "chat.action_compare_sources": "Quellen vergleichen",
+        "chat.action_identify_gaps": "Lücken identifizieren",
+        # --- content pages (how-it-works / about / evidence-based-research) -----------------
+        "how_it_works.title": "So funktioniert DHRA",
+        "how_it_works.lede": "Vier Schritte von einer Quelle auf Ihrem Schreibtisch zu einer prüfbaren, beleggestützten Schlussfolgerung.",
+        "about.title": "Über DHRA",
+        "about.body": "<p>DHRA ist ein beleggestützter Forschungsarbeitsbereich für die Geisteswissenschaften. Seine zentrale "
+        "Regel ist einfach: <strong>immer erst der Beleg, dann die Erzählung</strong>. Jeder Behauptung, die Sie prüfen, wird "
+        "ein Status zugewiesen &mdash; belegt, umstritten, Einzelquelle, unbelegt &mdash; durch deterministischen Code, der die "
+        "verknüpften Belege liest, nie durch das Urteil eines Modells.</p>"
+        '<p>DHRA ist keine Autorität und löst Widersprüche zwischen Quellen nicht für Sie auf: Wenn Quellen widersprechen, ist '
+        'dieser Widerspruch selbst der Befund (Status E4, umstritten), erhalten und angezeigt, nie stillschweigend für Sie entschieden.</p>'
+        '<p>Dasselbe Korpus ist auf drei Wegen erreichbar: diese Weboberfläche, eine skriptfähige CLI und ein MCP-Server für '
+        'KI-Agenten-Workflows &mdash; siehe <a href="/tutorial">Erste Schritte</a> für alle drei.</p>',
+        "evidence_based_research.title": "Beleggestützte Forschung, verankert in Ihren eigenen Quellen",
+        "evidence_based_research.body": "<p>Beleggestützte Forschung beginnt mit einer einfachen Disziplin: nie mehr behaupten, "
+        "als Ihre Quellen tatsächlich stützen, und den Weg von einer Schlussfolgerung zurück zu ihrer Quelle immer intakt "
+        "halten. DHRA verankert diese Disziplin im Werkzeug selbst, statt sie dem Gedächtnis oder der Fußnotenpflege zu überlassen.</p>"
+        "<p>Jedes Suchergebnis ist an eine Fundstelle gebunden &mdash; es nennt die genaue Quelle, Seite und Textstelle, aus der "
+        "es stammt. Jede geprüfte Behauptung trägt einen epistemischen Status (belegt, umstritten, Einzelquelle, unbelegt), der "
+        "von Code aus den verknüpften Belegen berechnet wird, nicht von einem KI-Modell behauptet. Wenn sich zwei Quellen "
+        "widersprechen, zeigt DHRA den Widerspruch, statt eine Seite zu wählen.</p>"
+        '<p>Das unterscheidet einen beleggestützten Forschungsassistenten von einem allgemeinen Chatbot: DHRA antwortet nie ohne '
+        'Belege und verbirgt nie, was es nicht finden konnte. Siehe <a href="/how-it-works">So funktioniert es</a> oder '
+        '<a href="/tutorial">Erste Schritte</a>.</p>',
     },
     "fr": {
         # --- app chrome / nav ---------------------------------------------------
@@ -860,6 +1117,136 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "status.unsupported": "E6 -- introuvable ; portée de la recherche indiquée. N'est pas une preuve de non-occurrence.",
         "status.negative": "E7 -- une source affirme positivement la non-occurrence.",
         "status.out_of_scope": "E8 -- ce corpus ne peut en principe pas traiter cette affirmation.",
+        # --- status short labels (status_badge macro) -----------------------------------
+        "status_label.attested": "Attesté",
+        "status_label.corroborated": "Corroboré",
+        "status_label.inferred": "Déduit",
+        "status_label.contested": "Contesté",
+        "status_label.single_witness": "Témoin unique",
+        "status_label.unsupported": "Non étayé",
+        "status_label.negative": "Négatif",
+        "status_label.out_of_scope": "Hors champ",
+        # --- v2 nav (base.html) -----------------------------------------------------------
+        "nav.section_research": "Recherche",
+        "nav.section_sources": "Sources",
+        "nav.section_audit": "Audit",
+        "nav.section_teaching": "Enseignement",
+        "nav.overview": "Aperçu",
+        "nav.evidence": "Preuves",
+        "nav.research_assistant": "Assistant de recherche",
+        "nav.analysis": "Analyse",
+        "nav.corpus": "Corpus",
+        "nav.add_sources": "Ajouter des sources",
+        "nav.help": "Aide",
+        # --- macros/cards.html (evidence_card) ---------------------------------------------
+        "evidence.open_source": "Ouvrir la source &rarr;",
+        # --- dashboard.html (new homepage, was search.html's empty state) -----------------
+        "dashboard.h1": "Recherche fondée sur des preuves pour les humanités numériques",
+        "dashboard.lede": "Recherchez dans vos sources, retracez chaque affirmation jusqu'à sa source et remettez en question vos propres conclusions.",
+        "dashboard.search_placeholder": "Que recherchez-vous ?",
+        "dashboard.search_button": "Démarrer la recherche",
+        "dashboard.stat_sources": "Sources",
+        "dashboard.stat_claims": "Affirmations",
+        "dashboard.stat_contested": "Contestées",
+        "dashboard.how_it_works_heading": "Comment ça marche",
+        "dashboard.step1_heading": "Ajouter des sources",
+        "dashboard.step1_body": "Téléversez un PDF, une image scannée, un fichier TEI/XML, ou collez du texte directement.",
+        "dashboard.step2_heading": "Trouver des preuves",
+        "dashboard.step2_body": "La recherche littérale, liée à un repère précis, trouve le passage exact, jamais un résumé.",
+        "dashboard.step3_heading": "Construire des affirmations",
+        "dashboard.step3_body": "Rédigez votre affirmation, reliez les preuves qui la soutiennent ou la contredisent.",
+        "dashboard.step4_heading": "Auditer votre recherche",
+        "dashboard.step4_body": "Vérifiez la concentration des sources, la couverture temporelle et les lacunes avant de faire confiance à une conclusion.",
+        "dashboard.recent_heading": "Récent",
+        "dashboard.recent_none": "Rien pour l'instant &mdash; essayez une recherche ou ajoutez votre première source.",
+        "dashboard.first_visit_cta": '<a href="/start">Nouveau ici ? La visite de 60 secondes &rarr;</a>',
+        # --- start.html (onboarding wizard) -------------------------------------------------
+        "start.title": "Démarrer un projet de recherche",
+        "start.step1_heading": "Que recherchez-vous ?",
+        "start.step1_placeholder": "p. ex. histoire urbaine ottomane",
+        "start.continue": "Continuer &rarr;",
+        "start.step2_heading": "Ajoutez vos sources",
+        "start.step2_body": "Téléversez ce que vous avez, ou explorez avec ce qui se trouve déjà dans ce corpus.",
+        "start.step2_add": "Ajouter des sources &rarr;",
+        "start.step2_skip": "Passer pour l'instant &rarr;",
+        "start.step3_heading": "Que souhaitez-vous faire ?",
+        "start.step3_evidence": "Trouver des preuves",
+        "start.step3_claim": "Tester une affirmation",
+        "start.step3_paper": "Examiner un article",
+        "start.step4_heading": "Prêt",
+        "start.step4_body": "Votre espace de recherche est prêt.",
+        "start.step4_cta_evidence": "Commencer l'exploration &rarr;",
+        "start.step4_cta_claims": "Évaluer une affirmation &rarr;",
+        # --- sources.html (corpus browse, new) ----------------------------------------------
+        "sources.title": "Corpus",
+        "sources.lede": "Chaque source active de ce corpus, regroupée par provenance.",
+        "sources.col_source": "source",
+        "sources.col_items": "objets",
+        "sources.col_items_list": "objets",
+        "sources.none": "Aucune source pour l'instant.",
+        # --- claim_detail.html additions ---------------------------------------------------
+        "claim_detail.view_provenance": "Voir le graphe de preuves &rarr;",
+        # --- macros/graph.html ---------------------------------------------------------------
+        "graph.none": "Aucun.",
+        # --- trace.html / audit trail --------------------------------------------------------
+        "trace.audit_heading": "Journal d'audit de recherche",
+        "trace.audit_none": "Aucune activité enregistrée pour l'instant.",
+        "trace.export": "Exporter le journal d'audit",
+        "trace.decisions_toggle": "Journal des décisions",
+        "trace.raw_toggle": "Journal brut des événements",
+        # --- aggregate.html (Corpus Analysis redesign) ---------------------------------------
+        "aggregate.no_warnings_heading": "&#10003; Aucun avertissement au niveau du corpus détecté",
+        "aggregate.no_warnings_body": "Nous avons vérifié la concentration des sources, la couverture temporelle, la couverture linguistique et les échecs d'acquisition.",
+        "aggregate.limitations_detected": "{n} limitation(s) détectée(s)",
+        "aggregate.source_concentration_heading": "Concentration des sources",
+        "aggregate.date_coverage_heading": "Couverture temporelle",
+        "aggregate.language_heading": "Langue",
+        "aggregate.gap_detected": "Lacune détectée",
+        # --- exclusions.html (5-bucket regroup) ----------------------------------------------
+        "exclusions.group_duplicate": "Doublon",
+        "exclusions.group_low_quality": "Qualité insuffisante",
+        "exclusions.group_outside_scope": "Hors du champ de recherche",
+        "exclusions.group_acquisition_problem": "Problème d'acquisition",
+        "exclusions.group_other": "Autre",
+        "exclusions.remain_auditable": "Les sources exclues restent vérifiables.",
+        "exclusions.view_history": "Voir l'historique des exclusions &rarr;",
+        "exclusions.col_reason": "motif",
+        # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
+        "assistant.title_v2": "Assistant de recherche",
+        "teaching.title": "Enseignement",
+        "teaching.lede": "Le modèle ne fait que proposer &mdash; chaque résultat ci-dessous est un brouillon à examiner, jamais appliqué automatiquement.",
+        # --- demo banner (visual redesign, copy stays operator-controlled) ------------------
+        "demo_banner.label": "Environnement de démonstration",
+        # --- chat.html action buttons ----------------------------------------------------------
+        "chat.action_find_supporting": "Trouver des preuves à l'appui",
+        "chat.action_find_contradicting": "Trouver des preuves contradictoires",
+        "chat.action_compare_sources": "Comparer les sources",
+        "chat.action_identify_gaps": "Identifier les lacunes",
+        # --- content pages (how-it-works / about / evidence-based-research) -----------------
+        "how_it_works.title": "Comment fonctionne DHRA",
+        "how_it_works.lede": "Quatre étapes d'une source sur votre bureau à une conclusion vérifiable et fondée sur des preuves.",
+        "about.title": "À propos de DHRA",
+        "about.body": "<p>DHRA est un espace de recherche fondé sur des preuves pour les humanités. Sa règle centrale est simple : "
+        "<strong>toujours la preuve avant le récit</strong>. Chaque affirmation que vous évaluez reçoit un statut &mdash; attesté, "
+        "contesté, témoin unique, non étayé &mdash; par un code déterministe qui lit les preuves qui lui sont liées, jamais par "
+        "le jugement d'un modèle.</p>"
+        "<p>DHRA n'est pas une autorité et ne résout pas les désaccords entre sources à votre place : lorsque les sources se "
+        "contredisent, ce désaccord est lui-même le résultat (statut E4, contesté), conservé et affiché, jamais tranché "
+        "silencieusement à votre place.</p>"
+        '<p>Le même corpus est accessible de trois façons : cette interface web, une CLI scriptable, et un serveur MCP pour les '
+        'workflows d\'agents IA &mdash; voir <a href="/tutorial">Premiers pas</a> pour les trois.</p>',
+        "evidence_based_research.title": "Une recherche fondée sur des preuves, ancrée dans vos propres sources",
+        "evidence_based_research.body": "<p>La recherche fondée sur des preuves commence par une discipline simple : ne jamais "
+        "affirmer plus que ce que vos sources soutiennent réellement, et toujours garder intact le chemin d'une conclusion "
+        "jusqu'à sa source. DHRA intègre cette discipline dans l'outil lui-même plutôt que de la laisser à la mémoire ou à "
+        "l'hygiène des notes de bas de page.</p>"
+        "<p>Chaque résultat de recherche est lié à un repère précis &mdash; il nomme la source exacte, la page et le "
+        "passage dont il provient. Chaque affirmation que vous évaluez porte un statut épistémique (attesté, contesté, témoin "
+        "unique, non étayé) calculé par du code à partir des preuves liées, jamais affirmé par un modèle d'IA. Lorsque deux "
+        "sources se contredisent, DHRA montre la contradiction plutôt que de choisir un camp.</p>"
+        '<p>C\'est ce qui distingue un assistant de recherche fondé sur des preuves d\'un chatbot généraliste : DHRA ne répond '
+        'jamais sans preuve, et ne cache jamais ce qu\'il n\'a pas pu trouver. Voir <a href="/how-it-works">comment ça '
+        'marche</a> ou <a href="/tutorial">premiers pas</a>.</p>',
     },
 }
 

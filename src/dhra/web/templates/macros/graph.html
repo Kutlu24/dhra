@@ -1,0 +1,31 @@
+{% from "macros/cards.html" import status_badge with context %}
+
+{% macro provenance_graph(assessment, provenance, lang) %}
+<div class="provenance-graph" id="provenance-graph">
+  <div class="side supporting">
+    <div class="side-title">{{ t('claim_detail.supporting') }}</div>
+    {% for node in provenance.supporting %}
+    <div class="node">
+      <div>&ldquo;{{ node.resolved_text[:140] }}{{ '…' if node.resolved_text | length > 140 }}&rdquo;</div>
+      <div class="source-label">{{ node.source_id }} &middot; {{ node.locator.item_id }}/{{ node.locator.rep_id }}[{{ node.locator.start }}:{{ node.locator.end }}]</div>
+    </div>
+    {% else %}
+    <p class="muted">{{ t('graph.none') }}</p>
+    {% endfor %}
+  </div>
+  <div class="center">
+    <div class="claim-node">&ldquo;{{ assessment.claim_text }}&rdquo;<br>{{ status_badge(assessment.status, lang) }}</div>
+  </div>
+  <div class="side contradicting">
+    <div class="side-title">{{ t('claim_detail.contradicting') }}</div>
+    {% for node in provenance.contradicting %}
+    <div class="node">
+      <div>&ldquo;{{ node.resolved_text[:140] }}{{ '…' if node.resolved_text | length > 140 }}&rdquo;</div>
+      <div class="source-label">{{ node.source_id }} &middot; {{ node.locator.item_id }}/{{ node.locator.rep_id }}[{{ node.locator.start }}:{{ node.locator.end }}]</div>
+    </div>
+    {% else %}
+    <p class="muted">{{ t('graph.none') }}</p>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}

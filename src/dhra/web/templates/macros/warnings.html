@@ -1,0 +1,9 @@
+{% macro warning_item(icon, headline, explanation=None, ok=False) %}
+<div class="warning-item{{ ' ok' if ok }}">
+  <span class="icon">{{ icon }}</span>
+  <div>
+    <div class="headline">{{ headline }}</div>
+    {% if explanation %}<div class="explanation">{{ explanation }}</div>{% endif %}
+  </div>
+</div>
+{% endmacro %}

@@ -1,14 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Aggregate -- DHRA{% endblock %}
+{% from "macros/warnings.html" import warning_item with context %}
+{% block title %}Corpus Analysis -- DHRA{% endblock %}
 {% block content %}
 <h1>{{ t('aggregate.bias_title') }}</h1>
 <p class="muted">{{ t('aggregate.bias_description', n=result.bias_report.total_items) }}</p>
-{% if result.bias_report.warnings %}
+
+{% if result.bias_report.has_warnings() %}
+  <p class="muted">{{ t('aggregate.limitations_detected', n=result.bias_report.warnings | length) }}</p>
   {% for w in result.bias_report.warnings %}
-    <div class="warning">{{ w }}</div>
+    {{ warning_item('⚠', w) }}
   {% endfor %}
 {% else %}
-  <p class="muted">{{ t('aggregate.no_warnings') }}</p>
+  {{ warning_item('✓', t('aggregate.no_warnings_heading'), t('aggregate.no_warnings_body'), ok=True) }}
+{% endif %}
+
+{% if result.bias_report.source_concentration %}
+<h2>{{ t('aggregate.source_concentration_heading') }}</h2>
+{% for sc in result.bias_report.source_concentration %}
+  <div class="muted">{{ sc.source_id }} &mdash; {{ '%.0f' | format(sc.share * 100) }}% ({{ sc.item_count }})</div>
+  <div class="progress-bar"><div class="fill" data-tone="{{ 'warn' if sc.share > 0.5 else '' }}" style="width: {{ '%.0f' | format(sc.share * 100) }}%"></div></div>
+{% endfor %}
+{% endif %}
+
+{% if result.bias_report.period_buckets %}
+<h2>{{ t('aggregate.date_coverage_heading') }}</h2>
+{% set max_count = result.bias_report.period_buckets | map(attribute='item_count') | max %}
+<div class="timeline">
+  {% for pb in result.bias_report.period_buckets %}
+    <div class="year" data-gap="{{ 'true' if pb.item_count <= max_count * 0.15 else 'false' }}" style="height: {{ ((pb.item_count / max_count * 100) | round | int) }}%" title="{{ pb.year }}: {{ pb.item_count }}"></div>
+  {% endfor %}
+</div>
+<p class="muted">{{ result.bias_report.period_buckets[0].year }} &ndash; {{ result.bias_report.period_buckets[-1].year }}{% if result.bias_report.period_gap_warning %} &middot; {{ t('aggregate.gap_detected') }}{% endif %}</p>
+{% endif %}
+
+{% if result.bias_report.missing_languages %}
+<h2>{{ t('aggregate.language_heading') }}</h2>
+<p class="muted">{{ result.bias_report.missing_languages | join(', ') }}</p>
 {% endif %}
 
 <h1>{{ t('aggregate.title') }}</h1>

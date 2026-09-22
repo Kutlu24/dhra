@@ -1,0 +1,8 @@
+{% macro nav_section(title, items, active) %}
+<div class="nav-section">
+  <div class="nav-section-title">{{ title }}</div>
+  {% for href, icon, label, key in items %}
+  <a href="{{ href }}" class="{{ 'active' if active == key }}"><span class="icon">{{ icon | safe }}</span> {{ label }}</a>
+  {% endfor %}
+</div>
+{% endmacro %}

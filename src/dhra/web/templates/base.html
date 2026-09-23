@@ -42,19 +42,6 @@
 </head>
 <body>
 {% from "macros/nav.html" import nav_section with context %}
-{% if accounts_enabled is defined and accounts_enabled %}
-<div class="auth-badge">
-  {% if current_user %}
-    <span>{{ t('auth.signed_in_as', username=current_user.username) }}</span>
-    <span class="sep">&middot;</span>
-    <form method="post" action="/logout" class="inline"><button type="submit">{{ t('auth.log_out') }}</button></form>
-  {% else %}
-    <a href="/login">{{ t('auth.log_in') }}</a>
-    <span class="sep">&middot;</span>
-    <a href="/signup">{{ t('auth.sign_up') }}</a>
-  {% endif %}
-</div>
-{% endif %}
 <aside>
   <div class="wordmark"><img src="/static/logo.svg" alt="" width="40" height="40"> DHRA</div>
   <div class="lang-switch">
@@ -87,18 +74,35 @@
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main>
-{% if demo_banner is defined and demo_banner %}
-{# | safe deliberately: DHRA_DEMO_BANNER is set by whoever operates the
-   deployment (via render.yaml/the Render dashboard), not by a site
-   visitor -- treating it as trusted HTML is what lets it carry a real
-   link (e.g. to a downloadable copy), same trust level as any other
-   server-side config value rendered elsewhere in this app. Styling here
-   is purely presentational -- the banner's own wording stays whatever
-   the operator configured (see OPEN_QUESTIONS.md #31: softening it past
-   what's actually true was tried once and deliberately reverted). #}
-<div class="demo-banner">
-  <span class="icon">&#9432;</span>
-  <div><span class="label">{{ t('demo_banner.label') }}</span>{{ demo_banner | safe }}</div>
+{% if (demo_banner is defined and demo_banner) or (accounts_enabled is defined and accounts_enabled) %}
+<div class="top-bar">
+  {% if demo_banner is defined and demo_banner %}
+  {# | safe deliberately: DHRA_DEMO_BANNER is set by whoever operates the
+     deployment (via render.yaml/the Render dashboard), not by a site
+     visitor -- treating it as trusted HTML is what lets it carry a real
+     link (e.g. to a downloadable copy), same trust level as any other
+     server-side config value rendered elsewhere in this app. Styling here
+     is purely presentational -- the banner's own wording stays whatever
+     the operator configured (see OPEN_QUESTIONS.md #31: softening it past
+     what's actually true was tried once and deliberately reverted). #}
+  <div class="demo-banner">
+    <span class="icon">&#9432;</span>
+    <div><span class="label">{{ t('demo_banner.label') }}</span>{{ demo_banner | safe }}</div>
+  </div>
+  {% endif %}
+  {% if accounts_enabled is defined and accounts_enabled %}
+  <div class="auth-badge">
+    {% if current_user %}
+      <span>{{ t('auth.signed_in_as', username=current_user.username) }}</span>
+      <span class="sep">&middot;</span>
+      <form method="post" action="/logout" class="inline"><button type="submit">{{ t('auth.log_out') }}</button></form>
+    {% else %}
+      <a href="/login">{{ t('auth.log_in') }}</a>
+      <span class="sep">&middot;</span>
+      <a href="/signup">{{ t('auth.sign_up') }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 {% block content %}{% endblock %}

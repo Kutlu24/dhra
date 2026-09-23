@@ -113,12 +113,15 @@ nav .icon { width: 1.1em; text-align: center; opacity: .8; font-size: .95em; }
   padding-top: .9rem; border-top: 1px solid var(--border); word-break: break-all; }
 
 /* ---- main content ---- */
-/* 800px used to leave a large dead margin on anything wider than a small
-   laptop screen -- tables, the provenance graph's 3 columns, and the
-   stat-tile grids all benefit from the extra room; prose pages (about,
-   blog, evidence-based-research) still read fine at this width, well
-   under the ~90-100ch line length where readability actually degrades. */
-main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 1100px; }
+/* A fixed max-width (800px, then 1100px) stops growing past that point
+   no matter how wide the screen is -- not actually responsive, just a
+   bigger fixed number. clamp() instead ties the width to the viewport
+   (86vw) between a floor and a ceiling: it visibly grows as the window
+   grows, but stops at 1500px so prose pages (about, blog,
+   evidence-based-research) don't get unreadably long lines on an
+   ultrawide monitor. Tables, the provenance graph's 3 columns, and the
+   stat-tile grids all benefit from using more of a large screen. */
+main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: clamp(320px, 86vw, 1500px); }
 h1 { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; margin: 0 0 .4rem; }
 h2 { font-size: .82rem; margin: 2rem 0 .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); font-weight: 600; }
 h3 { font-size: .95rem; margin: 0 0 .35rem; font-weight: 600; }

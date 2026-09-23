@@ -67,7 +67,10 @@ def test_guest_sees_shared_demo_corpus(app):
     resp = client.get("/evidence?q=shared")
     assert "Evidence (1)" in resp.text
     resp = client.get("/")
-    assert "Guest -- shared demo" in resp.text
+    assert 'class="auth-badge"' in resp.text
+    assert "Log in" in resp.text
+    assert "Sign up" in resp.text
+    assert "Signed in as" not in resp.text
 
 
 def test_signup_creates_isolated_private_workspace(app):
@@ -167,7 +170,8 @@ def test_tampered_session_cookie_is_rejected(app):
     forged = TestClient(app)
     forged.cookies.set("dhra_session", "not-a-real-signed-token")
     resp = forged.get("/")
-    assert "Guest -- shared demo" in resp.text  # falls back to guest, not an error, not someone else's account
+    assert "Signed in as" not in resp.text  # falls back to guest, not an error, not someone else's account
+    assert "Log in" in resp.text
 
 
 def test_signup_page_warns_about_ephemeral_storage_when_demo_banner_set(app_with_demo_banner):

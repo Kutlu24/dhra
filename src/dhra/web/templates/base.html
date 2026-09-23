@@ -42,6 +42,19 @@
 </head>
 <body>
 {% from "macros/nav.html" import nav_section with context %}
+{% if accounts_enabled is defined and accounts_enabled %}
+<div class="auth-badge">
+  {% if current_user %}
+    <span>{{ t('auth.signed_in_as', username=current_user.username) }}</span>
+    <span class="sep">&middot;</span>
+    <form method="post" action="/logout" class="inline"><button type="submit">{{ t('auth.log_out') }}</button></form>
+  {% else %}
+    <a href="/login">{{ t('auth.log_in') }}</a>
+    <span class="sep">&middot;</span>
+    <a href="/signup">{{ t('auth.sign_up') }}</a>
+  {% endif %}
+</div>
+{% endif %}
 <aside>
   <div class="wordmark"><img src="/static/logo.svg" alt="" width="40" height="40"> DHRA</div>
   <div class="lang-switch">
@@ -71,17 +84,6 @@
     ], active) }}
   </nav>
   <div class="nav-footer"><a href="/tutorial">{{ t('nav.help') }}</a></div>
-  {% if accounts_enabled is defined and accounts_enabled %}
-  <div class="nav-footer auth-status">
-    {% if current_user %}
-      {{ t('auth.signed_in_as', username=current_user.username) }}
-      <form method="post" action="/logout" class="inline"><button type="submit" class="link-button">{{ t('auth.log_out') }}</button></form>
-    {% else %}
-      {{ t('auth.guest_label') }}
-      <a href="/signup">{{ t('auth.sign_up') }}</a> &middot; <a href="/login">{{ t('auth.log_in') }}</a>
-    {% endif %}
-  </div>
-  {% endif %}
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main>

@@ -446,7 +446,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # --- base.html sidebar auth status --------------------------------------------------
         "auth.signed_in_as": "Signed in as {username}",
         "auth.log_out": "Log out",
-        "auth.guest_label": "Guest -- shared demo",
         "auth.sign_up": "Sign up",
         "auth.log_in": "Log in",
         # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------
@@ -976,7 +975,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # --- base.html sidebar auth status --------------------------------------------------
         "auth.signed_in_as": "Angemeldet als {username}",
         "auth.log_out": "Abmelden",
-        "auth.guest_label": "Gast -- gemeinsame Demo",
         "auth.sign_up": "Registrieren",
         "auth.log_in": "Anmelden",
         # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------
@@ -1520,7 +1518,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # --- base.html sidebar auth status --------------------------------------------------
         "auth.signed_in_as": "Connecté en tant que {username}",
         "auth.log_out": "Se déconnecter",
-        "auth.guest_label": "Invité -- démo partagée",
         "auth.sign_up": "S'inscrire",
         "auth.log_in": "Se connecter",
         # --- content pages, batch 2 (remaining SEO pages + documentation/blog/welcome) --------

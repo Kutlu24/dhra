@@ -73,7 +73,7 @@
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
 <main>
-<p class="brand-tagline">{{ t('app.tagline') | safe }}</p>
+<p class="brand-tagline"><img src="/static/logo.svg" alt="" class="brand-tagline-icon" width="24" height="24">{{ t('app.tagline') | safe }}</p>
 {% if (demo_banner is defined and demo_banner) or (accounts_enabled is defined and accounts_enabled) %}
 <div class="top-bar">
   {% if demo_banner is defined and demo_banner %}

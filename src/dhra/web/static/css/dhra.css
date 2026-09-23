@@ -89,9 +89,13 @@ body {
    floating fixed over the page, disconnected from the rest of the
    layout. ---- */
 .brand-tagline {
-  font-family: var(--font-serif); font-style: italic; font-size: 1.1rem; font-weight: 600;
-  color: var(--accent); margin: 0 0 1.1rem; line-height: 1.4;
+  display: flex; align-items: center; gap: .65rem;
+  font-family: var(--font-serif); font-style: italic; font-size: 1.15rem; font-weight: 600;
+  color: var(--accent); margin: 0 0 1.25rem; line-height: 1.4;
+  background: var(--accent-soft); border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0; padding: .65rem 1.1rem;
 }
+.brand-tagline-icon { flex: none; width: 24px; height: 24px; }
 .top-bar { display: flex; align-items: flex-start; gap: 1rem; justify-content: flex-end; margin-bottom: 1.25rem; }
 .top-bar .demo-banner { flex: 1 1 auto; margin: 0; }
 /* deliberately not the site's own muted archive palette -- a real blue

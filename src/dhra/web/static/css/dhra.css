@@ -85,35 +85,39 @@ body {
 
 /* ---- sidebar / nav ---- */
 aside {
-  width: 240px; flex: 0 0 240px; padding: 1.75rem 1.25rem; border-right: 1px solid var(--border);
+  /* 240px was already tight for nav labels at the old, smaller font size;
+     the longer German labels (e.g. "Forschungsassistent") genuinely
+     overflowed their link box once the sidebar font grew -- 264px gives
+     that room back. */
+  width: 264px; flex: 0 0 264px; padding: 1.75rem 1.25rem; border-right: 1px solid var(--border);
   position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
   background: var(--surface-2);
 }
-.wordmark { display: flex; align-items: center; gap: .65rem; font-weight: 600; font-size: 1.5rem; letter-spacing: -.01em; margin-bottom: .25rem; }
+.wordmark { display: flex; align-items: center; gap: .65rem; font-weight: 600; font-size: 1.6rem; letter-spacing: -.01em; margin-bottom: .25rem; }
 .wordmark img { width: 40px; height: 40px; flex: none; }
-.tagline { font-size: .74rem; color: var(--text-muted); margin: 0 0 1.5rem; line-height: 1.45; font-weight: 500; }
-.lang-switch { display: flex; gap: .2rem; margin: .7rem 0 1.1rem; font-size: .74rem; font-weight: 600;
+.tagline { font-size: .84rem; color: var(--text-muted); margin: 0 0 1.5rem; line-height: 1.45; font-weight: 500; }
+.lang-switch { display: flex; gap: .2rem; margin: .7rem 0 1.1rem; font-size: .82rem; font-weight: 600;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .2rem; width: fit-content; }
 .lang-switch a { color: var(--text-muted); text-decoration: none; padding: .3rem .6rem; border-radius: 4px; letter-spacing: .03em; }
 .lang-switch a:hover { background: var(--accent-soft); color: var(--accent); }
 .lang-switch a.active { color: var(--accent-contrast); background: var(--accent); }
 
-nav { display: flex; flex-direction: column; gap: .1rem; font-size: .89rem; }
+nav { display: flex; flex-direction: column; gap: .1rem; font-size: 1rem; }
 .nav-section { margin-bottom: 1.1rem; }
-.nav-section-title { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);
+.nav-section-title { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted);
   font-weight: 600; margin: 0 0 .35rem .6rem; }
 nav a { text-decoration: none; color: var(--text); opacity: .82; padding: .4rem .6rem; border-radius: 5px; display: flex; align-items: center; gap: .55rem; }
 nav a:hover { opacity: 1; background: var(--surface); }
 nav a.active { opacity: 1; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 nav .icon { width: 1.1em; text-align: center; opacity: .8; font-size: .95em; }
 .nav-footer { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); }
-.nav-footer a { font-size: .82rem; color: var(--text-muted); text-decoration: none; }
+.nav-footer a { font-size: .92rem; color: var(--text-muted); text-decoration: none; }
 .nav-footer a:hover { color: var(--accent); }
-.nav-footer.auth-status { font-size: .82rem; color: var(--text-muted); line-height: 1.6; }
-.link-button { background: none; border: none; padding: 0; margin: 0; font-size: .82rem; font-weight: 400;
+.nav-footer.auth-status { font-size: .92rem; color: var(--text-muted); line-height: 1.6; }
+.link-button { background: none; border: none; padding: 0; margin: 0; font-size: .92rem; font-weight: 400;
   color: var(--text-muted); text-decoration: none; cursor: pointer; }
 .link-button:hover { color: var(--accent); filter: none; }
-.corpus-version { font-size: .66rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 1.25rem;
+.corpus-version { font-size: .76rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 1.25rem;
   padding-top: .9rem; border-top: 1px solid var(--border); word-break: break-all; }
 
 /* ---- main content ---- */

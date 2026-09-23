@@ -73,6 +73,10 @@
 }
 
 * { box-sizing: border-box; }
+/* Every size below is in rem, off the browser default of 16px -- bumping
+   the root size scales body text, headings, tables, buttons, everything
+   proportionally in one place instead of hand-editing dozens of rules. */
+html { font-size: 17.5px; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font-family: var(--font-ui);

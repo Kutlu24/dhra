@@ -47,7 +47,6 @@
   <div class="lang-switch">
     {% for code in languages %}<a href="{{ lang_urls[code] if lang_urls is defined else '/lang/' ~ code }}" class="{{ 'active' if code == lang }}">{{ language_labels[code] }}</a>{% endfor %}
   </div>
-  <p class="tagline">{{ t('app.tagline') | safe }}</p>
   <nav>
     {{ nav_section(t('nav.section_research'), [
       ('/', '&#127968;', t('nav.overview'), 'overview'),

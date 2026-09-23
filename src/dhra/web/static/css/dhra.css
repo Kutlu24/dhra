@@ -130,7 +130,6 @@ aside {
 }
 .wordmark { display: flex; align-items: center; gap: .65rem; font-weight: 600; font-size: 1.6rem; letter-spacing: -.01em; margin-bottom: .25rem; }
 .wordmark img { width: 40px; height: 40px; flex: none; }
-.tagline { font-size: .84rem; color: var(--text-muted); margin: 0 0 1.5rem; line-height: 1.45; font-weight: 500; }
 .lang-switch { display: flex; gap: .2rem; margin: .7rem 0 1.1rem; font-size: .82rem; font-weight: 600;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .2rem; width: fit-content; }
 .lang-switch a { color: var(--text-muted); text-decoration: none; padding: .3rem .6rem; border-radius: 4px; letter-spacing: .03em; }

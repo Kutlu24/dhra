@@ -88,6 +88,10 @@ body {
    same edge the search button falls on -- instead of the badge
    floating fixed over the page, disconnected from the rest of the
    layout. ---- */
+.brand-tagline {
+  font-family: var(--font-serif); font-style: italic; font-size: 1.1rem; font-weight: 600;
+  color: var(--accent); margin: 0 0 1.1rem; line-height: 1.4;
+}
 .top-bar { display: flex; align-items: flex-start; gap: 1rem; justify-content: flex-end; margin-bottom: 1.25rem; }
 .top-bar .demo-banner { flex: 1 1 auto; margin: 0; }
 /* deliberately not the site's own muted archive palette -- a real blue

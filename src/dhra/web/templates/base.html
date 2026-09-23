@@ -84,7 +84,7 @@
   {% endif %}
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>
 </aside>
-<main class="{{ 'wide' if wide else '' }}">
+<main>
 {% if demo_banner is defined and demo_banner %}
 {# | safe deliberately: DHRA_DEMO_BANNER is set by whoever operates the
    deployment (via render.yaml/the Render dashboard), not by a site

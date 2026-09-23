@@ -113,8 +113,12 @@ nav .icon { width: 1.1em; text-align: center; opacity: .8; font-size: .95em; }
   padding-top: .9rem; border-top: 1px solid var(--border); word-break: break-all; }
 
 /* ---- main content ---- */
-main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 800px; }
-main.wide { max-width: 1120px; }
+/* 800px used to leave a large dead margin on anything wider than a small
+   laptop screen -- tables, the provenance graph's 3 columns, and the
+   stat-tile grids all benefit from the extra room; prose pages (about,
+   blog, evidence-based-research) still read fine at this width, well
+   under the ~90-100ch line length where readability actually degrades. */
+main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: 1100px; }
 h1 { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; margin: 0 0 .4rem; }
 h2 { font-size: .82rem; margin: 2rem 0 .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); font-weight: 600; }
 h3 { font-size: .95rem; margin: 0 0 .35rem; font-weight: 600; }

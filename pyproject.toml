@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dhra"
 version = "0.0.1"
-description = "Digital Humanities Research Agent -- local-first, provenance-first corpus/evidence system"
+description = "Digital Humanities Research Assistant -- local-first, provenance-first corpus/evidence system"
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.0",

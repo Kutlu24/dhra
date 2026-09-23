@@ -1,4 +1,4 @@
-# DHRA — Digital Humanities Research Agent
+# DHRA — Digital Humanities Research Assistant
 
 Local-first research system: assemble a corpus from heterogeneous sources,
 retrieve evidence with full provenance, assess how strongly that evidence

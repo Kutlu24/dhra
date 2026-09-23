@@ -114,7 +114,7 @@ def check_for_updates(
                 # 2026-09-18); an exact phrase is what "watch this topic"
                 # actually means here.
                 params={"search": f'"{wq.query_text}"', "sort": "publication_date:desc", "per_page": per_query_limit},
-                headers={"User-Agent": "DHRA/0.0.1 (Digital Humanities Research Agent)"},
+                headers={"User-Agent": "DHRA/0.0.1 (Digital Humanities Research Assistant)"},
                 timeout=timeout,
             )
             resp.raise_for_status()

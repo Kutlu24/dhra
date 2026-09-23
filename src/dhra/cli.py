@@ -276,7 +276,7 @@ def cmd_web(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="dhra", description="Digital Humanities Research Agent -- terminal interface.")
+    parser = argparse.ArgumentParser(prog="dhra", description="Digital Humanities Research Assistant -- terminal interface.")
     parser.add_argument("--store", help="store directory (default: $DHRA_STORE_DIR or ./store)")
     sub = parser.add_subparsers(dest="command", required=True)
 

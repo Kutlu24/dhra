@@ -45,7 +45,7 @@ def to_tei(item: Item, representation: Representation, assertions: list[Assertio
       {title_stmt}
       </titleStmt>
       <publicationStmt>
-        <p>Exported from DHRA (Digital Humanities Research Agent).</p>
+        <p>Exported from DHRA (Digital Humanities Research Assistant).</p>
       </publicationStmt>
       <sourceDesc>
       {source_bibl}

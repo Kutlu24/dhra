@@ -55,7 +55,7 @@ def build_mcp_server(
 ):
     from mcp.server.mcpserver import MCPServer
 
-    server = MCPServer(name=name, description="Digital Humanities Research Agent tool layer")
+    server = MCPServer(name=name, description="Digital Humanities Research Assistant tool layer")
     limiter = rate_limiter or RateLimiter()
 
     @server.tool(name="search_evidence", description="Locator-bound, quality-qualified full-text search over the corpus (READ).")

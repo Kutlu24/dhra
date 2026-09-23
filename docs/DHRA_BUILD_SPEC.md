@@ -1,7 +1,7 @@
-# Digital Humanities Research Agent — Build Specification
+# Digital Humanities Research Assistant — Build Specification
 
 **For: Claude Code**
-**Companion to:** *The Digital Humanities Research Agent — Concept Paper v2.0*
+**Companion to:** *The Digital Humanities Research Assistant — Concept Paper v2.0*
 **Status:** implementation brief. Everything here is binding unless you can show it is wrong.
 
 ---

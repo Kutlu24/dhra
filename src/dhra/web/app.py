@@ -135,7 +135,7 @@ def build_app(
     accounts_dir: Path | None = None,
     session_secret: str | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="DHRA", description="Digital Humanities Research Agent -- local evidence browser")
+    app = FastAPI(title="DHRA", description="Digital Humanities Research Assistant -- local evidence browser")
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["status_meaning"] = lambda s, lang: translate(lang, STATUS_MEANING_KEYS.get(Status(s), ""))
     templates.env.globals["status_tone"] = lambda s: "warn" if Status(s) in (Status.CONTESTED, Status.UNSUPPORTED, Status.NEGATIVE) else "ok"

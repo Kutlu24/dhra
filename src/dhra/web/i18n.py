@@ -33,7 +33,7 @@ LANGUAGE_LABELS = {"en": "EN", "de": "DE", "fr": "FR"}
 TRANSLATIONS: dict[str, dict[str, str]] = {
     "en": {
         # --- app chrome / nav ---------------------------------------------------
-        "app.tagline": "Digital Humanities Research Agent &mdash; evidence before narrative, always.",
+        "app.tagline": "Digital Humanities Research Assistant &mdash; evidence before narrative, always.",
         "nav.search": "Search",
         "nav.chat": "Chat",
         "nav.add_item": "Add item",
@@ -557,7 +557,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     },
     "de": {
         # --- app chrome / nav ---------------------------------------------------
-        "app.tagline": "Digital Humanities Research Agent &mdash; immer erst der Beleg, dann die Erzählung.",
+        "app.tagline": "Digital Humanities Research Assistant &mdash; immer erst der Beleg, dann die Erzählung.",
         "nav.search": "Suche",
         "nav.chat": "Chat",
         "nav.add_item": "Objekt hinzufügen",
@@ -1096,7 +1096,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     },
     "fr": {
         # --- app chrome / nav ---------------------------------------------------
-        "app.tagline": "Digital Humanities Research Agent &mdash; toujours la preuve avant le récit.",
+        "app.tagline": "Digital Humanities Research Assistant &mdash; toujours la preuve avant le récit.",
         "nav.search": "Recherche",
         "nav.chat": "Discussion",
         "nav.add_item": "Ajouter un élément",

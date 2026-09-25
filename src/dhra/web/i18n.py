@@ -330,7 +330,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav.help": "Help",
         "nav.section_ecosystem": "Ecosystem",
         "nav.interpreter": "Simultaneous Interpreter",
-        "nav.compliance_assistant": "Swiss Compliance Assistant",
+        "nav.compliance_assistant": "DSG & DSA Compliance Assistant",
         # --- macros/cards.html (evidence_card) ---------------------------------------------
         "evidence.open_source": "Open source &rarr;",
         # --- dashboard.html (new homepage, was search.html's empty state) -----------------
@@ -858,7 +858,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav.help": "Hilfe",
         "nav.section_ecosystem": "Weitere Tools",
         "nav.interpreter": "Simultandolmetscher",
-        "nav.compliance_assistant": "Swiss Compliance Assistant",
+        "nav.compliance_assistant": "DSG- & DSA-Compliance-Assistent",
         # --- macros/cards.html (evidence_card) ---------------------------------------------
         "evidence.open_source": "Quelle öffnen &rarr;",
         # --- dashboard.html (new homepage, was search.html's empty state) -----------------
@@ -1402,7 +1402,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "nav.help": "Aide",
         "nav.section_ecosystem": "Autres outils",
         "nav.interpreter": "Interprète simultané",
-        "nav.compliance_assistant": "Swiss Compliance Assistant",
+        "nav.compliance_assistant": "Assistant de conformité DSG et DSA",
         # --- macros/cards.html (evidence_card) ---------------------------------------------
         "evidence.open_source": "Ouvrir la source &rarr;",
         # --- dashboard.html (new homepage, was search.html's empty state) -----------------

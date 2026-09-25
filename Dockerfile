@@ -50,7 +50,10 @@ ENV DHRA_ACCOUNTS_DIR=$HOME/app/accounts
 
 EXPOSE 7860
 
-# Shell form (not JSON-array) so ${PORT:-7860} actually expands: Render
-# injects PORT dynamically, Hugging Face Spaces expects the fixed 7860 and
-# sets no PORT -- the same image runs on either without changes.
-CMD python scripts/seed_demo_store.py && dhra --store "$DHRA_STORE_DIR" web --host 0.0.0.0 --port ${PORT:-7860}
+# Root only to let the entrypoint chown a freshly-mounted volume before it
+# execs the real server as "user" - never runs application code as root.
+USER root
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

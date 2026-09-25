@@ -68,6 +68,15 @@
     {{ nav_section(t('nav.section_teaching'), [
       ('/teaching', '&#127891;', t('teaching.title'), 'teaching'),
     ], active) }}
+    {# Separate live services, not DHRA routes/features - linked here rather
+       than merged into DHRA's own codebase (different domains, no code
+       synergy), so each opens in a new tab and is marked external rather
+       than styled as an internal nav item the "active" state could apply to. #}
+    <div class="nav-section">
+      <div class="nav-section-title">{{ t('nav.section_ecosystem') }}</div>
+      <a href="https://sesli-tercuman.onrender.com" target="_blank" rel="noopener"><span class="icon">&#127908;</span> {{ t('nav.interpreter') }} <span class="icon" aria-hidden="true">&#8599;</span></a>
+      <a href="https://dsg-compliance.onrender.com" target="_blank" rel="noopener"><span class="icon">&#9878;</span> {{ t('nav.compliance_assistant') }} <span class="icon" aria-hidden="true">&#8599;</span></a>
+    </div>
   </nav>
   <div class="nav-footer"><a href="/tutorial">{{ t('nav.help') }}</a></div>
   <div class="corpus-version">{{ t('footer.corpus') }} {{ corpus_version if corpus_version is defined else '' }}</div>

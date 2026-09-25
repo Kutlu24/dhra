@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "httpx>=0.27"]
+dev = ["pytest>=8", "httpx>=0.27", "playwright>=1.40", "pytest-playwright>=0.5"]
 desktop-build = ["pyinstaller>=6.0"]
 
 [project.scripts]
@@ -29,3 +29,9 @@ dhra-desktop = "dhra.desktop:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: browser-based acceptance tests (Playwright/axe-core). Slow, and launches its own server process -- run explicitly with `pytest -m e2e`, excluded from the default run.",
+]
+addopts = "-m 'not e2e'"

@@ -167,6 +167,11 @@ main { flex: 1; min-width: 0; padding: 2.25rem 2.5rem 5rem; max-width: clamp(320
 h1 { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; margin: 0 0 .4rem; }
 h2 { font-size: .82rem; margin: 2rem 0 .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); font-weight: 600; }
 h3 { font-size: .95rem; margin: 0 0 .35rem; font-weight: 600; }
+/* Card headings use <h2> for a correct, non-skipping outline under the
+   page's <h1> (axe/Lighthouse: heading-order) while keeping h3's plain
+   look -- the all-caps h2 style above is for section labels like
+   "SOURCES", wrong for a card's own title. */
+.card > h2 { font-size: .95rem; margin: 0 0 .35rem; text-transform: none; letter-spacing: normal; color: inherit; }
 p, li { font-size: .95rem; line-height: 1.55; }
 .lede { color: var(--text-muted); font-size: .93rem; margin-top: 0; }
 .muted { color: var(--text-muted); font-size: .85rem; }

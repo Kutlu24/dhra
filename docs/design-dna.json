@@ -1,0 +1,169 @@
+{
+  "meta": {
+    "name": "DHRA v2 -- digital archive + research laboratory",
+    "description": "Design DNA extracted (not generated) from DHRA's own production stylesheet, src/dhra/web/static/css/dhra.css, following the design-dna skill schema (https://github.com/zanwei/design-dna). This documents the system that already exists so future template/CSS changes can be checked against it, rather than drifting page by page.",
+    "source_references": ["src/dhra/web/static/css/dhra.css", "src/dhra/web/templates/base.html"],
+    "created_at": "2026-09-23"
+  },
+  "design_system": {
+    "color": {
+      "palette_type": "analogous",
+      "primary": { "hex": "#1f5f5a", "role": "accent/action -- links, active nav, primary buttons, evidence status-ok badges (--accent)" },
+      "secondary": { "hex": "#2563eb", "role": "account/session affordance only (.auth-badge) -- a real blue used once, deliberately, per the CSS's own comment, so login/logout state doesn't blend into the archive palette" },
+      "accent": { "hex": "#93610a", "role": "amber semantic -- warning/contested states (--amber)" },
+      "neutral": {
+        "scale": ["#fafaf8", "#f4f3ee", "#ffffff", "#e2e0d8", "#6b6a62", "#1c1b17"],
+        "usage": "lightest (#fafaf8) is page background; #f4f3ee is sidebar/code surface; #ffffff is card surface; #e2e0d8 is all borders/dividers; #6b6a62 is muted/secondary text; #1c1b17 is primary text -- darkest end of the scale"
+      },
+      "semantic": {
+        "success": "#1f5f5a (reuses accent -- status-code[data-tone unset] / E1-E2 evidence)",
+        "warning": "#93610a (--amber, status-code[data-tone=warn])",
+        "error": "#a13b2e (--red, status-code[data-tone=bad], contradicting-evidence labels)",
+        "info": "#2563eb (--auth-badge only)"
+      },
+      "surface": {
+        "background": "#fafaf8 (--bg)",
+        "card": "#ffffff (--surface)",
+        "elevated": "#f4f3ee (--surface-2, used for sidebar and code/pre blocks)"
+      },
+      "contrast_strategy": "dark-on-light dominant, with a full prefers-color-scheme:dark palette swap (each token above has a dark-mode value defined in the same file) rather than a single-theme design with no dark variant",
+      "measurement": null,
+      "measured_palette": null
+    },
+    "typography": {
+      "type_scale": {
+        "display":     { "size": null, "weight": null, "line_height": null, "tracking": null },
+        "heading_1":   { "size": "1.7rem (@17.5px root = ~29.75px)", "weight": 600, "line_height": "default (unset)", "tracking": "-.01em" },
+        "heading_2":   { "size": ".82rem (~14.35px)", "weight": 600, "line_height": "default (unset)", "tracking": ".07em, uppercase" },
+        "heading_3":   { "size": ".95rem (~16.6px)", "weight": 600, "line_height": "default (unset)", "tracking": "normal" },
+        "body":        { "size": ".95rem (~16.6px)", "weight": 400, "line_height": "1.55", "tracking": "normal" },
+        "body_small":  { "size": ".85rem-.9rem (muted text, form inputs)", "weight": 400, "line_height": "default (unset)", "tracking": "normal" },
+        "caption":     { "size": ".74rem-.78rem (stat-tile labels, locators, corpus-version)", "weight": 400, "line_height": "default (unset)", "tracking": ".02em-.04em" },
+        "overline":    { "size": ".72rem-.78rem (table th, stat-tile label)", "weight": 600, "line_height": "default (unset)", "tracking": ".03em-.08em, uppercase" }
+      },
+      "font_families": {
+        "heading": "'IBM Plex Sans', system-ui, sans-serif (--font-ui)",
+        "body": "'IBM Plex Sans', system-ui, sans-serif (--font-ui); quoted evidence/claim text switches to 'IBM Plex Serif', Georgia, serif (--font-serif)",
+        "mono": "'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace (--font-mono)"
+      },
+      "font_style_notes": "Three deliberate font roles, not one -- per the CSS file's own header comment: sans for UI chrome, serif specifically for quoted primary-source text (so an evidence blockquote or claim reads like a real archival document rather than app UI), mono for anything machine-checkable (locators, status codes, timestamps, corpus version hash). This role split is the single most load-bearing design decision in the system -- any new template should reuse it rather than defaulting everything to --font-ui."
+      },
+    "spacing": {
+      "base_unit": "rem, off a 17.5px root font-size (not the 16px default) -- comment in the CSS explains this as a single place to scale all sizing proportionally",
+      "scale": [".1rem", ".2rem", ".3rem", ".35rem", ".4rem", ".5rem", ".55rem", ".6rem", ".65rem", ".7rem", ".75rem", ".85rem", ".9rem", "1rem", "1.1rem", "1.25rem", "1.3rem", "1.75rem", "2rem", "2.25rem", "2.5rem"],
+      "content_density": "comfortable -- cards pad 1.1rem/1.3rem, form fields ~.55rem/.7rem, not compact but not spacious either",
+      "section_rhythm": "h2 section labels get 2rem top margin (the largest single spacing value used for rhythm), everything else steps down in .1-.25rem increments -- one clear 'big gap before a new section' beat, no intermediate rhythm tiers"
+    },
+    "layout": {
+      "grid_system": "flex-based (sidebar + main flex row), no CSS grid in the base system",
+      "max_content_width": "clamp(320px, 86vw, 1500px) on <main> -- explicitly chosen over a fixed max-width so it scales with viewport instead of capping at one number regardless of screen size (per the CSS's own comment)",
+      "columns": "1 (single content column in most templates); assistant/teaching pages use a 2-column .assistant-columns flex layout",
+      "gutter": "1.75rem (.assistant-columns), 1rem (.stat-tiles)",
+      "breakpoints": "single breakpoint at 720px (max-width), used only to stack the top-bar/auth-badge on narrow screens -- not a full responsive grid system",
+      "alignment_tendency": "strict left-aligned block flow; sidebar fixed-width (264px) + fluid main, no centered/asymmetric page compositions"
+    },
+    "shape": {
+      "border_radius": { "small": "4-5px (nav links, code)", "medium": "6px (--radius: cards, buttons, inputs)", "large": "9px (--radius-lg, defined but not yet applied anywhere in the file -- reserved token)", "pill": "999px (.auth-badge, .lang-switch is not pill -- only the account badge uses full pill)" },
+      "border_usage": "subtle 1px on nearly everything structural -- cards, stat-tiles, sidebar, table rows, inputs all use 1px solid var(--border); this is the primary depth cue, not shadow",
+      "divider_style": "1px solid var(--border), same color token as all other borders -- no separate divider color"
+    },
+    "elevation": {
+      "shadow_style": "none in practice, despite two shadow tokens (--shadow-sm, --shadow-md) being defined with light/dark values -- grep shows they are never applied to any selector; only the auth-badge uses a one-off hardcoded box-shadow. Flag: these are dead tokens or an unfinished elevation system -- worth either wiring up or removing.",
+      "levels": { "low": "--shadow-sm (defined, unused)", "medium": "--shadow-md (defined, unused)", "high": "none defined" },
+      "depth_cues": "borders and background-color layering (surface vs surface-2 vs bg), not shadows"
+    },
+    "iconography": {
+      "style": "inline emoji/unicode glyphs used as nav icons (nav .icon), not an SVG icon set",
+      "stroke_weight": "n/a (not stroke-based icons)",
+      "size_scale": "1.1em (nav icons, sized relative to surrounding text)",
+      "preferred_set": "none -- no icon library dependency"
+    },
+    "motion": {
+      "easing": "none defined -- no transition/animation/@keyframes rules exist anywhere in dhra.css",
+      "duration_scale": { "micro": "none", "normal": "none", "macro": "none" },
+      "entrance_pattern": "none -- content appears instantly on render, no fade/slide-in",
+      "exit_pattern": "none",
+      "philosophy": "none / instant. This is a deliberate absence, not an oversight: base.html's own header comment says 'light vanilla JS -- no heavy frontend framework,' and the product's stated values (evidence-first, explicit uncertainty, auditability) favor a page that reads as static and inspectable over one with animated flourishes. Any future motion addition should stay in this register (e.g. instant state changes, no easing curves) rather than introducing a transition system."
+    },
+    "components": {
+      "button_style": "solid fill (--accent bg, white text) for primary actions, brightness(1.08) filter on hover (no color/shadow transition -- instant per motion.philosophy), a .secondary variant that's just a bordered/surface-colored ghost button, disabled state via opacity:.5",
+      "input_style": "1px bordered box, var(--surface) background, border-color flips to --accent on focus (no focus ring/shadow, no outline -- border color is the only focus indicator)",
+      "card_style": ".card: 1px border + var(--radius) + var(--surface) bg + padding, no shadow -- flat bordered box is the only container pattern",
+      "navigation_pattern": "fixed-width left sidebar, sectioned nav groups with uppercase muted section titles, active-state items get accent-soft background + accent text color",
+      "modal_style": "none observed -- no modal/dialog CSS in the base system",
+      "list_style": "bordered-row lists (warning-item, table rows) using border-bottom dividers rather than card-per-item or shadow separation",
+      "component_notes": "The account/session badge (.auth-badge) is the one deliberate exception to every other rule above -- pill-shaped, real blue (#2563eb) instead of the archive palette, and the only hardcoded (non-token) box-shadow in the file. That's documented in the CSS as intentional (make login state read as a distinct system affordance), not an inconsistency to normalize away."
+    }
+  },
+  "design_style": {
+    "aesthetic": {
+      "mood": ["restrained", "archival", "trustworthy", "unadorned", "precise"],
+      "visual_metaphor": "a physical research archive / lab notebook, not a SaaS product -- explicit in the CSS's own top comment ('digital archive + research laboratory')",
+      "era_influence": "contemporary flat/system UI (IBM Plex family, no skeuomorphism, no gradients beyond the two soft accent tints) with an editorial/print sensibility borrowed for serif quotations",
+      "genre": "evidence/research tooling -- closer to a citation manager or lab notebook than a marketing site or dashboard SaaS",
+      "personality_traits": ["meticulous", "unshowy", "literal", "calm", "a little severe"],
+      "adjectives": ["quiet", "documentary", "legible", "flat", "deliberate"]
+    },
+    "visual_language": {
+      "complexity": "minimal",
+      "ornamentation": "none -- the only non-functional flourish in the entire system is the italic serif .brand-tagline banner",
+      "whitespace_usage": "moderate, rhythm-driven rather than generous -- spacing is used to separate sections (2rem before h2) more than to create open, airy compositions",
+      "visual_weight_distribution": "even -- no single hero element; every page leads with a plain h1 + lede paragraph, then a flat sequence of cards/tables",
+      "focal_strategy": "distributed interest -- status-code badges and semantic colors (amber/red) are the only elements designed to visually pull the eye, everything else is uniform weight",
+      "contrast_level": "moderate -- text/background contrast is high (WCAG-conscious per the a11y work done on this system), but chrome-vs-content visual contrast is deliberately low (borders over shadows, no bold color blocking)",
+      "texture_usage": "none -- flat color fills only, no noise/grain/pattern"
+    },
+    "composition": {
+      "hierarchy_method": "typographic hierarchy + semantic color (status-code tones), not scale contrast -- h1 is only ~1.8x body size, a modest ratio",
+      "balance_type": "asymmetric (fixed sidebar + fluid main), but strictly left-aligned within main, not a designed asymmetric composition",
+      "flow_direction": "top-to-bottom single column reading order, consistent with a document/report rather than a dashboard",
+      "grouping_strategy": "bordered cards and table rows -- proximity + border, not color blocking or shadow elevation",
+      "negative_space_role": "functional (separates sections/fields) rather than compositional/aesthetic"
+    },
+    "imagery": {
+      "photo_treatment": "none -- no photography in the base template system",
+      "illustration_style": "none",
+      "graphic_elements": "a single SVG wordmark logo; otherwise no decorative graphics",
+      "pattern_usage": "none",
+      "image_shape": "rectangular, bordered (.passage-image: 1px border + var(--radius), same treatment as a card)"
+    },
+    "interaction_feel": {
+      "feedback_style": "instant, binary state changes (hover brightness bump, focus border color) -- no animated feedback",
+      "hover_behavior": "filter: brightness(1.08) on buttons; border-color change on stat-tiles; opacity/background change on nav links -- all instant, no transition timing",
+      "transition_personality": "none (no CSS transitions exist in the stylesheet)",
+      "loading_style": "not defined in the base CSS (server-rendered pages -- no client-side loading states observed)",
+      "microinteraction_density": "very low -- color/opacity swaps only, no micro-animation"
+    },
+    "brand_voice_in_ui": {
+      "tone": "plain, declarative, non-promotional -- e.g. status meanings, warnings, and epistemic codes are written like documentation, not marketing copy",
+      "formality": "formal-neutral, academic register",
+      "cta_style": "direct imperative, unadorned (button labels like 'Draft', 'Approve', 'Deny' -- no urgency/scarcity language)",
+      "empty_state_approach": "not deeply styled in the base CSS -- treated as plain content, no illustrated empty states",
+      "error_tone": "explicit and unhedged -- .warning uses the red/amber semantic tokens directly rather than softened copy, consistent with the product's stated 'explicit I don't know instead of guessing' principle"
+    }
+  },
+  "visual_effects": {
+    "overview": {
+      "effect_intensity": "none",
+      "performance_tier": "lightweight",
+      "fallback_strategy": "n/a -- no effects to fall back from",
+      "primary_technology": "CSS only"
+    },
+    "background_effects": { "type": "none", "description": "", "technology": "", "params": { "color_palette": [], "speed": null, "density": null, "opacity": null, "blend_mode": null } },
+    "particle_systems": { "enabled": false, "type": "none", "description": "", "technology": "", "params": {} },
+    "3d_elements": { "enabled": false, "type": "none", "description": "", "technology": "", "params": {} },
+    "shader_effects": { "enabled": false, "type": "none", "description": "", "technology": "", "params": {} },
+    "scroll_effects": {
+      "parallax": { "enabled": false, "layers": 0, "depth_range": "", "speed_curve": "" },
+      "scroll_triggered_animations": { "enabled": false, "trigger_points": [], "animation_type": "none", "scrub_behavior": "" },
+      "scroll_morphing": { "enabled": false, "description": "" }
+    },
+    "text_effects": { "type": "none", "description": "", "technology": "", "params": { "split_strategy": "", "animation_per_unit": "", "stagger": "", "effect_style": "" } },
+    "cursor_effects": { "enabled": false, "type": "none", "description": "", "params": {} },
+    "image_effects": { "type": "none", "description": "static images only, bordered like cards", "technology": "CSS", "params": { "filter_pipeline": "none", "hover_transform": "none", "reveal_animation": "none", "distortion_type": "none" } },
+    "glassmorphism_neumorphism": { "enabled": false, "style": "none", "params": {} },
+    "canvas_drawings": { "enabled": false, "type": "none", "description": "", "technology": "", "params": {} },
+    "svg_animations": { "enabled": false, "type": "none", "description": "one static SVG wordmark, no SMIL/animate elements", "params": {} },
+    "composite_notes": "Zero visual-effects dimension by design, not by omission: base.html's header comment explicitly rules out a heavy frontend framework, and the product's evidence-first, accessibility-conscious positioning (see design_style.brand_voice_in_ui) is in active tension with WebGL/particle/shader-style effects. Any of the 30 creative-web repos researched alongside this file (WebGL/shader/animation libraries and Awwwards-style showcase projects) should be treated as explicitly out of scope for DHRA's own UI on this basis -- they'd fight this system's stated identity rather than extend it."
+  }
+}

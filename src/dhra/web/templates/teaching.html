@@ -10,7 +10,7 @@
 {% endif %}
 
 <div class="card">
-  <h3>{{ t('assistant.exam_title') }}</h3>
+  <h2>{{ t('assistant.exam_title') }}</h2>
   <form method="post" action="/teaching/exam-questions">
     <p><label>{{ t('assistant.course_material_label') }}<br><textarea name="source_text" rows="5" required></textarea></label></p>
     <p><label>{{ t('assistant.n_questions_label') }}<br><input type="text" name="n_questions" value="5" required></label></p>
@@ -20,7 +20,7 @@
 </div>
 
 <div class="card">
-  <h3>{{ t('assistant.rubric_title') }}</h3>
+  <h2>{{ t('assistant.rubric_title') }}</h2>
   <p class="muted">{{ t('assistant.rubric_desc') }}</p>
   <form method="post" action="/teaching/rubric">
     <p><label>{{ t('assistant.rubric_label') }}<br><textarea name="rubric_text" rows="3" required></textarea></label></p>
@@ -31,7 +31,7 @@
 </div>
 
 <div class="card">
-  <h3>{{ t('assistant.reading_list_title') }}</h3>
+  <h2>{{ t('assistant.reading_list_title') }}</h2>
   <p class="muted">{{ t('assistant.reading_list_desc') | safe }}</p>
   <p class="muted">{{ t('assistant.reading_list_websearch_on') if websearch_configured else t('assistant.reading_list_websearch_off') | safe }}</p>
   <form method="post" action="/teaching/reading-list">

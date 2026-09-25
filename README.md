@@ -396,6 +396,13 @@ pip install -e ".[dev]"
 pytest
 ```
 
+Browser-based accessibility tests (axe-core via Playwright, `tests/acceptance/test_accessibility.py`) are excluded from the default run -- slow, and launch their own server process. Run them explicitly:
+
+```bash
+playwright install chromium
+pytest -m e2e
+```
+
 ## Phase 0 (Foundations)
 
 Implemented per spec section 6:

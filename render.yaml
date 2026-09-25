@@ -30,3 +30,21 @@ services:
       # drafting falls back to the model's own (unverified) recall without it.
       - key: DHRA_SEARXNG_URL
         sync: false
+      # dhra.interpreter (Simultaneous Interpreter, mounted at /interpreter)
+      # - its own settings surface, deliberately NOT prefixed DHRA_* like
+      # the vars above: it's a separate component with its own GLM key/
+      # quota (formerly its own deployment's env vars, at
+      # github.com/Kutlu24/simultaneous-interpreter, which still holds the
+      # code as a standalone reference even though it's no longer deployed
+      # separately - see that repo's own render.yaml, now unused).
+      - key: GLM_API_KEY
+        sync: false
+      - key: WHISPER_MODEL_SIZE
+        value: "base"
+        # NOTE: this now shares DHRA's own 512MB free-tier instance rather
+        # than having its own - the interpreter's README documents a real
+        # OOM crash from Whisper alone on this plan size. If DHRA itself
+        # starts OOMing after this merge, that's the first thing to
+        # suspect; the fix is a paid Render plan with more RAM, not a
+        # smaller Whisper model (already at the smallest that stays
+        # accurate on non-Latin scripts per speech.py's own comment).

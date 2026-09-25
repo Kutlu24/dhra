@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simultaneous Interpreter</title>
+<style>
+  :root {
+    --accent: #2563eb; --accent-dark: #1d4ed8; --accent-soft: #eef2ff;
+    --bg: #f4f6fb; --surface: #fff; --border: #e2e5ea; --text: #1a1d23; --muted: #6b7280;
+    --warn: #b45309; --warn-bg: #fffbeb; --warn-border: #fde68a;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif;
+    background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 260px); color: var(--text);
+  }
+  /* A roomier, less bare-bones frame than the original 640px column - more
+     breathing room on desktop without hurting the phone layout, since the
+     mic bar / cards still stack full-width below ~700px anyway. */
+  .wrap { max-width: 820px; margin: 0 auto; padding: 36px 20px 96px; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .brand-icon {
+    flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--accent);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 28px; max-width: 56ch; line-height: 1.5; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.08); }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  select, input[type=text] { width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; margin-bottom: 14px; background: #fff; }
+  select:focus, input[type=text]:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  button { cursor: pointer; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; padding: 12px 18px; transition: filter 0.1s, background 0.15s; }
+  button:hover { filter: brightness(1.04); }
+  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary:disabled { background: #a9c1f0; cursor: not-allowed; filter: none; }
+  .btn-secondary { background: var(--accent-soft); color: var(--accent-dark); width: 100%; margin-top: 8px; }
+  .or-sep { text-align: center; color: var(--muted); font-size: 12px; margin: 4px 0 14px; }
+  .hidden { display: none !important; }
+
+  .room-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .room-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .room-header-right { display: flex; align-items: center; gap: 8px; }
+  .room-code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 16px; background: var(--accent-soft); color: var(--accent-dark); padding: 5px 12px; border-radius: 8px; font-weight: 600; }
+  .presence { font-size: 13px; color: var(--muted); }
+  .copy-link, .leave-btn { background: var(--accent-soft); color: var(--accent-dark); padding: 8px 14px; font-size: 13px; }
+  .leave-btn { background: #fef2f2; color: var(--danger); }
+
+  .feed { display: flex; flex-direction: column; gap: 12px; min-height: 260px; }
+  .empty-hint { color: var(--muted); font-size: 14px; text-align: center; padding: 50px 16px; }
+  .bubble { border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; background: #fbfbfd; }
+  .bubble.own { background: var(--accent-soft); border-color: #cddbf9; }
+  .bubble-text { font-size: 17px; line-height: 1.45; }
+  .bubble-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .bubble-lang { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; }
+  .bubble-orig { font-size: 12px; color: var(--muted); margin-top: 5px; font-style: italic; }
+  .bubble-warn { font-size: 12px; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 6px; padding: 4px 8px; margin-top: 6px; display: inline-block; }
+  .play-btn { background: none; border: 1px solid var(--border); border-radius: 20px; width: 28px; height: 28px; font-size: 13px; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+  .mic-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(16, 24, 40, 0.05); }
+  .mic-inner { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .mic-btn { flex: 1; padding: 18px; background: var(--accent); color: #fff; border-radius: 12px; font-size: 16px; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .mic-btn.recording { background: var(--danger); }
+  .mic-btn:disabled { background: #a9c1f0; }
+  .status-line { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; max-width: 820px; margin-left: auto; margin-right: auto; }
+  .error-line { font-size: 13px; color: #b91c1c; margin-top: 8px; }
+
+  /* Arabic reads right-to-left - mirror layout, but keep the room code
+     (a technical token, not prose) left-to-right so it stays copy-pasteable
+     in the order it was generated. */
+  html[dir="rtl"] .room-code { direction: ltr; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-icon" aria-hidden="true">🗣️</div>
+    <h1 id="appTitle">Voice Interpreter</h1>
+  </div>
+  <p class="sub" id="appSubtitle">Join the same room and each pick your own language - every sentence spoken is instantly translated for the other side.</p>
+
+  <div class="card" id="joinCard">
+    <label for="langSelect" id="langSelectLabel">My language</label>
+    <select id="langSelect"></select>
+
+    <label for="roomInput" id="roomInputLabel">Room code (if you have one)</label>
+    <input type="text" id="roomInput" placeholder="e.g. a1b2c3">
+
+    <button class="btn-primary" id="joinBtn">Join room</button>
+    <div class="or-sep" id="orSep">or</div>
+    <button class="btn-secondary" id="createBtn">Create new room</button>
+    <div class="error-line hidden" id="joinError"></div>
+  </div>
+
+  <div id="roomView" class="hidden">
+    <div class="room-header">
+      <div class="room-header-left">
+        <span class="room-code" id="roomCodeLabel"></span>
+        <span class="presence" id="presenceLabel"></span>
+      </div>
+      <div class="room-header-right">
+        <button class="copy-link" id="copyLinkBtn">Copy link</button>
+        <button class="leave-btn" id="leaveBtn">Leave room</button>
+      </div>
+    </div>
+
+    <div class="card feed" id="feed">
+      <div class="empty-hint" id="emptyHint">Nothing said yet. Tap the button below to speak.</div>
+    </div>
+  </div>
+</div>
+
+<div class="mic-bar hidden" id="micBar">
+  <div class="mic-inner">
+    <button class="mic-btn" id="micBtn">Tap to speak</button>
+  </div>
+  <div class="status-line" id="statusLine"></div>
+  <div class="error-line hidden" id="micError"></div>
+</div>
+
+<script>
+// Derived, not hardcoded: this page is served standalone at "/" in this
+// repo's own deployment, but also mounted under DHRA at "/interpreter/"
+// (see dhra/web/app.py's build_app) - every API/WebSocket call below must
+// resolve under whichever prefix actually served this page, or a request
+// made while mounted would hit DHRA's own root routes instead of this
+// app's. location.pathname is that prefix; stripping the trailing slash
+// gives "" standalone (paths stay exactly "/rooms" etc.) or "/interpreter"
+// when mounted.
+const BASE = location.pathname.replace(/\/$/, "");
+
+const LANGUAGES = { en: "English", de: "Deutsch", fr: "Français", es: "Español", ar: "العربية", ru: "Русский", zh: "中文", tr: "Türkçe" };
+
+// Interface text in all eight languages this app already translates
+// conversation content into. Two people with different languages use this
+// app at the same time - if the interface itself only ever showed one
+// hardcoded language, one side would always be reading a foreign-language
+// button, which is exactly the confusion this app exists to remove from
+// the conversation itself. Each participant's own browser sees the
+// interface in the language they pick below, independent of the other
+// participant's screen.
+const UI_STRINGS = {
+  en: {
+    title: "Simultaneous Interpreter", subtitle: "Join the same room and each pick your own language - every sentence spoken is instantly translated for the other side.",
+    langSelectLabel: "My language", roomInputLabel: "Room code (if you have one)", roomInputPlaceholder: "e.g. a1b2c3",
+    joinBtn: "Join room", orSep: "or", createBtn: "Create new room", copyLinkBtn: "Copy link", leaveBtn: "Leave room",
+    emptyHint: "Nothing said yet. Tap the button below to speak.",
+    micBtnIdle: "Tap to speak", micBtnRecording: "Recording… tap to stop and send",
+    presence: (n) => `${n} ${n === 1 ? "person" : "people"} in the room`,
+    errRoomCreateFailed: (e) => `Could not create room: ${e}`,
+    errNeedRoomCode: "Enter a room code, or create a new room.",
+    errConnectionFailed: "Could not connect.",
+    statusDisconnected: "Connection lost. Refresh the page to rejoin.",
+    statusReconnecting: (s) => `Connection lost - reconnecting in ${s}s…`,
+    statusReconnected: "Reconnected.",
+    statusLinkCopied: "Link copied.",
+    statusTranscribing: "Transcribing…",
+    statusNoSpeech: "No speech detected, try again.",
+    translationUnavailable: "⚠ Translation unavailable - showing the original",
+    errMicAccess: (e) => `Could not access microphone: ${e}`,
+    errPlaybackFailed: (e) => `Playback failed: ${e}`,
+    errSendFailed: (e) => `Could not send: ${e}`,
+  },
+  de: {
+    title: "Simultandolmetscher", subtitle: "Betreten Sie denselben Raum und wählen Sie jeweils Ihre eigene Sprache - jeder gesprochene Satz wird sofort für die andere Seite übersetzt.",
+    langSelectLabel: "Meine Sprache", roomInputLabel: "Raumcode (falls vorhanden)", roomInputPlaceholder: "z. B. a1b2c3",
+    joinBtn: "Raum beitreten", orSep: "oder", createBtn: "Neuen Raum erstellen", copyLinkBtn: "Link kopieren", leaveBtn: "Raum verlassen",
+    emptyHint: "Noch nichts gesagt. Tippen Sie auf die Taste unten, um zu sprechen.",
+    micBtnIdle: "Zum Sprechen tippen", micBtnRecording: "Aufnahme… zum Beenden und Senden tippen",
+    presence: (n) => `${n} ${n === 1 ? "Person" : "Personen"} im Raum`,
+    errRoomCreateFailed: (e) => `Raum konnte nicht erstellt werden: ${e}`,
+    errNeedRoomCode: "Geben Sie einen Raumcode ein oder erstellen Sie einen neuen Raum.",
+    errConnectionFailed: "Verbindung konnte nicht hergestellt werden.",
+    statusDisconnected: "Verbindung getrennt. Seite neu laden, um erneut beizutreten.",
+    statusReconnecting: (s) => `Verbindung getrennt - erneuter Versuch in ${s}s…`,
+    statusReconnected: "Wieder verbunden.",
+    statusLinkCopied: "Link kopiert.",
+    statusTranscribing: "Wird verarbeitet…",
+    statusNoSpeech: "Keine Sprache erkannt, versuchen Sie es erneut.",
+    translationUnavailable: "⚠ Übersetzung nicht verfügbar - Original wird angezeigt",
+    errMicAccess: (e) => `Mikrofonzugriff fehlgeschlagen: ${e}`,
+    errPlaybackFailed: (e) => `Wiedergabe fehlgeschlagen: ${e}`,
+    errSendFailed: (e) => `Senden fehlgeschlagen: ${e}`,
+  },
+  fr: {
+    title: "Interprète simultané", subtitle: "Rejoignez la même salle et choisissez chacun votre langue - chaque phrase prononcée est instantanément traduite pour l'autre personne.",
+    langSelectLabel: "Ma langue", roomInputLabel: "Code de la salle (si vous en avez un)", roomInputPlaceholder: "ex. a1b2c3",
+    joinBtn: "Rejoindre la salle", orSep: "ou", createBtn: "Créer une nouvelle salle", copyLinkBtn: "Copier le lien", leaveBtn: "Quitter la salle",
+    emptyHint: "Rien n'a encore été dit. Appuyez sur le bouton ci-dessous pour parler.",
+    micBtnIdle: "Appuyer pour parler", micBtnRecording: "Enregistrement… appuyez pour arrêter et envoyer",
+    presence: (n) => `${n} ${n === 1 ? "personne" : "personnes"} dans la salle`,
+    errRoomCreateFailed: (e) => `Impossible de créer la salle : ${e}`,
+    errNeedRoomCode: "Entrez un code de salle, ou créez une nouvelle salle.",
+    errConnectionFailed: "Connexion impossible.",
+    statusDisconnected: "Connexion perdue. Actualisez la page pour rejoindre à nouveau.",
+    statusReconnecting: (s) => `Connexion perdue - nouvelle tentative dans ${s}s…`,
+    statusReconnected: "Reconnecté.",
+    statusLinkCopied: "Lien copié.",
+    statusTranscribing: "Transcription en cours…",
+    statusNoSpeech: "Aucune parole détectée, réessayez.",
+    translationUnavailable: "⚠ Traduction indisponible - affichage de l'original",
+    errMicAccess: (e) => `Accès au microphone impossible : ${e}`,
+    errPlaybackFailed: (e) => `Échec de la lecture : ${e}`,
+    errSendFailed: (e) => `Envoi impossible : ${e}`,
+  },
+  es: {
+    title: "Intérprete simultáneo", subtitle: "Entren en la misma sala y elijan cada uno su idioma - cada frase hablada se traduce al instante para la otra persona.",
+    langSelectLabel: "Mi idioma", roomInputLabel: "Código de sala (si tiene uno)", roomInputPlaceholder: "p. ej. a1b2c3",
+    joinBtn: "Unirse a la sala", orSep: "o", createBtn: "Crear nueva sala", copyLinkBtn: "Copiar enlace", leaveBtn: "Salir de la sala",
+    emptyHint: "Aún no se ha dicho nada. Toque el botón de abajo para hablar.",
+    micBtnIdle: "Toque para hablar", micBtnRecording: "Grabando… toque para detener y enviar",
+    presence: (n) => `${n} ${n === 1 ? "persona" : "personas"} en la sala`,
+    errRoomCreateFailed: (e) => `No se pudo crear la sala: ${e}`,
+    errNeedRoomCode: "Introduzca un código de sala, o cree una nueva sala.",
+    errConnectionFailed: "No se pudo conectar.",
+    statusDisconnected: "Conexión perdida. Actualice la página para volver a unirse.",
+    statusReconnecting: (s) => `Conexión perdida - reintentando en ${s}s…`,
+    statusReconnected: "Reconectado.",
+    statusLinkCopied: "Enlace copiado.",
+    statusTranscribing: "Transcribiendo…",
+    statusNoSpeech: "No se detectó voz, inténtelo de nuevo.",
+    translationUnavailable: "⚠ Traducción no disponible - se muestra el original",
+    errMicAccess: (e) => `No se pudo acceder al micrófono: ${e}`,
+    errPlaybackFailed: (e) => `Error de reproducción: ${e}`,
+    errSendFailed: (e) => `No se pudo enviar: ${e}`,
+  },
+  ar: {
+    title: "المترجم الفوري", subtitle: "ادخلا نفس الغرفة واختر كل منكما لغته الخاصة - تُترجم كل جملة تُقال فورًا للطرف الآخر.",
+    langSelectLabel: "لغتي", roomInputLabel: "رمز الغرفة (إن وجد)", roomInputPlaceholder: "مثال: a1b2c3",
+    joinBtn: "الانضمام إلى الغرفة", orSep: "أو", createBtn: "إنشاء غرفة جديدة", copyLinkBtn: "نسخ الرابط", leaveBtn: "مغادرة الغرفة",
+    emptyHint: "لم يُقل شيء بعد. اضغط على الزر أدناه للتحدث.",
+    micBtnIdle: "اضغط للتحدث", micBtnRecording: "جارٍ التسجيل… اضغط للإيقاف والإرسال",
+    presence: (n) => `${n} ${n === 1 ? "شخص" : "أشخاص"} في الغرفة`,
+    errRoomCreateFailed: (e) => `تعذّر إنشاء الغرفة: ${e}`,
+    errNeedRoomCode: "أدخل رمز غرفة، أو أنشئ غرفة جديدة.",
+    errConnectionFailed: "تعذّر الاتصال.",
+    statusDisconnected: "انقطع الاتصال. أعد تحميل الصفحة للانضمام مجددًا.",
+    statusReconnecting: (s) => `انقطع الاتصال - إعادة المحاولة خلال ${s} ثانية…`,
+    statusReconnected: "تمت إعادة الاتصال.",
+    statusLinkCopied: "تم نسخ الرابط.",
+    statusTranscribing: "جارٍ التفريغ الصوتي…",
+    statusNoSpeech: "لم يُكتشف كلام، حاول مرة أخرى.",
+    translationUnavailable: "⚠ الترجمة غير متاحة - يُعرض النص الأصلي",
+    errMicAccess: (e) => `تعذّر الوصول إلى الميكروفون: ${e}`,
+    errPlaybackFailed: (e) => `فشل التشغيل: ${e}`,
+    errSendFailed: (e) => `تعذّر الإرسال: ${e}`,
+  },
+  ru: {
+    title: "Синхронный переводчик", subtitle: "Зайдите в одну комнату и выберите каждый свой язык - каждая произнесённая фраза мгновенно переводится для собеседника.",
+    langSelectLabel: "Мой язык", roomInputLabel: "Код комнаты (если есть)", roomInputPlaceholder: "напр. a1b2c3",
+    joinBtn: "Войти в комнату", orSep: "или", createBtn: "Создать новую комнату", copyLinkBtn: "Скопировать ссылку", leaveBtn: "Покинуть комнату",
+    emptyHint: "Пока ничего не сказано. Нажмите на кнопку ниже, чтобы говорить.",
+    micBtnIdle: "Нажмите, чтобы говорить", micBtnRecording: "Запись… нажмите, чтобы остановить и отправить",
+    presence: (n) => `${n} ${n === 1 ? "человек" : "человек(а)"} в комнате`,
+    errRoomCreateFailed: (e) => `Не удалось создать комнату: ${e}`,
+    errNeedRoomCode: "Введите код комнаты или создайте новую комнату.",
+    errConnectionFailed: "Не удалось подключиться.",
+    statusDisconnected: "Соединение потеряно. Обновите страницу, чтобы войти снова.",
+    statusReconnecting: (s) => `Соединение потеряно - повтор через ${s} с…`,
+    statusReconnected: "Соединение восстановлено.",
+    statusLinkCopied: "Ссылка скопирована.",
+    statusTranscribing: "Распознавание речи…",
+    statusNoSpeech: "Речь не обнаружена, попробуйте снова.",
+    translationUnavailable: "⚠ Перевод недоступен - показан оригинал",
+    errMicAccess: (e) => `Не удалось получить доступ к микрофону: ${e}`,
+    errPlaybackFailed: (e) => `Ошибка воспроизведения: ${e}`,
+    errSendFailed: (e) => `Не удалось отправить: ${e}`,
+  },
+  zh: {
+    title: "同声传译", subtitle: "进入同一个房间，各自选择自己的语言 - 说出的每句话都会立即翻译给对方。",
+    langSelectLabel: "我的语言", roomInputLabel: "房间代码（如果有）", roomInputPlaceholder: "例如 a1b2c3",
+    joinBtn: "加入房间", orSep: "或", createBtn: "创建新房间", copyLinkBtn: "复制链接", leaveBtn: "离开房间",
+    emptyHint: "还没有人说话。点击下面的按钮开始说话。",
+    micBtnIdle: "点击说话", micBtnRecording: "录音中…点击停止并发送",
+    presence: (n) => `房间内 ${n} 人`,
+    errRoomCreateFailed: (e) => `无法创建房间：${e}`,
+    errNeedRoomCode: "请输入房间代码，或创建一个新房间。",
+    errConnectionFailed: "无法连接。",
+    statusDisconnected: "连接已断开。请刷新页面重新加入。",
+    statusReconnecting: (s) => `连接已断开 - ${s} 秒后重试…`,
+    statusReconnected: "已重新连接。",
+    statusLinkCopied: "链接已复制。",
+    statusTranscribing: "正在识别…",
+    statusNoSpeech: "未检测到语音，请重试。",
+    translationUnavailable: "⚠ 翻译不可用 - 显示原文",
+    errMicAccess: (e) => `无法访问麦克风：${e}`,
+    errPlaybackFailed: (e) => `播放失败：${e}`,
+    errSendFailed: (e) => `发送失败：${e}`,
+  },
+  tr: {
+    title: "Simültane Tercüman", subtitle: "Aynı odaya girin, her biriniz kendi dilini seçsin - konuşulan her cümle diğer tarafın diline anında çevrilir.",
+    langSelectLabel: "Dilim", roomInputLabel: "Oda kodu (varsa)", roomInputPlaceholder: "örn. a1b2c3",
+    joinBtn: "Odaya katıl", orSep: "veya", createBtn: "Yeni oda oluştur", copyLinkBtn: "Bağlantıyı kopyala", leaveBtn: "Odadan çık",
+    emptyHint: "Henüz bir şey konuşulmadı. Konuşmak için aşağıdaki düğmeye dokunun.",
+    micBtnIdle: "Konuşmak için dokun", micBtnRecording: "Kaydediliyor… durdurup göndermek için tekrar dokun",
+    presence: (n) => `${n} kişi odada`,
+    errRoomCreateFailed: (e) => `Oda oluşturulamadı: ${e}`,
+    errNeedRoomCode: "Bir oda kodu girin ya da yeni oda oluşturun.",
+    errConnectionFailed: "Bağlantı kurulamadı.",
+    statusDisconnected: "Bağlantı kesildi. Sayfayı yenileyip tekrar katılabilirsiniz.",
+    statusReconnecting: (s) => `Bağlantı kesildi - ${s} sn içinde tekrar denenecek…`,
+    statusReconnected: "Yeniden bağlanıldı.",
+    statusLinkCopied: "Bağlantı kopyalandı.",
+    statusTranscribing: "Çözümleniyor…",
+    statusNoSpeech: "Ses algılanamadı, tekrar deneyin.",
+    translationUnavailable: "⚠ Çeviri yapılamadı - orijinal metin gösteriliyor",
+    errMicAccess: (e) => `Mikrofona erişilemedi: ${e}`,
+    errPlaybackFailed: (e) => `Seslendirme başarısız: ${e}`,
+    errSendFailed: (e) => `Gönderilemedi: ${e}`,
+  },
+};
+
+let uiLang = "en";
+function t() { return UI_STRINGS[uiLang] || UI_STRINGS.en; }
+
+function applyUiLanguage(lang) {
+  uiLang = UI_STRINGS[lang] ? lang : "en";
+  const s = t();
+  document.documentElement.lang = uiLang;
+  // Arabic is the only right-to-left language in this set - everything
+  // else stays ltr regardless of the visitor's own language, since none
+  // of the other seven are RTL scripts.
+  document.documentElement.dir = uiLang === "ar" ? "rtl" : "ltr";
+  document.title = s.title;
+  appTitle.textContent = s.title;
+  appSubtitle.textContent = s.subtitle;
+  langSelectLabel.textContent = s.langSelectLabel;
+  roomInputLabel.textContent = s.roomInputLabel;
+  roomInput.placeholder = s.roomInputPlaceholder;
+  joinBtn.textContent = s.joinBtn;
+  orSep.textContent = s.orSep;
+  createBtn.textContent = s.createBtn;
+  copyLinkBtn.textContent = s.copyLinkBtn;
+  leaveBtn.textContent = s.leaveBtn;
+  emptyHint.textContent = s.emptyHint;
+  micBtn.textContent = mediaRecorder && mediaRecorder.state === "recording" ? s.micBtnRecording : s.micBtnIdle;
+  if (roomId) presenceLabel.dataset.count !== undefined && (presenceLabel.textContent = s.presence(Number(presenceLabel.dataset.count)));
+}
+
+const langSelect = document.getElementById('langSelect');
+for (const [code, name] of Object.entries(LANGUAGES)) {
+  const opt = document.createElement('option');
+  opt.value = code; opt.textContent = name;
+  langSelect.appendChild(opt);
+}
+const browserLang = (navigator.language || 'en').slice(0, 2);
+langSelect.value = LANGUAGES[browserLang] ? browserLang : 'en';
+// The dropdown is both "which language do I speak" (for translation) and
+// "which language is the interface in" for this participant - the two are
+// the same choice for one person, so one control does both jobs. Live-
+// updates the interface immediately on change; the initial call happens
+// further down, once every element applyUiLanguage() touches has been
+// declared (it reads mediaRecorder/roomInput/etc., which don't exist yet
+// at this point in the script).
+langSelect.addEventListener('change', () => applyUiLanguage(langSelect.value));
+
+const joinCard = document.getElementById('joinCard');
+const roomView = document.getElementById('roomView');
+const micBar = document.getElementById('micBar');
+const roomInput = document.getElementById('roomInput');
+const joinError = document.getElementById('joinError');
+const feed = document.getElementById('feed');
+const emptyHint = document.getElementById('emptyHint');
+const roomCodeLabel = document.getElementById('roomCodeLabel');
+const presenceLabel = document.getElementById('presenceLabel');
+const statusLine = document.getElementById('statusLine');
+const micError = document.getElementById('micError');
+const micBtn = document.getElementById('micBtn');
+const leaveBtn = document.getElementById('leaveBtn');
+
+let ws = null;
+let roomId = null;
+let myLanguage = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+let intentionalClose = false;
+
+applyUiLanguage(langSelect.value);
+
+function showError(el, msg) {
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function clearError(el) { el.classList.add('hidden'); }
+
+const params = new URLSearchParams(location.search);
+if (params.get('room')) roomInput.value = params.get('room');
+
+document.getElementById('createBtn').addEventListener('click', async () => {
+  clearError(joinError);
+  try {
+    const resp = await fetch(`${BASE}/rooms`, { method: 'POST' });
+    const data = await resp.json();
+    roomInput.value = data.room_id;
+    await enterRoom(data.room_id);
+  } catch (e) {
+    showError(joinError, t().errRoomCreateFailed(e));
+  }
+});
+
+document.getElementById('joinBtn').addEventListener('click', async () => {
+  clearError(joinError);
+  const code = roomInput.value.trim();
+  if (!code) { showError(joinError, t().errNeedRoomCode); return; }
+  await enterRoom(code);
+});
+
+async function enterRoom(code) {
+  roomId = code;
+  myLanguage = langSelect.value;
+  intentionalClose = false;
+  reconnectAttempts = 0;
+  connectWebSocket();
+}
+
+// Split out from enterRoom() so a dropped connection can call this again
+// itself, with a growing delay, instead of just telling the user to
+// refresh the page (the room-code URL param means a real refresh would
+// have worked too, but doing it automatically is one less thing to
+// notice and do mid-conversation). intentionalClose distinguishes "the
+// user pressed Leave room" (stop, don't reconnect) from every other
+// close (network blip, server redeploy, Render's free tier waking back
+// up) which should retry.
+function connectWebSocket() {
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${wsProto}://${location.host}${BASE}/ws/${roomId}`);
+
+  ws.onopen = () => {
+    const isReconnect = reconnectAttempts > 0;
+    reconnectAttempts = 0;
+    clearTimeout(reconnectTimer);
+    ws.send(JSON.stringify({ type: 'join', language: myLanguage }));
+    joinCard.classList.add('hidden');
+    roomView.classList.remove('hidden');
+    micBar.classList.remove('hidden');
+    micBtn.disabled = false;
+    roomCodeLabel.textContent = roomId;
+    history.replaceState(null, '', `?room=${roomId}`);
+    statusLine.textContent = isReconnect ? t().statusReconnected : '';
+  };
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'presence') {
+      presenceLabel.dataset.count = msg.participant_count;
+      presenceLabel.textContent = t().presence(msg.participant_count);
+    } else if (msg.type === 'utterance') {
+      addUtterance(msg);
+    }
+  };
+  ws.onclose = () => {
+    if (intentionalClose) return;
+    micBtn.disabled = true;
+    reconnectAttempts += 1;
+    // Exponential backoff (1s, 2s, 4s, ... capped at 15s) - a moment
+    // after this app's own server redeploys/restarts, or wakes up from
+    // Render's free-tier idle sleep, is exactly when a burst of
+    // reconnect attempts from everyone would be least helpful.
+    const delaySeconds = Math.min(2 ** (reconnectAttempts - 1), 15);
+    statusLine.textContent = t().statusReconnecting(delaySeconds);
+    reconnectTimer = setTimeout(connectWebSocket, delaySeconds * 1000);
+  };
+  // onclose always fires after onerror for a WebSocket, and already
+  // carries the reconnect logic above - no separate handling needed here.
+  ws.onerror = () => {};
+}
+
+function leaveRoom() {
+  intentionalClose = true;
+  clearTimeout(reconnectTimer);
+  reconnectAttempts = 0;
+  if (ws) { ws.close(); ws = null; }
+  roomId = null;
+  roomView.classList.add('hidden');
+  micBar.classList.add('hidden');
+  joinCard.classList.remove('hidden');
+  feed.querySelectorAll('.bubble').forEach((el) => el.remove());
+  emptyHint.classList.remove('hidden');
+  statusLine.textContent = '';
+  clearError(micError);
+  clearError(joinError);
+  history.replaceState(null, '', location.pathname);
+}
+
+leaveBtn.addEventListener('click', leaveRoom);
+
+document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+  const link = `${location.origin}${location.pathname}?room=${roomId}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    statusLine.textContent = t().statusLinkCopied;
+  } catch {
+    statusLine.textContent = link;
+  }
+});
+
+function addUtterance(msg) {
+  emptyHint.classList.add('hidden');
+  const isOwn = msg.speaker_language === myLanguage;
+  const failed = !isOwn && msg.translation_failed && msg.translation_failed[myLanguage];
+  const displayText = isOwn ? msg.original_text : (msg.translations[myLanguage] ?? msg.original_text);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (isOwn ? ' own' : '');
+
+  const textEl = document.createElement('div');
+  textEl.className = 'bubble-text';
+  textEl.textContent = displayText;
+  bubble.appendChild(textEl);
+
+  if (failed) {
+    // Translation genuinely failed server-side (API error/quota/etc.) and
+    // degraded to the original text - showing the usual "original
+    // language: <same text>" reference line here would just repeat the
+    // main line verbatim, which reads as a confusing duplicate rather
+    // than a translation. A clear warning instead says what actually
+    // happened.
+    const warn = document.createElement('div');
+    warn.className = 'bubble-warn';
+    warn.textContent = t().translationUnavailable;
+    bubble.appendChild(warn);
+  } else if (!isOwn) {
+    const orig = document.createElement('div');
+    orig.className = 'bubble-orig';
+    orig.textContent = `${LANGUAGES[msg.speaker_language] || msg.speaker_language}: ${msg.original_text}`;
+    bubble.appendChild(orig);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'bubble-meta';
+  const langLabel = document.createElement('span');
+  langLabel.className = 'bubble-lang';
+  langLabel.textContent = isOwn ? (LANGUAGES[myLanguage] || myLanguage) : (LANGUAGES[myLanguage] || myLanguage);
+  meta.appendChild(langLabel);
+
+  const playBtn = document.createElement('button');
+  playBtn.className = 'play-btn';
+  playBtn.textContent = '🔊';
+  playBtn.addEventListener('click', () => playTts(displayText, playBtn));
+  meta.appendChild(playBtn);
+
+  bubble.appendChild(meta);
+  feed.appendChild(bubble);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+async function playTts(text, btn) {
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = '…';
+  try {
+    const form = new URLSearchParams({ text, language: myLanguage });
+    const resp = await fetch(`${BASE}/tts`, { method: 'POST', body: form });
+    if (!resp.ok) throw new Error(await resp.text());
+    const blob = await resp.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    await audio.play();
+  } catch (e) {
+    showError(micError, t().errPlaybackFailed(e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// Safari (14.1 through 18.3) has no WebM support at all -
+// MediaRecorder.isTypeSupported('audio/webm') is false, and constructing
+// a MediaRecorder with an unsupported mimeType throws synchronously, so
+// hardcoding 'audio/webm' hard-fails the mic button on those versions
+// (Safari 18.4+ added WebM, but still defaults to audio/mp4). Probe for
+// what THIS browser actually supports instead of assuming webm - no
+// library needed, MediaRecorder.isTypeSupported is a native browser API.
+const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mp4;codecs=mp4a.40.2'];
+// speech.py picks the temp-file suffix from this filename extension and
+// hands it to faster-whisper (PyAV-decoded, no system ffmpeg) - PyAV reads
+// MP4/AAC containers natively, so no backend change is needed, only
+// telling it the real container instead of always claiming .webm.
+const EXT_FOR_MIME = { 'audio/webm': 'webm', 'audio/mp4': 'mp4' };
+
+let recordingMimeType = '';
+// getUserMedia is async and can take a moment (first-ever permission
+// prompt especially). A press-and-release faster than that round trip -
+// unusual for a real spoken word, but easy to hit by accident (a stray
+// tap, a fast double-tap) - used to leave the app stuck: stopRecording()
+// would run while `mediaRecorder` was still unset from the in-flight
+// startRecording(), so it had nothing to stop; startRecording() then
+// finished afterwards regardless and flipped the UI into "recording"
+// for a press that was already over, with no further release event
+// coming to end it. recordingToken + stopRequested let a startRecording
+// call notice, once its await finally resolves, that it's already been
+// cancelled - and back out instead of starting a phantom recording.
+let recordingToken = 0;
+let stopRequested = false;
+
+async function startRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') return; // already recording - ignore a duplicate press
+  clearError(micError);
+  const myToken = ++recordingToken;
+  stopRequested = false;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (myToken !== recordingToken || stopRequested) {
+      // Already released (or superseded by a newer press) before mic
+      // access finished setting up - stop the stream we just opened and
+      // don't touch mediaRecorder/UI state, which stopRecording() already
+      // reset back to idle when the release happened.
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    recordedChunks = [];
+    const supported = MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m));
+    mediaRecorder = new MediaRecorder(stream, supported ? { mimeType: supported } : undefined);
+    // Read back mediaRecorder.mimeType rather than trust `supported`
+    // directly - the browser may report a slightly different/normalized
+    // string, and if none of our candidates were supported at all,
+    // `supported` is undefined but the browser still picked its own
+    // default, which .mimeType reveals after construction.
+    recordingMimeType = mediaRecorder.mimeType || supported || 'audio/webm';
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const blob = new Blob(recordedChunks, { type: recordingMimeType });
+      await sendUtterance(blob);
+    };
+    mediaRecorder.start();
+    micBtn.classList.add('recording');
+    micBtn.textContent = t().micBtnRecording;
+  } catch (e) {
+    showError(micError, t().errMicAccess(e.message));
+  }
+}
+
+function stopRecording() {
+  stopRequested = true;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  micBtn.classList.remove('recording');
+  micBtn.textContent = t().micBtnIdle;
+}
+
+async function sendUtterance(blob) {
+  statusLine.textContent = t().statusTranscribing;
+  try {
+    const container = Object.keys(EXT_FOR_MIME).find((k) => recordingMimeType.startsWith(k));
+    const ext = EXT_FOR_MIME[container] || 'webm';
+    const form = new FormData();
+    form.append('audio', blob, `utterance.${ext}`);
+    form.append('language', myLanguage);
+    const resp = await fetch(`${BASE}/rooms/${roomId}/speak`, { method: 'POST', body: form });
+    if (!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    statusLine.textContent = data.skipped ? t().statusNoSpeech : '';
+  } catch (e) {
+    showError(micError, t().errSendFailed(e.message));
+    statusLine.textContent = '';
+  }
+}
+
+// Tap to start, tap again to stop and send - not press-and-hold. A single
+// 'click' fires identically for mouse and touch (no separate touchstart/
+// touchend needed), and there's no mouseleave case to handle either,
+// since nothing is tied to the button staying pressed anymore.
+micBtn.addEventListener('click', () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+</script>
+</body>
+</html>

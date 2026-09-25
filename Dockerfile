@@ -24,6 +24,19 @@ COPY --chown=user scripts ./scripts
 
 RUN pip install --no-cache-dir --user -e .
 
+# Bake the Whisper model (dhra.interpreter, mounted at /interpreter) into
+# the image at build time instead of letting faster-whisper download it on
+# the first real request - avoids a slow, user-facing first transcription.
+# "base" (not config.py's local-dev default "small") to leave headroom on
+# Render's free 512MB plan, which DHRA's own workload already shares - see
+# the interpreter's own README for a real OOM incident this size choice
+# was fixing there before it was mounted here. If WHISPER_MODEL_SIZE is
+# changed in the Render dashboard, update this ARG to match, or the
+# container just re-downloads the right one on first use (slower, not
+# broken).
+ARG WHISPER_MODEL_SIZE=base
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('$WHISPER_MODEL_SIZE', device='cpu', compute_type='int8')"
+
 # Render's free plan has no persistent disk, so the store lives in the
 # container's own filesystem and is reset on every restart -- fine for a
 # temporary/demo deployment, and it's reseeded (only if empty) at startup.

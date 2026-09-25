@@ -145,6 +145,19 @@ def build_app(
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+    # Simultaneous Interpreter: a separate live-speech tool (unrelated
+    # domain, no code/data sharing with DHRA's own evidence/claims model),
+    # mounted as its own sub-application rather than folded into DHRA's
+    # routes/templates - it keeps its own FastAPI app, WebSocket rooms, and
+    # frontend, just served under DHRA's own domain instead of a separate
+    # Render deployment. See dhra/interpreter/frontend/index.html's `BASE`
+    # constant for the corresponding frontend-side fix (it derives its API/
+    # WebSocket paths from location.pathname so they resolve correctly
+    # whether this ends up mounted here or served standalone).
+    from dhra.interpreter.api.app import app as interpreter_app
+
+    app.mount("/interpreter", interpreter_app)
+
     # --- Accounts (optional) ------------------------------------------------
     # `accounts_dir=None` (the default -- desktop.py never passes it, and
     # neither does any pre-existing caller) keeps every route's behaviour

@@ -13,10 +13,17 @@ dependencies = [
     "pyyaml>=6.0",
     "convertdate>=2.5",
     "fastapi>=0.115",
-    "uvicorn>=0.30",
+    "uvicorn[standard]>=0.30",
     "jinja2>=3.1",
     "python-multipart>=0.0.9",
     "itsdangerous>=2.0",
+    # dhra.interpreter (Simultaneous Interpreter, mounted at /interpreter -
+    # see web/app.py's build_app) - a live speech tool, unrelated to the
+    # rest of DHRA's own dependencies above.
+    "pydantic-settings>=2.2",
+    "openai>=1.50",
+    "faster-whisper>=1.0",
+    "edge-tts>=6.1",
 ]
 
 [project.optional-dependencies]

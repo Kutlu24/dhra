@@ -78,6 +78,7 @@
   .mic-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(16, 24, 40, 0.05); }
   .mic-inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
   .mic-btn { flex: 1; padding: 18px; background: var(--accent); color: #fff; border-radius: 12px; font-size: 17px; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .mic-btn.listening { background: var(--accent-dark); }
   .mic-btn.recording { background: var(--danger); }
   .mic-btn:disabled { background: #a8b9b5; }
   .status-line { font-size: 13px; color: var(--muted); text-align: center; margin-top: 8px; max-width: 960px; margin-left: auto; margin-right: auto; }
@@ -173,7 +174,7 @@ const UI_STRINGS = {
     langSelectLabel: "My language", roomInputLabel: "Room code (if you have one)", roomInputPlaceholder: "e.g. a1b2c3",
     joinBtn: "Join room", orSep: "or", createBtn: "Create new room", copyLinkBtn: "Copy link", leaveBtn: "Leave room",
     emptyHint: "Nothing said yet. Tap the button below to speak.",
-    micBtnIdle: "Tap to speak", micBtnRecording: "Recording… tap to stop and send",
+    micBtnIdle: "Tap to start listening", micBtnRecording: "Listening… tap to stop",
     presence: (n) => `${n} ${n === 1 ? "person" : "people"} in the room`,
     errRoomCreateFailed: (e) => `Could not create room: ${e}`,
     errNeedRoomCode: "Enter a room code, or create a new room.",
@@ -194,7 +195,7 @@ const UI_STRINGS = {
     langSelectLabel: "Meine Sprache", roomInputLabel: "Raumcode (falls vorhanden)", roomInputPlaceholder: "z. B. a1b2c3",
     joinBtn: "Raum beitreten", orSep: "oder", createBtn: "Neuen Raum erstellen", copyLinkBtn: "Link kopieren", leaveBtn: "Raum verlassen",
     emptyHint: "Noch nichts gesagt. Tippen Sie auf die Taste unten, um zu sprechen.",
-    micBtnIdle: "Zum Sprechen tippen", micBtnRecording: "Aufnahme… zum Beenden und Senden tippen",
+    micBtnIdle: "Zum Zuhören tippen", micBtnRecording: "Hört zu… zum Stoppen tippen",
     presence: (n) => `${n} ${n === 1 ? "Person" : "Personen"} im Raum`,
     errRoomCreateFailed: (e) => `Raum konnte nicht erstellt werden: ${e}`,
     errNeedRoomCode: "Geben Sie einen Raumcode ein oder erstellen Sie einen neuen Raum.",
@@ -215,7 +216,7 @@ const UI_STRINGS = {
     langSelectLabel: "Ma langue", roomInputLabel: "Code de la salle (si vous en avez un)", roomInputPlaceholder: "ex. a1b2c3",
     joinBtn: "Rejoindre la salle", orSep: "ou", createBtn: "Créer une nouvelle salle", copyLinkBtn: "Copier le lien", leaveBtn: "Quitter la salle",
     emptyHint: "Rien n'a encore été dit. Appuyez sur le bouton ci-dessous pour parler.",
-    micBtnIdle: "Appuyer pour parler", micBtnRecording: "Enregistrement… appuyez pour arrêter et envoyer",
+    micBtnIdle: "Appuyer pour écouter", micBtnRecording: "À l'écoute… appuyez pour arrêter",
     presence: (n) => `${n} ${n === 1 ? "personne" : "personnes"} dans la salle`,
     errRoomCreateFailed: (e) => `Impossible de créer la salle : ${e}`,
     errNeedRoomCode: "Entrez un code de salle, ou créez une nouvelle salle.",
@@ -236,7 +237,7 @@ const UI_STRINGS = {
     langSelectLabel: "Mi idioma", roomInputLabel: "Código de sala (si tiene uno)", roomInputPlaceholder: "p. ej. a1b2c3",
     joinBtn: "Unirse a la sala", orSep: "o", createBtn: "Crear nueva sala", copyLinkBtn: "Copiar enlace", leaveBtn: "Salir de la sala",
     emptyHint: "Aún no se ha dicho nada. Toque el botón de abajo para hablar.",
-    micBtnIdle: "Toque para hablar", micBtnRecording: "Grabando… toque para detener y enviar",
+    micBtnIdle: "Toque para escuchar", micBtnRecording: "Escuchando… toque para detener",
     presence: (n) => `${n} ${n === 1 ? "persona" : "personas"} en la sala`,
     errRoomCreateFailed: (e) => `No se pudo crear la sala: ${e}`,
     errNeedRoomCode: "Introduzca un código de sala, o cree una nueva sala.",
@@ -257,7 +258,7 @@ const UI_STRINGS = {
     langSelectLabel: "لغتي", roomInputLabel: "رمز الغرفة (إن وجد)", roomInputPlaceholder: "مثال: a1b2c3",
     joinBtn: "الانضمام إلى الغرفة", orSep: "أو", createBtn: "إنشاء غرفة جديدة", copyLinkBtn: "نسخ الرابط", leaveBtn: "مغادرة الغرفة",
     emptyHint: "لم يُقل شيء بعد. اضغط على الزر أدناه للتحدث.",
-    micBtnIdle: "اضغط للتحدث", micBtnRecording: "جارٍ التسجيل… اضغط للإيقاف والإرسال",
+    micBtnIdle: "اضغط للاستماع", micBtnRecording: "جارٍ الاستماع… اضغط للإيقاف",
     presence: (n) => `${n} ${n === 1 ? "شخص" : "أشخاص"} في الغرفة`,
     errRoomCreateFailed: (e) => `تعذّر إنشاء الغرفة: ${e}`,
     errNeedRoomCode: "أدخل رمز غرفة، أو أنشئ غرفة جديدة.",
@@ -278,7 +279,7 @@ const UI_STRINGS = {
     langSelectLabel: "Мой язык", roomInputLabel: "Код комнаты (если есть)", roomInputPlaceholder: "напр. a1b2c3",
     joinBtn: "Войти в комнату", orSep: "или", createBtn: "Создать новую комнату", copyLinkBtn: "Скопировать ссылку", leaveBtn: "Покинуть комнату",
     emptyHint: "Пока ничего не сказано. Нажмите на кнопку ниже, чтобы говорить.",
-    micBtnIdle: "Нажмите, чтобы говорить", micBtnRecording: "Запись… нажмите, чтобы остановить и отправить",
+    micBtnIdle: "Нажмите, чтобы слушать", micBtnRecording: "Слушаю… нажмите, чтобы остановить",
     presence: (n) => `${n} ${n === 1 ? "человек" : "человек(а)"} в комнате`,
     errRoomCreateFailed: (e) => `Не удалось создать комнату: ${e}`,
     errNeedRoomCode: "Введите код комнаты или создайте новую комнату.",
@@ -299,7 +300,7 @@ const UI_STRINGS = {
     langSelectLabel: "我的语言", roomInputLabel: "房间代码（如果有）", roomInputPlaceholder: "例如 a1b2c3",
     joinBtn: "加入房间", orSep: "或", createBtn: "创建新房间", copyLinkBtn: "复制链接", leaveBtn: "离开房间",
     emptyHint: "还没有人说话。点击下面的按钮开始说话。",
-    micBtnIdle: "点击说话", micBtnRecording: "录音中…点击停止并发送",
+    micBtnIdle: "点击开始聆听", micBtnRecording: "聆听中…点击停止",
     presence: (n) => `房间内 ${n} 人`,
     errRoomCreateFailed: (e) => `无法创建房间：${e}`,
     errNeedRoomCode: "请输入房间代码，或创建一个新房间。",
@@ -320,7 +321,7 @@ const UI_STRINGS = {
     langSelectLabel: "Dilim", roomInputLabel: "Oda kodu (varsa)", roomInputPlaceholder: "örn. a1b2c3",
     joinBtn: "Odaya katıl", orSep: "veya", createBtn: "Yeni oda oluştur", copyLinkBtn: "Bağlantıyı kopyala", leaveBtn: "Odadan çık",
     emptyHint: "Henüz bir şey konuşulmadı. Konuşmak için aşağıdaki düğmeye dokunun.",
-    micBtnIdle: "Konuşmak için dokun", micBtnRecording: "Kaydediliyor… durdurup göndermek için tekrar dokun",
+    micBtnIdle: "Dinlemeyi başlatmak için dokun", micBtnRecording: "Dinleniyor… durdurmak için dokun",
     presence: (n) => `${n} kişi odada`,
     errRoomCreateFailed: (e) => `Oda oluşturulamadı: ${e}`,
     errNeedRoomCode: "Bir oda kodu girin ya da yeni oda oluşturun.",
@@ -361,7 +362,7 @@ function applyUiLanguage(lang) {
   copyLinkBtn.textContent = s.copyLinkBtn;
   leaveBtn.textContent = s.leaveBtn;
   emptyHint.textContent = s.emptyHint;
-  micBtn.textContent = mediaRecorder && mediaRecorder.state === "recording" ? s.micBtnRecording : s.micBtnIdle;
+  micBtn.textContent = listening ? s.micBtnRecording : s.micBtnIdle;
   if (roomId) presenceLabel.dataset.count !== undefined && (presenceLabel.textContent = s.presence(Number(presenceLabel.dataset.count)));
 }
 
@@ -378,7 +379,7 @@ langSelect.value = LANGUAGES[browserLang] ? browserLang : 'en';
 // the same choice for one person, so one control does both jobs. Live-
 // updates the interface immediately on change; the initial call happens
 // further down, once every element applyUiLanguage() touches has been
-// declared (it reads mediaRecorder/roomInput/etc., which don't exist yet
+// declared (it reads listening/roomInput/etc., which don't exist yet
 // at this point in the script).
 langSelect.addEventListener('change', () => applyUiLanguage(langSelect.value));
 
@@ -399,8 +400,7 @@ const leaveBtn = document.getElementById('leaveBtn');
 let ws = null;
 let roomId = null;
 let myLanguage = null;
-let mediaRecorder = null;
-let recordedChunks = [];
+let listening = false;
 let reconnectAttempts = 0;
 let reconnectTimer = null;
 let intentionalClose = false;
@@ -495,6 +495,7 @@ function connectWebSocket() {
 }
 
 function leaveRoom() {
+  if (listening) stopListening();
   intentionalClose = true;
   clearTimeout(reconnectTimer);
   reconnectAttempts = 0;
@@ -607,64 +608,146 @@ const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'a
 const EXT_FOR_MIME = { 'audio/webm': 'webm', 'audio/mp4': 'mp4' };
 
 let recordingMimeType = '';
-// getUserMedia is async and can take a moment (first-ever permission
-// prompt especially). A press-and-release faster than that round trip -
-// unusual for a real spoken word, but easy to hit by accident (a stray
-// tap, a fast double-tap) - used to leave the app stuck: stopRecording()
-// would run while `mediaRecorder` was still unset from the in-flight
-// startRecording(), so it had nothing to stop; startRecording() then
-// finished afterwards regardless and flipped the UI into "recording"
-// for a press that was already over, with no further release event
-// coming to end it. recordingToken + stopRequested let a startRecording
-// call notice, once its await finally resolves, that it's already been
-// cancelled - and back out instead of starting a phantom recording.
-let recordingToken = 0;
-let stopRequested = false;
 
-async function startRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') return; // already recording - ignore a duplicate press
-  clearError(micError);
-  const myToken = ++recordingToken;
-  stopRequested = false;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    if (myToken !== recordingToken || stopRequested) {
-      // Already released (or superseded by a newer press) before mic
-      // access finished setting up - stop the stream we just opened and
-      // don't touch mediaRecorder/UI state, which stopRecording() already
-      // reset back to idle when the release happened.
-      stream.getTracks().forEach((t) => t.stop());
-      return;
+// --- Continuous listening with auto voice-activity detection ---
+// Replaces manual push-to-talk: instead of the speaker pressing a button
+// before and after every sentence, the mic stays open for the whole
+// conversation and a lightweight energy-based VAD decides on its own when
+// one utterance ends and the next begins (on a pause in speech). Each
+// auto-cut segment goes to the same /speak endpoint as before - this is
+// what keeps translation latency at "per sentence" regardless of how long
+// the overall conversation runs, instead of "wait for the whole paragraph"
+// the old press-and-release-once-per-paragraph interaction encouraged.
+const VAD_SILENCE_MS = 700;        // pause length that ends an utterance
+const VAD_MAX_SEGMENT_MS = 15000;  // force-cut a very long unbroken sentence
+const VAD_ABS_MIN_RMS = 0.02;      // floor so a near-silent room can't self-trigger
+const VAD_VOICE_MULTIPLIER = 2.2;  // how far above the noise floor counts as speech
+
+let micStream = null;
+let audioCtx = null;
+let analyser = null;
+let vadBuf = null;
+let vadRafId = null;
+let segmentRecorder = null;
+let segmentChunks = [];
+let segmentStartTs = 0;
+let speechStartTs = 0;
+let silenceStartTs = null;
+let voiceActive = false;
+let speechDetectedInSegment = false;
+let noiseFloor = 0.01;
+
+function beginSegment() {
+  segmentChunks = [];
+  speechDetectedInSegment = false;
+  segmentStartTs = performance.now();
+  const supported = MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m));
+  segmentRecorder = new MediaRecorder(micStream, supported ? { mimeType: supported } : undefined);
+  // Read back .mimeType rather than trust `supported` directly - the
+  // browser may report a slightly different/normalized string, and if
+  // none of our candidates were supported at all, `supported` is
+  // undefined but the browser still picked its own default, which
+  // .mimeType reveals after construction.
+  recordingMimeType = segmentRecorder.mimeType || supported || 'audio/webm';
+  segmentRecorder.ondataavailable = (e) => { if (e.data.size > 0) segmentChunks.push(e.data); };
+  segmentRecorder.onstop = () => {
+    if (segmentChunks.length && speechDetectedInSegment) {
+      const blob = new Blob(segmentChunks, { type: recordingMimeType });
+      sendUtterance(blob);
     }
-    recordedChunks = [];
-    const supported = MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported(m));
-    mediaRecorder = new MediaRecorder(stream, supported ? { mimeType: supported } : undefined);
-    // Read back mediaRecorder.mimeType rather than trust `supported`
-    // directly - the browser may report a slightly different/normalized
-    // string, and if none of our candidates were supported at all,
-    // `supported` is undefined but the browser still picked its own
-    // default, which .mimeType reveals after construction.
-    recordingMimeType = mediaRecorder.mimeType || supported || 'audio/webm';
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(recordedChunks, { type: recordingMimeType });
-      await sendUtterance(blob);
-    };
-    mediaRecorder.start();
-    micBtn.classList.add('recording');
-    micBtn.textContent = t().micBtnRecording;
-  } catch (e) {
-    showError(micError, t().errMicAccess(e.message));
+    if (listening) beginSegment(); // next utterance starts immediately, no gap
+  };
+  segmentRecorder.start();
+}
+
+function endCurrentSegmentAndRestart() {
+  if (segmentRecorder && segmentRecorder.state !== 'inactive') {
+    segmentRecorder.stop(); // onstop above sends it (if it had speech) and starts the next one
   }
 }
 
-function stopRecording() {
-  stopRequested = true;
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
+function computeRms() {
+  analyser.getFloatTimeDomainData(vadBuf);
+  let sum = 0;
+  for (let i = 0; i < vadBuf.length; i++) sum += vadBuf[i] * vadBuf[i];
+  return Math.sqrt(sum / vadBuf.length);
+}
+
+function vadTick() {
+  if (!listening) return;
+  const rms = computeRms();
+  const now = performance.now();
+  const voiceThreshold = Math.max(VAD_ABS_MIN_RMS, noiseFloor * VAD_VOICE_MULTIPLIER);
+  const isVoice = rms > voiceThreshold;
+
+  if (isVoice) {
+    if (!voiceActive) {
+      voiceActive = true;
+      speechStartTs = now;
+      speechDetectedInSegment = true;
+      micBtn.classList.add('recording');
+    }
+    silenceStartTs = null;
+  } else {
+    // Only drift the noise floor during quiet stretches, not mid-sentence -
+    // otherwise a long utterance would slowly raise the floor to match the
+    // speaker's own voice and silence would stop being detected at all.
+    if (!voiceActive) noiseFloor = noiseFloor * 0.95 + rms * 0.05;
+    if (voiceActive) {
+      if (silenceStartTs === null) {
+        silenceStartTs = now;
+      } else if (now - silenceStartTs >= VAD_SILENCE_MS) {
+        voiceActive = false;
+        micBtn.classList.remove('recording');
+        endCurrentSegmentAndRestart();
+      }
+    }
   }
-  micBtn.classList.remove('recording');
+
+  // Only force-cut a segment that's actually mid-speech and has run long -
+  // during silence there's nothing to cut short, so leave it be rather
+  // than needlessly recreating the MediaRecorder every 15s while idle.
+  if (speechDetectedInSegment && now - segmentStartTs >= VAD_MAX_SEGMENT_MS) endCurrentSegmentAndRestart();
+  vadRafId = requestAnimationFrame(vadTick);
+}
+
+async function startListening() {
+  clearError(micError);
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    showError(micError, t().errMicAccess(e.message));
+    return;
+  }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaStreamSource(micStream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 1024;
+  vadBuf = new Float32Array(analyser.fftSize);
+  source.connect(analyser);
+
+  listening = true;
+  voiceActive = false;
+  silenceStartTs = null;
+  noiseFloor = 0.01;
+  micBtn.classList.add('listening');
+  micBtn.textContent = t().micBtnRecording;
+  beginSegment();
+  vadRafId = requestAnimationFrame(vadTick);
+}
+
+function stopListening() {
+  listening = false;
+  if (vadRafId) cancelAnimationFrame(vadRafId);
+  vadRafId = null;
+  if (segmentRecorder && segmentRecorder.state !== 'inactive') {
+    segmentRecorder.onstop = null; // don't send a fragment cut off mid-word, and don't auto-restart
+    segmentRecorder.stop();
+  }
+  if (micStream) micStream.getTracks().forEach((tr) => tr.stop());
+  if (audioCtx) audioCtx.close();
+  micStream = null; audioCtx = null; analyser = null;
+  micBtn.classList.remove('recording', 'listening');
   micBtn.textContent = t().micBtnIdle;
 }
 
@@ -686,16 +769,10 @@ async function sendUtterance(blob) {
   }
 }
 
-// Tap to start, tap again to stop and send - not press-and-hold. A single
-// 'click' fires identically for mouse and touch (no separate touchstart/
-// touchend needed), and there's no mouseleave case to handle either,
-// since nothing is tied to the button staying pressed anymore.
+// One tap starts a whole listening session, one tap stops it - the VAD
+// above handles cutting individual utterances automatically in between.
 micBtn.addEventListener('click', () => {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    stopRecording();
-  } else {
-    startRecording();
-  }
+  if (listening) stopListening(); else startListening();
 });
 </script>
 </body>

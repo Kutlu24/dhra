@@ -48,7 +48,12 @@ def _get_model() -> WhisperModel:
     # model weights into memory, which is the slow part.
     global _model
     if _model is None:
-        _model = WhisperModel(settings.whisper_model_size, device="cpu", compute_type="int8")
+        _model = WhisperModel(
+            settings.whisper_model_size,
+            device="cpu",
+            compute_type="int8",
+            cpu_threads=settings.whisper_cpu_threads,
+        )
     return _model
 
 
@@ -71,7 +76,22 @@ def transcribe(audio_bytes: bytes, filename: str, language_hint: str = "") -> st
             # call). Verified against real short clips with leading/
             # trailing silence: transcription still succeeds and drops the
             # silent padding instead of feeding it to the model.
-            segments, _info = _get_model().transcribe(f.name, language=language_hint or None, vad_filter=True)
+            # beam_size=1 (greedy) and a single temperature pass: the
+            # library's defaults (beam_size=5, best_of=5, and up to 6
+            # temperature-fallback retries when a decode looks uncertain)
+            # are tuned for offline batch-transcription accuracy, not a
+            # live conversation - here they cost several extra seconds per
+            # utterance for a marginal accuracy gain, which matters far
+            # less in a live back-and-forth than the speaker waiting
+            # several extra seconds for each turn.
+            segments, _info = _get_model().transcribe(
+                f.name,
+                language=language_hint or None,
+                vad_filter=True,
+                beam_size=1,
+                best_of=1,
+                temperature=0.0,
+            )
             return " ".join(segment.text.strip() for segment in segments).strip()
     except Exception as exc:  # noqa: BLE001
         raise SpeechError(str(exc)) from exc

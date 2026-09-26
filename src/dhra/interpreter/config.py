@@ -28,6 +28,18 @@ class Settings(BaseSettings):
     # downloads the model weights (~500MB for "small") to a local cache.
     whisper_model_size: str = "small"
 
+    # ctranslate2 sizes its internal thread pool from the HOST's total
+    # logical CPU count (std::thread::hardware_concurrency()), not from
+    # any container CPU quota - if this process is running under a
+    # Docker `cpus` limit smaller than the host's core count, leaving
+    # this at 0 (auto) causes thread oversubscription against the CFS
+    # quota, which is far slower than just "fewer cores" (real,
+    # measured regression on the home-server deployment - see
+    # home-server-infra/docs/DEPLOYMENT.md). Set to match that limit;
+    # 0 keeps the old auto-detect behavior (fine on Render, which has
+    # no such mismatch).
+    whisper_cpu_threads: int = 0
+
     # Text translation only (cheap, text-in/text-out) - reuse GLM the same way
     # fundraising-assistant does: free-tier, and on a separate quota from
     # Gemini, so it doesn't compete with other projects' Gemini usage.

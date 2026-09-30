@@ -364,10 +364,15 @@ def build_app(
             "/how-it-works", "/about", "/evidence-based-research",
             "/digital-humanities-research", "/research-assistant", "/claims-and-evidence",
             "/digital-humanities-ai", "/historical-document-research", "/documentation", "/blog", "/welcome",
+            "/privacy", "/terms",
         ]
-        urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in single_lang_paths)
-        urls += "".join(f"<url><loc>{origin}/{code}{p}</loc></url>" for code in LANGUAGES for p in content_paths)
-        xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+        # One canonical loc per page (no trailing slashes anywhere in this
+        # app's routes), deduplicated across the two lists. The interpreter
+        # is deliberately excluded: any URL under /interpreter is the
+        # mounted sub-app's own (a live-speech demo utility, not content).
+        all_paths = set(single_lang_paths) | {f"/{code}{p}" for code in LANGUAGES for p in content_paths}
+        urls = "".join(f"<url><loc>{origin}{p}</loc></url>" for p in sorted(all_paths))
+        xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + '</urlset>'
         return Response(xml, media_type="application/xml")
 
     def _llm_client_or_none() -> LLMClient | None:
@@ -762,6 +767,8 @@ def build_app(
         ("documentation", "documentation.html"),
         ("blog", "blog.html"),
         ("welcome", "welcome.html"),
+        ("privacy", "privacy.html"),
+        ("terms", "terms.html"),
     ]
 
     def _content_page(request: Request, template_name: str, lang: str | None) -> HTMLResponse:

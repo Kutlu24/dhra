@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ t('legal.terms_title') }} -- DHRA{% endblock %}
+{% block description %}{{ t('legal.terms_overview_p') }}{% endblock %}
+{% block content %}
+<article class="legal-page">
+  <h1>{{ t('legal.terms_title') }}</h1>
+  <p class="muted">{{ t('legal.terms_updated') }}: 30 September 2026</p>
+
+  <h2>{{ t('legal.terms_overview_h') }}</h2>
+  <p>{{ t('legal.terms_overview_p') }}</p>
+
+  <h2>{{ t('legal.terms_use_h') }}</h2>
+  <p>{{ t('legal.terms_use_p') }}</p>
+
+  <h2>{{ t('legal.terms_data_h') }}</h2>
+  <p>{{ t('legal.terms_data_p') }}</p>
+
+  <h2>{{ t('legal.terms_liability_h') }}</h2>
+  <p>{{ t('legal.terms_liability_p') }}</p>
+
+  <h2>{{ t('legal.terms_contact_h') }}</h2>
+  <p>{{ t('legal.terms_contact_p') }}</p>
+</article>
+{% endblock %}

@@ -49,9 +49,9 @@
 :root {
   color-scheme: light dark;
   --bg: #fafaf8; --surface: #ffffff; --surface-2: #f4f3ee; --border: #e2e0d8;
-  --text: #1c1b17; --text-muted: #6b6a62;
-  --accent: #1f5f5a; --accent-soft: #eaf1ef; --accent-contrast: #ffffff;
-  --amber: #93610a; --amber-soft: #f8f0e0;
+  --text: #1c1b17; --text-muted: #5d5c55;
+  --accent: #17504c; --accent-soft: #eaf1ef; --accent-contrast: #ffffff;
+  --amber: #7d5208; --amber-soft: #f8f0e0;
   --red: #a13b2e; --red-soft: #f7ece9;
   --radius: 6px; --radius-lg: 9px;
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
@@ -63,7 +63,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #16181a; --surface: #1e2023; --surface-2: #202326; --border: #33363a;
-    --text: #e9e7e0; --text-muted: #9a9c9f;
+    --text: #e9e7e0; --text-muted: #9d9fa2;
     --accent: #7bbdb6; --accent-soft: #1e2d2c; --accent-contrast: #0f1413;
     --amber: #d9a34d; --amber-soft: #2c2517;
     --red: #d98878; --red-soft: #2c1e1b;
@@ -275,6 +275,35 @@ pre { background: var(--surface-2); border-radius: var(--radius); padding: .9rem
 pre code { background: none; padding: 0; }
 .search-box { display: flex; gap: .5rem; margin: 1rem 0 1.5rem; }
 .search-box input[type=text] { font-size: 1rem; padding: .65rem .9rem; }
+/* --- dashboard hero (visual storytelling) --- */
+.hero { margin: 1.5rem 0 .5rem; padding: 1.5rem 1.6rem; background: var(--accent-soft); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.hero-steps { display: flex; gap: .5rem; justify-content: space-between; margin-bottom: 1rem; }
+.hero-step { flex: 1; display: flex; align-items: center; justify-content: center; }
+.hero-step-num { width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--font-mono); }
+.hero-note { margin: 0; color: var(--text); font-size: .95rem; }
+@media (max-width: 520px) { .hero-step-num { width: 1.9rem; height: 1.9rem; font-size: .85rem; } }
+/* --- footer (base.html) --- */
+.site-footer { border-top: 1px solid var(--border); margin-top: 3rem; padding: 1.75rem 2rem 2.5rem; background: var(--surface-2); }
+.site-footer .footer-inner { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: space-between; align-items: flex-start; }
+.site-footer .footer-brand { max-width: 34rem; }
+.site-footer .footer-wordmark { font-weight: 700; font-size: .95rem; }
+.site-footer .footer-operator { margin: .5rem 0 0; color: var(--text-muted); font-size: .82rem; }
+.site-footer nav a { color: var(--text-muted); text-decoration: none; font-size: .88rem; margin-right: .9rem; }
+.site-footer nav a:hover { color: var(--accent); }
+.site-footer .footer-legal { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.25rem; margin-top: 1.25rem; padding-top: .9rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: .78rem; }
+.site-footer .footer-legal nav a { font-size: .78rem; }
+/* --- legal/privacy/terms pages --- */
+.legal-page { max-width: 52rem; }
+.legal-page h2 { margin-top: 1.75rem; }
+/* --- focus visibility (a11y) --- */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* --- demo banner: subtle, dismissible --- */
+.demo-banner { display: flex; gap: .7rem; align-items: flex-start; border: 1px solid var(--amber); background: var(--amber-soft); border-radius: var(--radius); padding: .65rem .9rem; margin-bottom: 1.1rem; font-size: .85rem; }
+.demo-banner .icon { font-size: 1rem; }
+.demo-banner .label { font-weight: 600; text-transform: uppercase; font-size: .68rem; letter-spacing: .06em; color: var(--amber); display: block; margin-bottom: .1rem; }
+.demo-banner .dismiss { margin-left: auto; background: none; border: none; color: var(--amber); font-size: 1.05rem; line-height: 1; padding: .15rem .35rem; cursor: pointer; }
 .passage-image { max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); margin: .75rem 0 1.25rem; display: block; }
 .assistant-columns { display: flex; gap: 1.75rem; align-items: flex-start; }
 .assistant-col { flex: 1 1 0; min-width: 0; }

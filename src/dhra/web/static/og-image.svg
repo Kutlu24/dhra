@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="ogTitle ogDesc">
+  <title id="ogTitle">DHRA -- Digital Humanities Research Assistant</title>
+  <desc id="ogDesc">Evidence-grounded research: add sources, find exact passages, build traceable claims, audit before you trust.</desc>
+  <rect width="1200" height="630" fill="#fafaf8"/>
+  <rect x="0" y="0" width="420" height="630" fill="#1f5f5a"/>
+  <text x="52" y="96" font-family="Georgia, serif" font-size="40" font-weight="700" fill="#eaf1ef">DHRA</text>
+  <text x="56" y="150" font-family="Georgia, serif" font-size="22" fill="#c9dfda">Evidence-Grounded</text>
+  <text x="56" y="180" font-family="Georgia, serif" font-size="22" fill="#c9dfda">Research</text>
+  <g transform="translate(120 250) scale(1.35)">
+    <path d="M38 20 Q34 6 46 16 Z" fill="#3d6a9e" stroke="#fff8ec" stroke-width="1.6"/>
+    <path d="M62 20 Q66 6 54 16 Z" fill="#3d6a9e" stroke="#fff8ec" stroke-width="1.6"/>
+    <ellipse cx="50" cy="60" rx="28" ry="33" fill="#4a7fb5" stroke="#fff8ec" stroke-width="2"/>
+    <ellipse cx="18" cy="66" rx="12" ry="24" fill="#2d4f78" stroke="#fff8ec" stroke-width="1.6"/>
+    <ellipse cx="82" cy="66" rx="12" ry="24" fill="#2d4f78" stroke="#fff8ec" stroke-width="1.6"/>
+    <circle cx="50" cy="51" r="30" fill="#fff8ec" stroke="#fff8ec" stroke-width="1.6"/>
+    <circle cx="35" cy="49" r="8.5" fill="#1f5f5a"/>
+    <circle cx="37.7" cy="46.2" r="2.3" fill="#fff"/>
+    <circle cx="65" cy="49" r="8.5" fill="#1f5f5a"/>
+    <circle cx="67.7" cy="46.2" r="2.3" fill="#fff"/>
+    <path d="M46 59 L54 59 L50 66 Z" fill="#c9a227" stroke="#fff8ec" stroke-width="1.2"/>
+    <circle cx="35" cy="49" r="13.5" fill="none" stroke="#fff8ec" stroke-width="2.4"/>
+    <circle cx="65" cy="49" r="13.5" fill="none" stroke="#fff8ec" stroke-width="2.4"/>
+    <line x1="48.5" y1="49" x2="51.5" y2="49" stroke="#fff8ec" stroke-width="2.4"/>
+  </g>
+  <text x="520" y="120" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1c1b17">Evidence before narrative,</text>
+  <text x="520" y="170" font-family="Georgia, serif" font-size="34" font-weight="700" fill="#1c1b17">always.</text>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="21" fill="#1c1b17">
+    <circle cx="545" cy="235" r="17" fill="#1f5f5a"/>
+    <text x="545" y="242" text-anchor="middle" font-size="20" fill="#ffffff" font-weight="700">1</text>
+    <text x="575" y="242">Add sources</text>
+    <circle cx="545" cy="290" r="17" fill="#1f5f5a"/>
+    <text x="545" y="297" text-anchor="middle" font-size="20" fill="#ffffff" font-weight="700">2</text>
+    <text x="575" y="297">Find evidence</text>
+    <circle cx="545" cy="345" r="17" fill="#1f5f5a"/>
+    <text x="545" y="352" text-anchor="middle" font-size="20" fill="#ffffff" font-weight="700">3</text>
+    <text x="575" y="352">Build claims</text>
+    <circle cx="545" cy="400" r="17" fill="#1f5f5a"/>
+    <text x="545" y="407" text-anchor="middle" font-size="20" fill="#ffffff" font-weight="700">4</text>
+    <text x="575" y="407">Audit your research</text>
+  </g>
+  <text x="520" y="505" font-family="Georgia, serif" font-size="20" fill="#6b6a62">Every claim traceable to a source, or marked plainly when it isn't.</text>
+  <text x="520" y="555" font-family="IBM Plex Mono, monospace" font-size="16" fill="#6b6a62">dhra.onrender.com</text>
+</svg>

@@ -6,8 +6,7 @@
 <h1>{{ t('search.title') }}</h1>
 <p class="lede">{{ t('search.lede') | safe }}</p>
 <form method="get" action="/evidence" class="search-box">
-  <label for="evidence-q" class="visually-hidden">{{ t('search.placeholder') }}</label>
-  <input type="text" id="evidence-q" name="q" value="{{ q }}" placeholder="{{ t('search.placeholder') }}" autofocus>
+  <input type="text" name="q" value="{{ q }}" placeholder="{{ t('search.placeholder') }}" autofocus>
   <button type="submit">{{ t('search.button') }}</button>
 </form>
 

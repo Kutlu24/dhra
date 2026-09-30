@@ -15,11 +15,7 @@
 <meta property="og:title" content="{% block og_title %}DHRA -- Digital Humanities Research Assistant{% endblock %}">
 <meta property="og:description" content="{% block og_description %}Evidence-first research tool for historians -- every claim traceable to a source, or marked plainly when it isn't.{% endblock %}">
 <meta property="og:url" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ request.url.path }}">
-<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/og-image.svg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="DHRA -- Digital Humanities Research Assistant">
-<link rel="apple-touch-icon" href="/static/logo.svg">
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/logo.svg">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{% block twitter_title %}DHRA -- Digital Humanities Research Assistant{% endblock %}">
 <meta name="twitter:description" content="{% block twitter_description %}Evidence-first research tool for historians.{% endblock %}">
@@ -97,10 +93,9 @@
      is purely presentational -- the banner's own wording stays whatever
      the operator configured (see OPEN_QUESTIONS.md #31: softening it past
      what's actually true was tried once and deliberately reverted). #}
-  <div class="demo-banner" id="demo-banner">
+  <div class="demo-banner">
     <span class="icon">&#9432;</span>
     <div><span class="label">{{ t('demo_banner.label') }}</span>{{ demo_banner | safe }}</div>
-    <button type="button" class="dismiss" aria-label="Dismiss" onclick="document.getElementById('demo-banner').style.display='none'">&times;</button>
   </div>
   {% endif %}
   {% if accounts_enabled is defined and accounts_enabled %}
@@ -120,27 +115,5 @@
 {% endif %}
 {% block content %}{% endblock %}
 </main>
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="wordmark footer-wordmark"><img src="/static/logo.svg" alt="" width="24" height="24"> DHRA</span>
-      <p class="footer-operator">{{ t('footer.operator') }}</p>
-    </div>
-    <nav class="footer-links" aria-label="Footer">
-      <a href="/about">{{ t('footer.about') }}</a>
-      <a href="/how-it-works">{{ t('footer.terms') }}</a>
-      <a href="/privacy">{{ t('footer.privacy') }}</a>
-      <a href="mailto:gdinterface@gmail.com">{{ t('footer.contact') }}</a>
-    </nav>
-  </div>
-  <div class="footer-legal">
-    <span>{{ t('footer.copyright') }}</span>
-    <nav class="footer-legal-links" aria-label="Legal">
-      <a href="/privacy">{{ t('footer.privacy') }}</a>
-      <a href="/terms">{{ t('footer.terms') }}</a>
-      <a href="mailto:gdinterface@gmail.com">{{ t('footer.contact') }}</a>
-    </nav>
-  </div>
-</footer>
 </body>
 </html>

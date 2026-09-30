@@ -80,7 +80,7 @@ html { font-size: 17.5px; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font-family: var(--font-ui);
-  display: flex; min-height: 100vh;
+  display: flex; flex-wrap: wrap; min-height: 100vh;
 }
 
 /* ---- top-bar: demo banner + login/account status share one row at
@@ -278,15 +278,17 @@ pre code { background: none; padding: 0; }
 /* --- dashboard hero (visual storytelling) --- */
 .hero { margin: 1.5rem 0 .5rem; padding: 1.5rem 1.6rem; background: var(--accent-soft); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .hero-steps { display: flex; gap: .5rem; justify-content: space-between; margin-bottom: 1rem; }
-.hero-step { flex: 1; display: flex; align-items: center; justify-content: center; }
+.hero-step { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; text-align: center; }
+.hero-step-label { font-size: .8rem; line-height: 1.3; color: var(--text-muted); }
 .hero-step-num { width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--font-mono); }
 .hero-note { margin: 0; color: var(--text); font-size: .95rem; }
-@media (max-width: 520px) { .hero-step-num { width: 1.9rem; height: 1.9rem; font-size: .85rem; } }
+@media (max-width: 520px) { .hero-steps { flex-wrap: wrap; } .hero-step { flex: 1 1 40%; } .hero-step-num { width: 1.9rem; height: 1.9rem; font-size: .85rem; } }
 /* --- footer (base.html) --- */
-.site-footer { border-top: 1px solid var(--border); margin-top: 3rem; padding: 1.75rem 2rem 2.5rem; background: var(--surface-2); }
+.site-footer { flex: 1 0 100%; border-top: 1px solid var(--border); margin-top: 3rem; padding: 1.75rem 2rem 2.5rem; background: var(--surface-2); }
 .site-footer .footer-inner { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: space-between; align-items: flex-start; }
 .site-footer .footer-brand { max-width: 34rem; }
 .site-footer .footer-wordmark { font-weight: 700; font-size: .95rem; }
+.site-footer .footer-wordmark img { width: 22px; height: 22px; }
 .site-footer .footer-operator { margin: .5rem 0 0; color: var(--text-muted); font-size: .82rem; }
 .site-footer nav a { color: var(--text-muted); text-decoration: none; font-size: .88rem; margin-right: .9rem; }
 .site-footer nav a:hover { color: var(--accent); }

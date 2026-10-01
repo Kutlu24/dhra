@@ -324,3 +324,80 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   aside { width: auto; flex: none; position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
   main { padding: 1.5rem 1.25rem 3rem; }
 }
+
+/* ---- welcome page (marketing front door) ---- */
+/* Link-as-button: the CTAs are navigations, not form submits, so they are
+   real <a> elements -- styled to match the <button> primitives above. */
+.btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  text-decoration: none; cursor: pointer;
+  font-family: var(--font-ui); font-size: .95rem; font-weight: 600;
+  background: var(--accent); color: var(--accent-contrast);
+  border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: .6rem 1.2rem;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+.btn.btn-secondary:hover { filter: none; border-color: var(--accent); color: var(--accent); }
+
+.welcome-hero { margin-top: 1.75rem; padding: 2.25rem 2rem; }
+.welcome-hero h1 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); margin: 0 0 .55rem; max-width: 24ch; letter-spacing: -.015em; }
+.welcome-hero .welcome-lede { font-size: 1.02rem; max-width: 58ch; margin: 0 0 .35rem; }
+.welcome-cta { margin: 1.35rem 0 0; }
+.welcome-links { margin-top: 1.75rem; font-size: .95rem; }
+
+/* Flow pipeline: numbered steps joined by a horizontal guide line, the
+   contradicting-evidence step deliberately amber so "the tool tells you
+   when evidence disagrees" is visible at a glance. */
+.flow-pipeline {
+  list-style: none; display: flex; gap: .4rem; flex-wrap: wrap;
+  margin: .85rem 0 1.5rem; padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.flow-step {
+  flex: 1 1 9rem; display: flex; flex-direction: column; align-items: center;
+  gap: .45rem; text-align: center; position: relative; padding-top: .15rem;
+}
+.flow-step + .flow-step::before {
+  content: '\2192'; position: absolute; left: -0.62rem; top: .3rem;
+  color: var(--text-muted); font-size: .95rem;
+}
+.flow-num {
+  width: 2.1rem; height: 2.1rem; border-radius: 50%;
+  background: var(--accent); color: var(--accent-contrast);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 600; font-size: .9rem;
+}
+.flow-step--warn .flow-num { background: var(--amber); color: #fff; }
+.flow-label {
+  font-family: var(--font-mono); font-size: .74rem; letter-spacing: .06em;
+  color: var(--text-muted); font-weight: 600;
+}
+@media (max-width: 720px) {
+  .flow-pipeline { flex-direction: column; gap: .9rem; }
+  .flow-step { flex-direction: row; justify-content: flex-start; text-align: left; }
+  .flow-step + .flow-step::before { content: '\2193'; left: 1.9rem; top: -0.78rem; font-size: .85rem; }
+}
+
+/* Feature grid: the six "why DHRA is different" points as a scannable
+   3-column lattice (2 on narrow, 1 on phones) instead of six stacked
+   full-width strips. */
+.feature-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr));
+  gap: .9rem; margin: .85rem 0 1.25rem;
+}
+.feature-card {
+  display: flex; gap: .85rem; align-items: flex-start;
+  border: 1px solid var(--border); background: var(--surface);
+  border-radius: var(--radius); padding: 1rem 1.1rem;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.feature-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.feature-icon {
+  flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+}
+.feature-body h3 { margin: .1rem 0 .25rem; }
+.feature-body p { margin: 0; }

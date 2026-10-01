@@ -2,33 +2,89 @@
 {% block title %}DHRA -- Evidence Before Narrative{% endblock %}
 {% block description %}DHRA helps humanities researchers find, test and trace claims across their own source corpus. Every result has a locator. Contradicting evidence is preserved, never hidden. AI proposes, humans decide.{% endblock %}
 {% block content %}
-<h1>{{ t('welcome_page.hero_title') }}</h1>
-<p class="lede">{{ t('welcome_page.hero_lede') }}</p>
-<div class="action-buttons">
-  <a href="/start"><button type="button">{{ t('welcome_page.cta_try') }}</button></a>
-  {% if accounts_enabled is defined and accounts_enabled %}
-  <a href="/signup"><button type="button" class="secondary">{{ t('welcome_page.cta_signup') }}</button></a>
-  {% endif %}
-</div>
+<section class="hero welcome-hero">
+  <h1>{{ t('welcome_page.hero_title') }}</h1>
+  <p class="lede welcome-lede">{{ t('welcome_page.hero_lede') }}</p>
+  <div class="action-buttons welcome-cta">
+    <a href="/start" class="btn">{{ t('welcome_page.cta_try') }}</a>
+    {% if accounts_enabled is defined and accounts_enabled %}
+    <a href="/signup" class="btn btn-secondary">{{ t('welcome_page.cta_signup') }}</a>
+    {% endif %}
+  </div>
+</section>
 
 <h2>{{ t('welcome_page.flow_heading') }}</h2>
-<div class="card">
-  <p style="font-family: var(--font-mono); font-size: .95rem;">
-    {{ t('welcome_page.flow_source') }} &rarr;
-    {{ t('welcome_page.flow_evidence') }} &rarr;
-    {{ t('welcome_page.flow_claim') }} &rarr;
-    {{ t('welcome_page.flow_contradiction') }} &rarr;
-    {{ t('welcome_page.flow_audit') }}
-  </p>
-</div>
+<ol class="flow-pipeline">
+  <li class="flow-step">
+    <span class="flow-num" aria-hidden="true">1</span>
+    <span class="flow-label">{{ t('welcome_page.flow_source') }}</span>
+  </li>
+  <li class="flow-step">
+    <span class="flow-num" aria-hidden="true">2</span>
+    <span class="flow-label">{{ t('welcome_page.flow_evidence') }}</span>
+  </li>
+  <li class="flow-step">
+    <span class="flow-num" aria-hidden="true">3</span>
+    <span class="flow-label">{{ t('welcome_page.flow_claim') }}</span>
+  </li>
+  <li class="flow-step flow-step--warn">
+    <span class="flow-num" aria-hidden="true">4</span>
+    <span class="flow-label">{{ t('welcome_page.flow_contradiction') }}</span>
+  </li>
+  <li class="flow-step">
+    <span class="flow-num" aria-hidden="true">5</span>
+    <span class="flow-label">{{ t('welcome_page.flow_audit') }}</span>
+  </li>
+</ol>
 
 <h2>{{ t('welcome_page.why_heading') }}</h2>
-<div class="card">&#128269; <strong>{{ t('welcome_page.why1_title') }}</strong><br><span class="muted">{{ t('welcome_page.why1_body') }}</span></div>
-<div class="card">&#129513; <strong>{{ t('welcome_page.why2_title') }}</strong><br><span class="muted">{{ t('welcome_page.why2_body') }}</span></div>
-<div class="card">&#9878; <strong>{{ t('welcome_page.why3_title') }}</strong><br><span class="muted">{{ t('welcome_page.why3_body') }}</span></div>
-<div class="card">&#128465; <strong>{{ t('welcome_page.why4_title') }}</strong><br><span class="muted">{{ t('welcome_page.why4_body') }}</span></div>
-<div class="card">&#128337; <strong>{{ t('welcome_page.why5_title') }}</strong><br><span class="muted">{{ t('welcome_page.why5_body') }}</span></div>
-<div class="card">&#129302; <strong>{{ t('welcome_page.why6_title') }}</strong><br><span class="muted">{{ t('welcome_page.why6_body') }}</span></div>
+<div class="feature-grid">
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#128269;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why1_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why1_body') }}</p>
+    </div>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#129513;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why2_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why2_body') }}</p>
+    </div>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#9878;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why3_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why3_body') }}</p>
+    </div>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#128465;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why4_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why4_body') }}</p>
+    </div>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#128337;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why5_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why5_body') }}</p>
+    </div>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon" aria-hidden="true">&#129302;</span>
+    <div class="feature-body">
+      <h3>{{ t('welcome_page.why6_title') }}</h3>
+      <p class="muted">{{ t('welcome_page.why6_body') }}</p>
+    </div>
+  </div>
+</div>
 
-<p><a href="/how-it-works">{{ t('how_it_works.title') }} &rarr;</a> &middot; <a href="/about">{{ t('about.title') }} &rarr;</a></p>
+<p class="welcome-links">
+  <a href="/how-it-works">{{ t('how_it_works.title') }} &rarr;</a> &middot;
+  <a href="/about">{{ t('about.title') }} &rarr;</a>
+</p>
 {% endblock %}

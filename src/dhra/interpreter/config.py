@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     translate_provider: str = "glm"  # "glm" | "gemini"
     glm_api_key: str | None = None
     glm_model: str = "glm-4.5-flash"
-    glm_base_url: str = "https://api.z.ai/api/paas/v4/"
+    glm_base_url: str = "http://omniroute:20129/v1/"  # OmniRoute (multi-provider gateway with fallback)
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.5-flash-lite"
 

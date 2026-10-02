@@ -48,33 +48,46 @@ def _call_gemini(system_prompt: str, text: str) -> str:
     return (response.choices[0].message.content or "").strip()
 
 
+def _call_groq(system_prompt: str, text: str) -> str:
+    client = OpenAI(api_key=settings.groq_api_key, base_url="https://api.groq.com/openai/v1", timeout=5.0, max_retries=1)
+    response = client.chat.completions.create(
+        model=settings.groq_model,
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": text}],
+    )
+    return (response.choices[0].message.content or "").strip()
+
+
+def _call_anthropic(system_prompt: str, text: str) -> str:
+    client = OpenAI(api_key=settings.anthropic_api_key, base_url="https://api.anthropic.com/v1", timeout=5.0, max_retries=1)
+    response = client.chat.completions.create(
+        model=settings.anthropic_model,
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": text}],
+    )
+    return (response.choices[0].message.content or "").strip()
+
+
 _TRANSLATORS = {"glm": _call_glm, "gemini": _call_gemini}
 
 
 def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]:
-    """Try GLM first, fallback to Gemini if it fails. Returns (translation, provider_used)."""
+    """4-provider fallback chain: GLM → Gemini → Groq → Claude API"""
+    import logging
     system_prompt = _SYSTEM_PROMPT.format(target_language=target_language)
-
-    # Try primary provider (GLM)
-    if settings.glm_api_key:
+    providers = [
+        ("glm", _call_glm, settings.glm_api_key),
+        ("gemini", _call_gemini, settings.gemini_api_key),
+        ("groq", _call_groq, settings.groq_api_key),
+        ("anthropic", _call_anthropic, settings.anthropic_api_key),
+    ]
+    for name, func, key in providers:
+        if not key:
+            continue
         try:
-            translation = _call_glm(system_prompt, text)
-            return translation, "glm"
+            translation = func(system_prompt, text)
+            return translation, name
         except Exception as e:
-            import logging
-            logging.warning(f"GLM translation failed ({type(e).__name__}), falling back to Gemini")
-
-    # Fallback to Gemini
-    if settings.gemini_api_key:
-        try:
-            translation = _call_gemini(system_prompt, text)
-            return translation, "gemini"
-        except Exception as e:
-            import logging
-            logging.warning(f"Gemini translation also failed ({type(e).__name__})")
-            raise TranslationError(f"Both GLM and Gemini failed: {e}")
-
-    raise TranslationError("No translation providers configured (GLM + Gemini keys missing)")
+            logging.warning(f"{name.upper()} translation failed ({type(e).__name__}), trying next provider")
+    raise TranslationError("All translation providers failed or not configured")
 
 
 def translate(text: str, target_language_code: str) -> str:

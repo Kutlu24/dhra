@@ -66,7 +66,12 @@ def _call_anthropic(system_prompt: str, text: str) -> str:
     return (response.choices[0].message.content or "").strip()
 
 
-_TRANSLATORS = {"glm": _call_glm, "gemini": _call_gemini}
+_TRANSLATORS = {
+    "glm": _call_glm,
+    "gemini": _call_gemini,
+    "groq": _call_groq,
+    "anthropic": _call_anthropic,
+}
 
 
 def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]:

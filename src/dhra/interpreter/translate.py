@@ -26,7 +26,7 @@ class TranslationError(Exception):
 
 
 def _call_glm(system_prompt: str, text: str) -> str:
-    client = OpenAI(api_key=settings.glm_api_key, base_url=settings.glm_base_url, timeout=20.0, max_retries=1)
+    client = OpenAI(api_key=settings.glm_api_key, base_url=settings.glm_base_url, timeout=5.0, max_retries=1)
     response = client.chat.completions.create(
         model=settings.glm_model,
         messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": text}],
@@ -38,7 +38,7 @@ def _call_gemini(system_prompt: str, text: str) -> str:
     client = OpenAI(
         api_key=settings.gemini_api_key,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        timeout=20.0,
+        timeout=5.0,
         max_retries=1,
     )
     response = client.chat.completions.create(

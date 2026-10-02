@@ -51,14 +51,41 @@ def _call_gemini(system_prompt: str, text: str) -> str:
 _TRANSLATORS = {"glm": _call_glm, "gemini": _call_gemini}
 
 
+def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]:
+    """Try GLM first, fallback to Gemini if it fails. Returns (translation, provider_used)."""
+    system_prompt = _SYSTEM_PROMPT.format(target_language=target_language)
+
+    # Try primary provider (GLM)
+    if settings.glm_api_key:
+        try:
+            translation = _call_glm(system_prompt, text)
+            return translation, "glm"
+        except Exception as e:
+            import logging
+            logging.warning(f"GLM translation failed ({type(e).__name__}), falling back to Gemini")
+
+    # Fallback to Gemini
+    if settings.gemini_api_key:
+        try:
+            translation = _call_gemini(system_prompt, text)
+            return translation, "gemini"
+        except Exception as e:
+            import logging
+            logging.warning(f"Gemini translation also failed ({type(e).__name__})")
+            raise TranslationError(f"Both GLM and Gemini failed: {e}")
+
+    raise TranslationError("No translation providers configured (GLM + Gemini keys missing)")
+
+
 def translate(text: str, target_language_code: str) -> str:
     text = text.strip()
     if not text:
         return ""
     target_language = LANGUAGES.get(target_language_code, target_language_code)
-    system_prompt = _SYSTEM_PROMPT.format(target_language=target_language)
-    call = _TRANSLATORS[settings.translate_provider]
     try:
-        return call(system_prompt, text)
+        translation, provider_used = _translate_with_fallback(text, target_language)
+        return translation
+    except TranslationError as exc:
+        raise exc from None
     except Exception as exc:  # noqa: BLE001 - any provider failure degrades the same way
         raise TranslationError(str(exc)) from exc

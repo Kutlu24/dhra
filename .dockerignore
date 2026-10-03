@@ -7,3 +7,7 @@ __pycache__
 demo_store
 store
 tests
+.env
+.env.*
+**/.env
+**/.env.*

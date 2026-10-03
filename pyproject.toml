@@ -9,6 +9,7 @@ description = "Digital Humanities Research Assistant -- local-first, provenance-
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.0",
+    "pyjwt>=2.15.0",
     "requests>=2.31",
     "pyyaml>=6.0",
     "convertdate>=2.5",

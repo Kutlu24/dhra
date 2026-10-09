@@ -18,6 +18,7 @@ let it propagate -- see test_web.py for the web-layer half of this.
 
 from __future__ import annotations
 
+import re
 import os
 
 import pytest
@@ -452,7 +453,9 @@ def test_review_paper_finds_real_candidate_evidence_and_never_assigns_status(rep
 
     draft = get_draft(repo, draft_id)
     assert "bridge at Tokat" in draft.text  # real candidate evidence (the matched span), found by real search
-    assert "E1" not in draft.text and "E5" not in draft.text  # no status assigned -- that's still assess_claim's job
+    # no status assigned -- that's still assess_claim's job. Word-boundary match: event ids are random
+    # ULIDs that can contain "E1"/"E5" as substrings, which made a plain `in` check flaky.
+    assert not re.search(r"\bE[1-5]\b", draft.text)
 
     # no claim.assessed event exists from this -- confirmed at the projection level, not just text-absence
     assert repo.projection().claims == {}

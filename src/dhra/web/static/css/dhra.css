@@ -138,10 +138,11 @@ body {
 /* ---- sidebar / nav (scoped to aside: a bare `nav` selector would also
    restyle the footer's link columns into a stacked flex column) ---- */
 aside {
-  /* 240px was already tight for nav labels at the old, smaller font size;
-     the longer German labels (e.g. "Forschungsassistent") genuinely
-     overflowed their link box once the sidebar font grew -- 264px gives
-     that room back. */
+  /* 264px gives long Internationalized labels (e.g. German
+     "Forschungsassistent") enough room. align-self: flex-start keeps
+     the sidebar pinned on tall pages; on mobile (below) we reset both
+     the flex basis and align-self so the sidebar spans full width and
+     the page never scrolls sideways. */
   width: 264px; flex: 0 0 264px; padding: 1.75rem 1.25rem; border-right: 1px solid var(--border);
   position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto;
   background: var(--surface-2);
@@ -401,8 +402,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 @media (max-width: 720px) {
   body { flex-direction: column; }
-  aside {
-    width: auto; flex: none; position: static; height: auto;
+  aside { width: 100%; flex: 0 0 auto; align-self: auto;
     border-right: none; border-bottom: 1px solid var(--border);
     padding: .9rem 1rem .5rem;
     display: flex; flex-wrap: wrap; align-items: center; gap: .55rem .8rem;

@@ -50,9 +50,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str | None = None
-    groq_model: str = "mixtral-8x7b-32768"
+    groq_model: str = "llama-3.3-70b-versatile"
     anthropic_api_key: str | None = None
-    anthropic_model: str = "claude-3-5-haiku-20241022"
+    anthropic_model: str = "claude-haiku-4-5"
 
     model_config = SettingsConfigDict(
         env_file=str(PROJECT_ROOT / ".env"), extra="ignore"

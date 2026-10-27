@@ -91,12 +91,13 @@ def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]
     ]
     for name, func, key in providers:
         if not key:
+            logging.warning(f"{name.upper()} translation skipped: no API key configured")
             continue
         try:
             translation = func(system_prompt, text)
             return translation, name
         except Exception as e:
-            logging.warning(f"{name.upper()} translation failed ({type(e).__name__}), trying next provider")
+            logging.warning(f"{name.upper()} translation failed ({type(e).__name__}: {str(e)[:300]}), trying next provider")
     raise TranslationError("All translation providers failed or not configured")
 
 

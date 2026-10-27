@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str | None = None
     groq_model: str = "llama-3.3-70b-versatile"
+    # Speech-to-text backend: "auto" uses Groq's hosted Whisper when a Groq
+    # key is set (about a second per utterance, vs ~40s for local Whisper on
+    # Render's free CPU) and the local faster-whisper otherwise; "local"
+    # forces the local model even with a key present.
+    stt_provider: str = "auto"  # "auto" | "groq" | "local"
+    groq_stt_model: str = "whisper-large-v3-turbo"
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-haiku-4-5"
 

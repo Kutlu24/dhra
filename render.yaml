@@ -43,6 +43,10 @@ services:
       # the home server's), so call Z.AI directly.
       - key: GLM_BASE_URL
         value: "https://api.z.ai/api/paas/v4/"
+      # Groq key: hosted Whisper for speech-to-text (local Whisper takes ~40s
+      # per utterance on Render's free CPU), also the translation fallback.
+      - key: GROQ_API_KEY
+        sync: false
       - key: WHISPER_MODEL_SIZE
         value: "base"
         # NOTE: this now shares DHRA's own 512MB free-tier instance rather

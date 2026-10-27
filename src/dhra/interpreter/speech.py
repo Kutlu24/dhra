@@ -13,6 +13,7 @@ Both replaced an earlier OpenAI-based version - see README for why.
 from __future__ import annotations
 
 import asyncio
+import logging
 import tempfile
 import threading
 from pathlib import Path
@@ -57,7 +58,27 @@ def _get_model() -> WhisperModel:
     return _model
 
 
+def _transcribe_groq(audio_bytes: bytes, filename: str, language_hint: str) -> str:
+    from openai import OpenAI
+
+    client = OpenAI(api_key=settings.groq_api_key, base_url="https://api.groq.com/openai/v1", timeout=30.0, max_retries=1)
+    kwargs = {"language": language_hint} if language_hint else {}
+    result = client.audio.transcriptions.create(
+        file=(filename or "utterance.webm", audio_bytes), model=settings.groq_stt_model, temperature=0.0, **kwargs
+    )
+    return (result.text or "").strip()
+
+
 def transcribe(audio_bytes: bytes, filename: str, language_hint: str = "") -> str:
+    if settings.stt_provider in ("auto", "groq") and settings.groq_api_key:
+        try:
+            return _transcribe_groq(audio_bytes, filename, language_hint)
+        except Exception as exc:  # noqa: BLE001 - degrade to the local model, same as translate's fallback chain
+            logging.warning(f"GROQ transcription failed ({type(exc).__name__}, status={getattr(exc, 'status_code', None)}), using local Whisper")
+    return _transcribe_local(audio_bytes, filename, language_hint)
+
+
+def _transcribe_local(audio_bytes: bytes, filename: str, language_hint: str = "") -> str:
     """language_hint is the speaker's declared room language (ISO-639-1,
     e.g. "tr") - passed through as a hint, not a hard constraint: it
     measurably improves accuracy/latency when known, but Whisper still

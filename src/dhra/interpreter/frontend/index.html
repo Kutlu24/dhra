@@ -633,8 +633,8 @@ let recordingMimeType = '';
 // what keeps translation latency at "per sentence" regardless of how long
 // the overall conversation runs, instead of "wait for the whole paragraph"
 // the old press-and-release-once-per-paragraph interaction encouraged.
-const VAD_SILENCE_MS = 700;        // pause length that ends an utterance
-const VAD_MAX_SEGMENT_MS = 15000;  // force-cut a very long unbroken sentence
+const VAD_SILENCE_MS = 450;        // pause length that ends an utterance
+const VAD_MAX_SEGMENT_MS = 6000;   // force-cut a very long unbroken sentence
 const VAD_ABS_MIN_RMS = 0.02;      // floor so a near-silent room can't self-trigger
 const VAD_VOICE_MULTIPLIER = 2.2;  // how far above the noise floor counts as speech
 

@@ -39,6 +39,10 @@ services:
       # separately - see that repo's own render.yaml, now unused).
       - key: GLM_API_KEY
         sync: false
+      # Render has no OmniRoute gateway (the code's default base URL points at
+      # the home server's), so call Z.AI directly.
+      - key: GLM_BASE_URL
+        value: "https://api.z.ai/api/paas/v4/"
       - key: WHISPER_MODEL_SIZE
         value: "base"
         # NOTE: this now shares DHRA's own 512MB free-tier instance rather

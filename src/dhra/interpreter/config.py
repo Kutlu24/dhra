@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     # Speech-to-text backend: "auto" uses Groq's hosted Whisper when a Groq
     # key is set (about a second per utterance, vs ~40s for local Whisper on
     # Render's free CPU) and the local faster-whisper otherwise; "local"

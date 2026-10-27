@@ -97,7 +97,9 @@ def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]
             translation = func(system_prompt, text)
             return translation, name
         except Exception as e:
-            logging.warning(f"{name.upper()} translation failed ({type(e).__name__}: {str(e)[:300]}), trying next provider")
+            # Type + HTTP status only: provider error bodies can echo key fragments or the utterance text.
+            status = getattr(e, "status_code", None)
+            logging.warning(f"{name.upper()} translation failed ({type(e).__name__}, status={status}), trying next provider")
     raise TranslationError("All translation providers failed or not configured")
 
 

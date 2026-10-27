@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # Text translation only (cheap, text-in/text-out) - reuse GLM the same way
     # fundraising-assistant does: free-tier, and on a separate quota from
     # Gemini, so it doesn't compete with other projects' Gemini usage.
-    translate_provider: str = "glm"  # "glm" | "gemini" | "groq" | "anthropic"
+    translate_provider: str = "auto"  # "auto" | "glm" | "gemini" | "groq" | "anthropic" (first tried; the rest are fallbacks)
     glm_api_key: str | None = None
     glm_model: str = "glm-4.5-flash"
     glm_base_url: str = "http://omniroute:20129/v1/"  # OmniRoute (multi-provider gateway with fallback)

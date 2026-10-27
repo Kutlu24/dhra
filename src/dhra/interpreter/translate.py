@@ -80,7 +80,7 @@ _TRANSLATORS = {
 
 
 def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]:
-    """4-provider fallback chain: GLM → Gemini → Groq → Claude API"""
+    """4-provider fallback chain; order set by settings.translate_provider (default 'auto': Groq if keyed, then GLM → Gemini → Claude API)"""
     import logging
     system_prompt = _SYSTEM_PROMPT.format(target_language=target_language)
     providers = [
@@ -89,6 +89,11 @@ def _translate_with_fallback(text: str, target_language: str) -> tuple[str, str]
         ("groq", _call_groq, settings.groq_api_key),
         ("anthropic", _call_anthropic, settings.anthropic_api_key),
     ]
+    # Primary first, the rest keep their order as fallbacks. "auto" prefers
+    # Groq when it has a key (sub-second vs ~4-5s for GLM on a short
+    # utterance - the difference between feeling simultaneous or not).
+    primary = "groq" if settings.translate_provider == "auto" and settings.groq_api_key else settings.translate_provider
+    providers.sort(key=lambda p: p[0] != primary)
     for name, func, key in providers:
         if not key:
             logging.warning(f"{name.upper()} translation skipped: no API key configured")

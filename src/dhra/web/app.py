@@ -81,7 +81,7 @@ from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
 from dhra.web.security import AttemptLimiter, SecurityConfig, SecurityMiddleware, client_ip, is_https, user_cookie_value
-from dhra.web.session import SESSION_COOKIE, SESSION_MAX_AGE, make_serializer, session_cookie_value, user_id_from_cookie
+from dhra.web.session import SESSION_COOKIE, SESSION_MAX_AGE, make_serializer, session_cookie_value, session_from_cookie
 from dhra.trace import audit_narrative, trace_decisions, trace_raw, trace_summary
 from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError
 
@@ -207,7 +207,7 @@ def build_app(
     _serializer = make_serializer(session_secret or secrets.token_urlsafe(32)) if account_store is not None else None
     _user_repos: dict[str, DHRARepo] = {}
 
-    _revoked: dict[str, float] = {}  # logged-out cookie values -> expiry (in-process)
+    _revoked: dict[tuple[str, str], float] = {}  # logged-out (user_id, session id) -> expiry (in-process)
     _login_limiter_user = AttemptLimiter(5, 15 * 60)    # failures per username
     _login_limiter_ip = AttemptLimiter(20, 15 * 60)     # failures per client address
     _signup_limiter = AttemptLimiter(5, 60 * 60)        # sign-up attempts per client address
@@ -216,17 +216,15 @@ def build_app(
         return {k.lower(): v for k, v in request.headers.items()}
 
     def _client_ip(request: Request) -> str:
-        return client_ip(_header_dict(request), (request.client.host, 0) if request.client else None, security.trust_proxy)
+        return client_ip(_header_dict(request), (request.client.host, 0) if request.client else None, security.trust_proxy, security.proxy_hops)
 
     def _user_from_cookie(value: str | None) -> Account | None:
         if account_store is None or _serializer is None or not value:
             return None
-        if _revoked.get(value, 0) > time.time():
+        session = session_from_cookie(_serializer, value)
+        if session is None or _revoked.get(session, 0) > time.time():
             return None
-        user_id = user_id_from_cookie(_serializer, value)
-        if user_id is None:
-            return None
-        return account_store.get_by_id(user_id)
+        return account_store.get_by_id(session[0])
 
     def _current_user(request: Request) -> Account | None:
         return _user_from_cookie(request.cookies.get(SESSION_COOKIE))
@@ -385,12 +383,12 @@ def build_app(
     @app.post("/logout")
     def logout(request: Request) -> RedirectResponse:
         resp = RedirectResponse("/", status_code=303)
-        cookie = request.cookies.get(SESSION_COOKIE)
-        if cookie:  # sessions are stateless: remember the logged-out value so it stops working server-side too
+        session = session_from_cookie(_serializer, request.cookies.get(SESSION_COOKIE)) if _serializer is not None else None
+        if session is not None:  # sessions are stateless: revoke the signed (user, session id) so every spelling of the cookie stops working
             now = time.time()
             for k in [k for k, exp in _revoked.items() if exp <= now]:
                 del _revoked[k]
-            _revoked[cookie] = now + SESSION_MAX_AGE
+            _revoked[session] = now + SESSION_MAX_AGE
         resp.delete_cookie(SESSION_COOKIE, secure=_cookie_secure(request), httponly=True, samesite="lax")
         return resp
 

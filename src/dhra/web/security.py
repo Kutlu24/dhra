@@ -48,6 +48,7 @@ class SecurityConfig:
     signup_closed: bool = False
     allowed_origins: frozenset[str] = frozenset()
     trust_proxy: bool = False
+    proxy_hops: int = 1  # trusted proxies in front; X-Forwarded-For is read this many entries from the right
     cookie_secure: bool | None = None  # None = decide per request
 
     @classmethod
@@ -64,18 +65,28 @@ class SecurityConfig:
             signup_closed=os.environ.get("DHRA_SIGNUP", "open").strip().lower() == "closed",
             allowed_origins=frozenset(origins),
             trust_proxy=_env_bool("DHRA_TRUST_PROXY"),
+            proxy_hops=_env_hops(),
             cookie_secure=None if secure_raw is None else _env_bool("DHRA_COOKIE_SECURE"),
         )
 
 
-def client_ip(headers: dict[str, str], client: Any, trust_proxy: bool) -> str:
-    """Peer address. X-Forwarded-For is only believed when the operator says
-    a trusted proxy sets it; otherwise any client could pick its own
-    rate-limit bucket."""
+def _env_hops() -> int:
+    try:
+        return max(1, int(os.environ.get("DHRA_PROXY_HOPS", "1")))
+    except ValueError:
+        return 1
+
+
+def client_ip(headers: dict[str, str], client: Any, trust_proxy: bool, hops: int = 1) -> str:
+    """Peer address. With a trusted proxy, X-Forwarded-For is read from the
+    RIGHT: each proxy appends the address it saw, so the entries the client
+    itself wrote sit on the left and are spoofable; the entry `hops` from the
+    right is the first one a trusted proxy vouches for. Without a trusted
+    proxy the header is ignored entirely."""
     if trust_proxy:
-        forwarded = headers.get("x-forwarded-for", "").split(",")[0].strip()
-        if forwarded:
-            return forwarded
+        parts = [p.strip() for p in headers.get("x-forwarded-for", "").split(",") if p.strip()]
+        if parts:
+            return parts[-min(hops, len(parts))]
     return client[0] if client else "unknown"
 
 
@@ -87,36 +98,57 @@ def is_https(headers: dict[str, str], scheme: str, trust_proxy: bool) -> bool:
 
 class AttemptLimiter:
     """Sliding-window attempt counter, in-process (like the rest of this
-    app's state: single process; with several workers each has its own)."""
+    app's state: single process; with several workers each has its own).
 
-    def __init__(self, max_attempts: int, window_seconds: float, clock: Callable[[], float] = time.monotonic):
+    The key table is bounded. When it fills up, expired windows are dropped
+    first; if it is still full, NEW keys are treated as blocked (fail
+    closed). Never evict a live key to make room: an attacker spraying
+    fresh keys could otherwise push out the very key being throttled."""
+
+    MAX_KEYS = 50_000
+
+    def __init__(self, max_attempts: int, window_seconds: float, clock: Callable[[], float] = time.monotonic, max_keys: int | None = None):
         self.max_attempts = max_attempts
         self.window = window_seconds
         self._clock = clock
+        self._max_keys = max_keys or self.MAX_KEYS
         self._hits: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
     def _prune(self, key: str) -> deque[float]:
-        hits = self._hits.setdefault(key, deque())
+        hits = self._hits.get(key)
+        if hits is None:
+            return deque()
         cutoff = self._clock() - self.window
         while hits and hits[0] < cutoff:
             hits.popleft()
         if not hits:
-            self._hits.pop(key, None)
+            del self._hits[key]
             return deque()
         return hits
 
+    def _purge_expired(self) -> None:
+        for k in list(self._hits):
+            self._prune(k)
+
+    def _saturated_for_new(self, key: str) -> bool:
+        if key in self._hits or len(self._hits) < self._max_keys:
+            return False
+        self._purge_expired()
+        return key not in self._hits and len(self._hits) >= self._max_keys
+
     def blocked(self, key: str) -> bool:
         with self._lock:
+            if self._saturated_for_new(key):
+                return True
             return len(self._prune(key)) >= self.max_attempts
 
     def record(self, key: str) -> None:
         with self._lock:
+            if self._saturated_for_new(key):
+                return  # fail closed: blocked() already refuses this key
             self._prune(key)
             self._hits.setdefault(key, deque()).append(self._clock())
-            if len(self._hits) > 10_000:  # bound memory under key-spraying
-                for k in list(self._hits)[:5_000]:
-                    self._hits.pop(k, None)
 
     def reset(self, key: str) -> None:
         with self._lock:
@@ -124,6 +156,8 @@ class AttemptLimiter:
 
     def retry_after(self, key: str) -> int:
         with self._lock:
+            if self._saturated_for_new(key):
+                return max(1, int(self.window))
             hits = self._prune(key)
             if len(hits) < self.max_attempts:
                 return 0

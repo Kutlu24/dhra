@@ -490,6 +490,7 @@ DHRA_SESSION_SECRET=<long random string>   # required with DHRA_REQUIRE_AUTH
 DHRA_REQUIRE_AUTH=1        # every page (incl. /interpreter) needs a login
 DHRA_SIGNUP=closed         # no self-service sign-up
 DHRA_TRUST_PROXY=1         # only behind your own reverse proxy (TLS)
+DHRA_PROXY_HOPS=1          # trusted proxies in front; X-Forwarded-For is read from the right
 DHRA_ALLOWED_ORIGINS=https://dhra.example.org   # if the proxy changes the Host
 dhra user-add alice        # administrators create accounts (password is prompted)
 ```

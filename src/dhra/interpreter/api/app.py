@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, Response
 from .. import speech, translate
 from ..config import LANGUAGES
 from ..rooms import MAX_PARTICIPANTS, Participant, RoomLimitError, registry, valid_room_id
-from dhra.web.security import AttemptLimiter, client_ip
+from dhra.web.security import AttemptLimiter, _env_hops, client_ip
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 
@@ -27,7 +27,7 @@ _tts_limiter = AttemptLimiter(60, 60)
 
 def _throttle(limiter: AttemptLimiter, request: Request) -> None:
     headers = {k.lower(): v for k, v in request.headers.items()}
-    key = client_ip(headers, (request.client.host, 0) if request.client else None, _TRUST_PROXY)
+    key = client_ip(headers, (request.client.host, 0) if request.client else None, _TRUST_PROXY, _env_hops())
     if limiter.blocked(key):
         raise HTTPException(429, "Too many requests; slow down.", headers={"Retry-After": str(limiter.retry_after(key))})
     limiter.record(key)

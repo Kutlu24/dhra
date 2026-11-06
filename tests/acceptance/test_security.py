@@ -215,3 +215,74 @@ def test_interpreter_websocket_cross_origin_refused(tmp_path):
     with pytest.raises(Exception):
         with c.websocket_connect("/interpreter/ws/abcdef12", headers={"Origin": "https://evil.example"}):
             pass
+
+
+# -- review follow-ups: revocation key, X-Forwarded-For, limiter saturation ---
+
+def _alt_spellings(cookie: str) -> list[str]:
+    """Other spellings of the same signed cookie (non-canonical base64: the
+    last character's unused low bits are ignored by the decoder)."""
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    return [cookie[:-1] + ch for ch in alphabet if ch != cookie[-1]]
+
+
+def test_logout_revokes_every_spelling_of_the_cookie(tmp_path):
+    from itsdangerous import BadSignature
+    from dhra.web.session import make_serializer, session_from_cookie
+
+    c = TestClient(make(tmp_path))
+    signup(c, "carol")
+    cookie = c.cookies.get("dhra_session")
+    ser = make_serializer("s" * 32)
+    valid_alts = [alt for alt in _alt_spellings(cookie) if session_from_cookie(ser, alt) is not None]
+    c.post("/logout")
+    c.cookies.clear()
+    for variant in [cookie, *valid_alts]:
+        assert "carol" not in c.get("/", headers={"Cookie": f"dhra_session={variant}"}).text
+    # (valid_alts may be empty if the codec is strict -- the revocation key does not depend on it)
+    assert session_from_cookie(ser, cookie) is not None
+
+
+def test_revocation_is_per_session_not_per_user(tmp_path):
+    c1, c2 = TestClient(make(tmp_path)), None
+    app = c1.app
+    c2 = TestClient(app)
+    signup(c1, "dave")
+    c2.post("/login", data={"username": "dave", "password": PW})
+    first, second = c1.cookies.get("dhra_session"), c2.cookies.get("dhra_session")
+    assert first != second
+    c1.post("/logout")
+    assert "dave" in c2.get("/").text  # other device stays signed in
+
+
+def test_client_ip_reads_forwarded_for_from_the_right():
+    from dhra.web.security import client_ip
+
+    h = {"x-forwarded-for": "6.6.6.6, 10.0.0.9, 203.0.113.7"}
+    assert client_ip(h, ("10.0.0.1", 0), False) == "10.0.0.1"          # header ignored without trusted proxy
+    assert client_ip(h, ("10.0.0.1", 0), True, 1) == "203.0.113.7"      # what the proxy itself saw
+    assert client_ip(h, ("10.0.0.1", 0), True, 2) == "10.0.0.9"         # two trusted hops
+    assert client_ip({"x-forwarded-for": "spoof"}, ("10.0.0.1", 0), True, 1) == "spoof"
+    assert client_ip({}, ("10.0.0.1", 0), True) == "10.0.0.1"
+
+
+def test_spoofed_forwarded_for_cannot_dodge_login_lockout(tmp_path):
+    c = TestClient(make(tmp_path, trust_proxy=True, proxy_hops=1))
+    signup(c, "erin")
+    c.post("/logout"); c.cookies.clear()
+    codes = [c.post("/login", data={"username": "erin", "password": f"x{i}"},
+                    headers={"X-Forwarded-For": f"9.9.9.{i}, 203.0.113.7"}).status_code for i in range(8)]
+    assert 429 in codes
+
+
+def test_limiter_never_evicts_a_live_key_and_fails_closed_when_full():
+    now = [0.0]
+    lim = AttemptLimiter(2, 100, clock=lambda: now[0], max_keys=5)
+    lim.record("victim"); lim.record("victim")
+    assert lim.blocked("victim")
+    for i in range(50):  # key spraying
+        lim.record(f"spray{i}")
+    assert lim.blocked("victim")            # still throttled -- not evicted
+    assert lim.blocked("brand-new-key")     # table full of live keys -> new keys refused
+    now[0] = 101                            # windows expire -> room again
+    assert not lim.blocked("brand-new-key")

@@ -275,14 +275,43 @@ def test_spoofed_forwarded_for_cannot_dodge_login_lockout(tmp_path):
     assert 429 in codes
 
 
-def test_limiter_never_evicts_a_live_key_and_fails_closed_when_full():
+def test_limiter_full_table_hurts_neither_side():
     now = [0.0]
     lim = AttemptLimiter(2, 100, clock=lambda: now[0], max_keys=5)
     lim.record("victim"); lim.record("victim")
     assert lim.blocked("victim")
-    for i in range(50):  # key spraying
+    for i in range(50):  # key spraying: one hit each, never throttled
+        now[0] += 0.1
         lim.record(f"spray{i}")
-    assert lim.blocked("victim")            # still throttled -- not evicted
-    assert lim.blocked("brand-new-key")     # table full of live keys -> new keys refused
-    now[0] = 101                            # windows expire -> room again
-    assert not lim.blocked("brand-new-key")
+    assert lim.blocked("victim")                 # throttled key is never evicted
+    assert not lim.blocked("brand-new-key")      # newcomers are not locked out by a full table
+    assert len(lim._hits) <= 5
+
+
+def test_limiter_with_every_key_throttled_leaves_newcomers_untracked_not_blocked():
+    now = [0.0]
+    lim = AttemptLimiter(1, 100, clock=lambda: now[0], max_keys=3)
+    for k in ("a", "b", "c"):
+        lim.record(k)
+    lim.record("late")                            # no room, nothing evictable
+    assert not lim.blocked("late") and all(lim.blocked(k) for k in ("a", "b", "c"))
+
+
+def test_limiter_sweeps_expired_windows_rarely_not_per_request():
+    now = [0.0]
+    lim = AttemptLimiter(5, 10, clock=lambda: now[0], max_keys=3)
+    for k in ("a", "b", "c"):
+        lim.record(k)
+    now[0] = 20                                   # all expired
+    lim.record("d")                               # sweep frees space
+    assert set(lim._hits) == {"d"}
+
+
+def test_ipv6_clients_share_one_slash64_bucket():
+    from dhra.web.security import client_ip
+
+    a = client_ip({}, ("2001:db8:1:2:aaaa::1", 0), False)
+    b = client_ip({}, ("2001:db8:1:2:bbbb::9", 0), False)
+    c = client_ip({}, ("2001:db8:1:3::1", 0), False)
+    assert a == b and a != c and a.endswith("/64")
+    assert client_ip({}, ("203.0.113.9", 0), False) == "203.0.113.9"

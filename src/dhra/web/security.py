@@ -19,6 +19,7 @@ the stricter, internal-deployment behaviour is opt-in via environment:
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import threading
 import time
@@ -77,6 +78,19 @@ def _env_hops() -> int:
         return 1
 
 
+def _bucket(addr: str) -> str:
+    """Rate-limit bucket for an address: IPv6 clients usually control a whole
+    /64, so counting single addresses would hand one attacker unlimited
+    fresh keys. IPv4 (and anything unparseable) is used as is."""
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return addr
+    if ip.version == 6:
+        return str(ipaddress.ip_network(f"{ip}/64", strict=False).network_address) + "/64"
+    return addr
+
+
 def client_ip(headers: dict[str, str], client: Any, trust_proxy: bool, hops: int = 1) -> str:
     """Peer address. With a trusted proxy, X-Forwarded-For is read from the
     RIGHT: each proxy appends the address it saw, so the entries the client
@@ -86,8 +100,8 @@ def client_ip(headers: dict[str, str], client: Any, trust_proxy: bool, hops: int
     if trust_proxy:
         parts = [p.strip() for p in headers.get("x-forwarded-for", "").split(",") if p.strip()]
         if parts:
-            return parts[-min(hops, len(parts))]
-    return client[0] if client else "unknown"
+            return _bucket(parts[-min(hops, len(parts))])
+    return _bucket(client[0]) if client else "unknown"
 
 
 def is_https(headers: dict[str, str], scheme: str, trust_proxy: bool) -> bool:
@@ -100,12 +114,18 @@ class AttemptLimiter:
     """Sliding-window attempt counter, in-process (like the rest of this
     app's state: single process; with several workers each has its own).
 
-    The key table is bounded. When it fills up, expired windows are dropped
-    first; if it is still full, NEW keys are treated as blocked (fail
-    closed). Never evict a live key to make room: an attacker spraying
-    fresh keys could otherwise push out the very key being throttled."""
+    The key table is bounded, and the bound must hurt neither side:
+      - a key that has reached `max_attempts` (throttled) is never evicted,
+        so spraying fresh keys cannot free the one being throttled;
+      - an unseen key is never refused just because the table is full, so
+        spraying cannot lock legitimate users out either;
+      - to make room, expired windows go first (swept at most every few
+        seconds, not per request), then the least recently active key that
+        is not throttled;
+      - only if every key is throttled is a new key left untracked."""
 
     MAX_KEYS = 50_000
+    SWEEP_INTERVAL = 5.0
 
     def __init__(self, max_attempts: int, window_seconds: float, clock: Callable[[], float] = time.monotonic, max_keys: int | None = None):
         self.max_attempts = max_attempts
@@ -113,6 +133,7 @@ class AttemptLimiter:
         self._clock = clock
         self._max_keys = max_keys or self.MAX_KEYS
         self._hits: dict[str, deque[float]] = {}
+        self._last_sweep = float("-inf")
         self._lock = threading.Lock()
 
     def _prune(self, key: str) -> deque[float]:
@@ -127,26 +148,34 @@ class AttemptLimiter:
             return deque()
         return hits
 
-    def _purge_expired(self) -> None:
-        for k in list(self._hits):
-            self._prune(k)
-
-    def _saturated_for_new(self, key: str) -> bool:
-        if key in self._hits or len(self._hits) < self._max_keys:
+    def _make_room(self) -> bool:
+        """True if a new key can be stored."""
+        if len(self._hits) < self._max_keys:
+            return True
+        now = self._clock()
+        if now - self._last_sweep >= self.SWEEP_INTERVAL:
+            self._last_sweep = now
+            for k in list(self._hits):
+                self._prune(k)
+            if len(self._hits) < self._max_keys:
+                return True
+        victim, oldest = None, float("inf")
+        for k, hits in self._hits.items():
+            if len(hits) < self.max_attempts and hits[-1] < oldest:
+                victim, oldest = k, hits[-1]
+        if victim is None:
             return False
-        self._purge_expired()
-        return key not in self._hits and len(self._hits) >= self._max_keys
+        del self._hits[victim]
+        return True
 
     def blocked(self, key: str) -> bool:
         with self._lock:
-            if self._saturated_for_new(key):
-                return True
             return len(self._prune(key)) >= self.max_attempts
 
     def record(self, key: str) -> None:
         with self._lock:
-            if self._saturated_for_new(key):
-                return  # fail closed: blocked() already refuses this key
+            if key not in self._hits and not self._make_room():
+                return
             self._prune(key)
             self._hits.setdefault(key, deque()).append(self._clock())
 
@@ -156,8 +185,6 @@ class AttemptLimiter:
 
     def retry_after(self, key: str) -> int:
         with self._lock:
-            if self._saturated_for_new(key):
-                return max(1, int(self.window))
             hits = self._prune(key)
             if len(hits) < self.max_attempts:
                 return 0

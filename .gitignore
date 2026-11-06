@@ -10,3 +10,6 @@ __pycache__/
 .env*
 /build/
 /dist/
+
+# local copy of the shared lab models (large; lives on the share, not in git)
+/models/

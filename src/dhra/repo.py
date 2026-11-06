@@ -308,14 +308,17 @@ class DHRARepo:
         redistributable: bool | None = None,
         original_reference: str | None = None,
         task: str | None = None,
+        transcriber: Transcriber | None = None,
     ) -> tuple[str, str]:
-        """OCR via the real system `tesseract` binary. `lang` must be one
+        """OCR via the real system `tesseract` binary (or `transcriber`, e.g.
+        a registry HTR model, when given -- its producer/version is what gets
+        recorded as provenance). `lang` must be one
         of `tesseract --list-langs`; only `eng` is installed in this
         environment (see OPEN_QUESTIONS.md #6 -- manuscript-script OCR
         needs its own trained data, not assumed present)."""
         return self._ingest(
             data,
-            transcriber=TesseractTranscriber(lang=lang),
+            transcriber=transcriber or TesseractTranscriber(lang=lang),
             media_type=media_type,
             source_id=source_id,
             method="manual_upload",

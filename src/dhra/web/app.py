@@ -69,6 +69,7 @@ from dhra.literature_watch import (
     remove_watch_query,
     restore_candidate,
 )
+from dhra.model_registry import GatewayTranscriber, ModelGatewayError, load_registry, registry_path_from_env, require_gateway, usable
 from dhra.llm import LLMClient, LLMConfig, LLMError
 from dhra.models import ExclusionReason, Locator
 from dhra.peer_review import review_paper
@@ -154,6 +155,21 @@ def build_app(
     templates.env.globals["status_label"] = lambda s, lang: translate(lang, STATUS_LABEL_KEYS.get(Status(s), ""))
     templates.env.globals["languages"] = LANGUAGES
     templates.env.globals["language_labels"] = LANGUAGE_LABELS
+    _registry_path = registry_path_from_env()
+    _registry_cache: dict[str, Any] = {}
+
+    def _model_registry() -> list:
+        """Empty when DHRA_MODELS_REGISTRY is unset or unreadable -- the
+        model pickers then simply do not render (e.g. the Render demo)."""
+        if _registry_path is None:
+            return []
+        if "entries" not in _registry_cache:
+            try:
+                _registry_cache["entries"] = load_registry(_registry_path)
+            except (OSError, ValueError):
+                _registry_cache["entries"] = []
+        return _registry_cache["entries"]
+
     if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -242,6 +258,8 @@ def build_app(
             "t": lambda key, **kw: translate(lang, key, **kw),
             "current_user": _current_user(request),
             "accounts_enabled": account_store is not None,
+            "htr_models": usable(_model_registry(), "htr"),
+            "llm_models": usable(_model_registry(), "llm"),
             **extra,
         }
 
@@ -421,13 +439,25 @@ def build_app(
         return resp
 
     @app.post("/chat", response_class=HTMLResponse)
-    def chat_post(request: Request, message: str = Form(...), history_json: str = Form("[]")) -> HTMLResponse:
+    def chat_post(request: Request, message: str = Form(...), history_json: str = Form("[]"), llm_model_id: str = Form("")) -> HTMLResponse:
         repo = _current_repo(request)
         try:
             history = json.loads(history_json)
         except json.JSONDecodeError:
             history = []
         client = _llm_client_or_none()
+        model_error = None
+        if llm_model_id:
+            # A registry model was chosen: never answer with a different
+            # model than the one asked for -- degrade to evidence-only and
+            # say why.
+            if not any(m.id == llm_model_id for m in usable(_model_registry(), "llm")):
+                llm_model_id, model_error = "", "unknown or disabled model"
+            else:
+                try:
+                    require_gateway()
+                except ModelGatewayError as exc:
+                    client, model_error = None, str(exc)
         lang = resolve_language(request.cookies.get(LANGUAGE_COOKIE))
         result = chat_answer(repo, client, question=message, history=history, lang=lang)
 
@@ -453,7 +483,7 @@ def build_app(
         return templates.TemplateResponse(
             request,
             "chat.html",
-            _ctx("chat", request, history=updated_history, history_json=json.dumps(updated_history), llm_configured=client is not None),
+            _ctx("chat", request, history=updated_history, history_json=json.dumps(updated_history), llm_configured=client is not None or model_error is not None, model_error=model_error, selected_llm_model=llm_model_id),
         )
 
     # --- Ingestion: manual_upload only (real network acquisition, e.g.
@@ -472,6 +502,7 @@ def build_app(
         licence_id: str = Form(""),
         original_reference: str = Form(""),
         text: str = Form(""),
+        model_id: str = Form(""),
         file: UploadFile | None = None,
     ) -> RedirectResponse:
         repo = _current_repo(request)
@@ -487,7 +518,16 @@ def build_app(
             if name.endswith(".pdf"):
                 item_id, _rep_id = repo.ingest_pdf(data, **kwargs)
             elif name.endswith((".png", ".jpg", ".jpeg", ".tif", ".tiff")):
-                item_id, _rep_id = repo.ingest_image(data, **kwargs)
+                transcriber = None
+                if model_id:
+                    entry = next((m for m in usable(_model_registry(), "htr") if m.id == model_id), None)
+                    if entry is None:
+                        raise HTTPException(status_code=400, detail="unknown or disabled model")
+                    transcriber = GatewayTranscriber(entry)
+                try:
+                    item_id, _rep_id = repo.ingest_image(data, transcriber=transcriber, **kwargs)
+                except ModelGatewayError as exc:
+                    raise HTTPException(status_code=503, detail=str(exc)) from exc
             elif name.endswith((".xml", ".tei")):
                 item_id, _rep_id = repo.ingest_tei(data, **kwargs)
             else:

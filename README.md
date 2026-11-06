@@ -465,3 +465,17 @@ before relying on this against real archival material:
   "the event log is the shared medium."
 - **#8** — status demotion doesn't yet flag dependent claims as
   `needs_review`.
+
+## Shared model registry (optional)
+
+Set `DHRA_MODELS_REGISTRY` to the lab's `models.yaml` (read-only; per-model
+files in a sibling `trained/` directory are merged in) and the UI gains two
+pickers: a transcription model on `/ingest` (image uploads) and a language
+model on `/chat`. Unset (e.g. the Render demo), nothing changes.
+
+Running a registry model needs the model gateway: set `DHRA_ATR_GATEWAY_URL`
+and fill in `GatewayTranscriber` in `src/dhra/model_registry.py` from the
+gateway's `/recognize` contract. Until then, choosing a registry model fails
+with an explicit message (ingest: HTTP 503; chat: evidence-only plus the
+reason) -- it never silently falls back to another engine, because the engine
+is recorded as provenance.

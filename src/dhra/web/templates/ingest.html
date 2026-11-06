@@ -18,6 +18,15 @@
   <p><label>{{ t('ingest.reference_label') }}<br><input type="text" name="original_reference"></label></p>
   <p><label>{{ t('ingest.paste_label') }}<br><textarea name="text" rows="6" placeholder="{{ t('ingest.paste_placeholder') }}"></textarea></label></p>
   <p><label>{{ t('ingest.file_label') }}<br><input type="file" name="file"></label></p>
+  {% if htr_models %}
+  <p><label>{{ t('models.htr_label') }}<br>
+    <select name="model_id">
+      <option value="">{{ t('models.default_engine') }}</option>
+      {% for m in htr_models %}<option value="{{ m.id }}" title="{{ m.description }}">{{ m.label }}</option>{% endfor %}
+    </select>
+  </label></p>
+  <p class="muted">{{ t('models.gateway_note') }}</p>
+  {% endif %}
   <button type="submit">{{ t('ingest.submit') }}</button>
 </form>
 {% endblock %}

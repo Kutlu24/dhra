@@ -6,6 +6,9 @@
 <h1>{{ t('chat.title') }}</h1>
 <p class="lede">{{ t('chat.lede') | safe }}</p>
 
+{% if model_error is defined and model_error %}
+<div class="warning">{{ model_error }}</div>
+{% endif %}
 {% if not llm_configured %}
 <div class="warning">{{ t('chat.not_configured') | safe }}</div>
 {% endif %}
@@ -40,10 +43,10 @@
 
 {% if history %}
 <div class="action-buttons">
-  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Find supporting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_supporting') }}</button></form>
-  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Find contradicting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_contradicting') }}</button></form>
-  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="Compare the sources you just used"><button type="submit" class="secondary">{{ t('chat.action_compare_sources') }}</button></form>
-  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="message" value="What gaps are there in the evidence so far?"><button type="submit" class="secondary">{{ t('chat.action_identify_gaps') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="llm_model_id" value="{{ selected_llm_model if selected_llm_model is defined else '' }}"><input type="hidden" name="message" value="Find supporting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_supporting') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="llm_model_id" value="{{ selected_llm_model if selected_llm_model is defined else '' }}"><input type="hidden" name="message" value="Find contradicting evidence for that"><button type="submit" class="secondary">{{ t('chat.action_find_contradicting') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="llm_model_id" value="{{ selected_llm_model if selected_llm_model is defined else '' }}"><input type="hidden" name="message" value="Compare the sources you just used"><button type="submit" class="secondary">{{ t('chat.action_compare_sources') }}</button></form>
+  <form method="post" action="/chat"><input type="hidden" name="history_json" value="{{ history_json }}"><input type="hidden" name="llm_model_id" value="{{ selected_llm_model if selected_llm_model is defined else '' }}"><input type="hidden" name="message" value="What gaps are there in the evidence so far?"><button type="submit" class="secondary">{{ t('chat.action_identify_gaps') }}</button></form>
 </div>
 {% endif %}
 
@@ -51,6 +54,13 @@
   <input type="hidden" name="history_json" value="{{ history_json }}">
   <label for="chat-message" class="visually-hidden">{{ t('chat.placeholder') }}</label>
   <input type="text" id="chat-message" name="message" placeholder="{{ t('chat.placeholder') }}" autofocus required>
+  {% if llm_models %}
+  <label for="chat-model" class="visually-hidden">{{ t('models.llm_label') }}</label>
+  <select id="chat-model" name="llm_model_id" style="max-width:16rem">
+    <option value="">{{ t('models.default_llm') }}</option>
+    {% for m in llm_models %}<option value="{{ m.id }}" {{ 'selected' if selected_llm_model is defined and selected_llm_model == m.id }}>{{ m.id }}</option>{% endfor %}
+  </select>
+  {% endif %}
   <button type="submit">{{ t('chat.send') }}</button>
 </form>
 {% endblock %}

@@ -522,6 +522,15 @@ its whole token budget on hidden reasoning and answers with nothing, and
 `"extra": {"reasoning_effort": "none"}` turns that off (measured: 4 s instead
 of 60 s and an empty reply). An empty reply of that kind is reported as an
 error instead of being shown as an answer.
+Z.AI's free tier works as such a profile, with the key taken from an existing
+variable instead of being copied into the JSON:
+`{"id":"glm","label":"GLM 4.7 Flash (Z.AI, free tier)","base_url":"https://api.z.ai/api/paas/v4","model":"glm-4.7-flash","api_key_env":"DHRA_GLM_API_KEY","timeout":90,"extra":{"thinking":{"type":"disabled"}}}`.
+Without `thinking: disabled` the GLM-4.5+ "flash" models answer with hidden
+reasoning only, and `glm-4.6` needs a paid resource package (error 1113). The
+free tier is shared and often answers 429 (1302/1305, overloaded): the app
+reports it and the other models stay available. Leave `DHRA_GLM_BASE_URL` empty
+when using this profile, or GLM appears twice (the plain `default` entry has no
+`extra`).
 The choice is stored per browser as an id only, matched against this
 allowlist; addresses and keys never reach the page. The model that actually
 answered is recorded in the audit trail. A malformed value stops the app at

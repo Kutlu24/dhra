@@ -23,7 +23,7 @@ import ipaddress
 import os
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from http.cookies import SimpleCookie
 from typing import Any, Callable
@@ -87,6 +87,14 @@ def _bucket(addr: str) -> str:
     except ValueError:
         return addr
     if ip.version == 6:
+        # Addresses that merely embed an IPv4 client are that client, not
+        # a shared /64 (otherwise unrelated users would share one bucket).
+        if ip.ipv4_mapped is not None:
+            return str(ip.ipv4_mapped)
+        if ip.sixtofour is not None:
+            return str(ip.sixtofour)
+        if ip.teredo is not None:
+            return str(ip.teredo[1])
         return str(ipaddress.ip_network(f"{ip}/64", strict=False).network_address) + "/64"
     return addr
 
@@ -114,15 +122,18 @@ class AttemptLimiter:
     """Sliding-window attempt counter, in-process (like the rest of this
     app's state: single process; with several workers each has its own).
 
-    The key table is bounded, and the bound must hurt neither side:
-      - a key that has reached `max_attempts` (throttled) is never evicted,
-        so spraying fresh keys cannot free the one being throttled;
-      - an unseen key is never refused just because the table is full, so
-        spraying cannot lock legitimate users out either;
-      - to make room, expired windows go first (swept at most every few
-        seconds, not per request), then the least recently active key that
-        is not throttled;
-      - only if every key is throttled is a new key left untracked."""
+    Fixed memory, O(1) per call, and the bound must hurt neither side:
+      - keys that reached `max_attempts` live in their own table
+        (`_throttled`) and are never evicted to make room;
+      - every other key is in `_active`, an LRU: when the table is full the
+        least recently used one is dropped in O(1) (after one rate-limited
+        sweep of expired windows);
+      - if the table is full of throttled keys, nothing can be evicted, so
+        new keys are counted together in one shared overflow window. That
+        window is itself limited: once it fills, unseen keys are blocked
+        (fail closed, but only during an actual flood of throttled keys).
+    Spraying fresh keys is also bounded from outside: each costs the sender
+    a failed attempt, and the per-address limiter caps those."""
 
     MAX_KEYS = 50_000
     SWEEP_INTERVAL = 5.0
@@ -132,60 +143,92 @@ class AttemptLimiter:
         self.window = window_seconds
         self._clock = clock
         self._max_keys = max_keys or self.MAX_KEYS
-        self._hits: dict[str, deque[float]] = {}
+        self._overflow_max = max(100, 20 * max_attempts)
+        self._active: OrderedDict[str, deque[float]] = OrderedDict()
+        self._throttled: dict[str, deque[float]] = {}
+        self._overflow: deque[float] = deque()
         self._last_sweep = float("-inf")
         self._lock = threading.Lock()
 
-    def _prune(self, key: str) -> deque[float]:
-        hits = self._hits.get(key)
-        if hits is None:
-            return deque()
+    def _trim(self, hits: deque[float]) -> None:
         cutoff = self._clock() - self.window
         while hits and hits[0] < cutoff:
             hits.popleft()
+
+    def _current(self, key: str) -> deque[float] | None:
+        """The key's live window (trimmed), moving it between tables as its
+        count crosses the threshold; None if unseen or fully expired."""
+        hits = self._throttled.get(key)
+        table = self._throttled
+        if hits is None:
+            hits = self._active.get(key)
+            table = self._active
+        if hits is None:
+            return None
+        self._trim(hits)
         if not hits:
-            del self._hits[key]
-            return deque()
+            del table[key]
+            return None
+        if table is self._throttled and len(hits) < self.max_attempts:
+            del self._throttled[key]
+            self._active[key] = hits
+        elif table is self._active and len(hits) >= self.max_attempts:
+            del self._active[key]
+            self._throttled[key] = hits
         return hits
 
-    def _make_room(self) -> bool:
-        """True if a new key can be stored."""
-        if len(self._hits) < self._max_keys:
-            return True
+    def _sweep(self) -> None:
         now = self._clock()
-        if now - self._last_sweep >= self.SWEEP_INTERVAL:
-            self._last_sweep = now
-            for k in list(self._hits):
-                self._prune(k)
-            if len(self._hits) < self._max_keys:
-                return True
-        victim, oldest = None, float("inf")
-        for k, hits in self._hits.items():
-            if len(hits) < self.max_attempts and hits[-1] < oldest:
-                victim, oldest = k, hits[-1]
-        if victim is None:
-            return False
-        del self._hits[victim]
-        return True
+        if now - self._last_sweep < self.SWEEP_INTERVAL:
+            return
+        self._last_sweep = now
+        for k in [*self._active, *self._throttled]:
+            self._current(k)
+
+    def _overflow_blocked(self) -> bool:
+        self._trim(self._overflow)
+        return len(self._overflow) >= self._overflow_max
 
     def blocked(self, key: str) -> bool:
         with self._lock:
-            return len(self._prune(key)) >= self.max_attempts
+            hits = self._current(key)
+            if hits is None:
+                return self._overflow_blocked()  # unseen key: only blocked during a flood
+            return len(hits) >= self.max_attempts
 
     def record(self, key: str) -> None:
         with self._lock:
-            if key not in self._hits and not self._make_room():
-                return
-            self._prune(key)
-            self._hits.setdefault(key, deque()).append(self._clock())
+            hits = self._current(key)
+            if hits is None:
+                if len(self._active) + len(self._throttled) >= self._max_keys:
+                    self._sweep()
+                if len(self._active) + len(self._throttled) >= self._max_keys:
+                    if not self._active:  # full of throttled keys: nothing evictable
+                        self._trim(self._overflow)
+                        self._overflow.append(self._clock())
+                        return
+                    self._active.popitem(last=False)  # LRU, O(1)
+                hits = self._active.setdefault(key, deque())
+            hits.append(self._clock())
+            if key in self._active:
+                self._active.move_to_end(key)
+                if len(hits) >= self.max_attempts:
+                    del self._active[key]
+                    self._throttled[key] = hits
 
     def reset(self, key: str) -> None:
         with self._lock:
-            self._hits.pop(key, None)
+            self._active.pop(key, None)
+            self._throttled.pop(key, None)
 
     def retry_after(self, key: str) -> int:
         with self._lock:
-            hits = self._prune(key)
+            hits = self._current(key)
+            if hits is None:
+                self._trim(self._overflow)
+                if self._overflow_blocked():
+                    return max(1, int(self._overflow[0] + self.window - self._clock()) + 1)
+                return 0
             if len(hits) < self.max_attempts:
                 return 0
             return max(1, int(hits[0] + self.window - self._clock()) + 1)

@@ -200,14 +200,18 @@ def test_interpreter_room_ids_and_caps(tmp_path):
         rooms.MAX_ROOMS = old
 
 
+def _clear(lim):
+    lim._active.clear(); lim._throttled.clear(); lim._overflow.clear()
+
+
 def test_interpreter_rate_limit(tmp_path):
     from dhra.interpreter.api import app as iapp
 
     c = TestClient(make(tmp_path, accounts=False))
-    iapp._room_limiter._hits.clear()
+    _clear(iapp._room_limiter)
     codes = [c.post("/interpreter/rooms").status_code for _ in range(25)]
     assert codes.count(429) >= 1
-    iapp._room_limiter._hits.clear()
+    _clear(iapp._room_limiter)
 
 
 def test_interpreter_websocket_cross_origin_refused(tmp_path):
@@ -275,6 +279,10 @@ def test_spoofed_forwarded_for_cannot_dodge_login_lockout(tmp_path):
     assert 429 in codes
 
 
+def _size(lim):
+    return len(lim._active) + len(lim._throttled)
+
+
 def test_limiter_full_table_hurts_neither_side():
     now = [0.0]
     lim = AttemptLimiter(2, 100, clock=lambda: now[0], max_keys=5)
@@ -285,16 +293,42 @@ def test_limiter_full_table_hurts_neither_side():
         lim.record(f"spray{i}")
     assert lim.blocked("victim")                 # throttled key is never evicted
     assert not lim.blocked("brand-new-key")      # newcomers are not locked out by a full table
-    assert len(lim._hits) <= 5
+    assert _size(lim) <= 5
 
 
-def test_limiter_with_every_key_throttled_leaves_newcomers_untracked_not_blocked():
+def test_limiter_evicts_least_recently_used_unthrottled_key():
+    now = [0.0]
+    lim = AttemptLimiter(3, 100, clock=lambda: now[0], max_keys=3)
+    for k in ("a", "b", "c"):
+        lim.record(k); now[0] += 1
+    lim.record("a"); now[0] += 1                 # a is now the most recently used
+    lim.record("d")                              # evicts b (least recently used)
+    assert set(lim._active) == {"c", "a", "d"}
+
+
+def test_limiter_full_of_throttled_keys_counts_newcomers_in_a_limited_overflow_bucket():
     now = [0.0]
     lim = AttemptLimiter(1, 100, clock=lambda: now[0], max_keys=3)
     for k in ("a", "b", "c"):
         lim.record(k)
-    lim.record("late")                            # no room, nothing evictable
-    assert not lim.blocked("late") and all(lim.blocked(k) for k in ("a", "b", "c"))
+    assert all(lim.blocked(k) for k in ("a", "b", "c"))
+    lim.record("late")                           # nothing evictable -> shared overflow window
+    assert not lim.blocked("late")               # one stray key is not punished...
+    for i in range(lim._overflow_max):
+        lim.record(f"flood{i}")
+    assert lim.blocked("another-unseen-key")     # ...but a flood closes the door for unseen keys
+    assert all(lim.blocked(k) for k in ("a", "b", "c"))
+    now[0] = 101                                 # everything expires -> recovers
+    assert not lim.blocked("another-unseen-key") and not lim.blocked("a")
+
+
+def test_limiter_throttled_key_returns_to_active_after_window_slides():
+    now = [0.0]
+    lim = AttemptLimiter(2, 10, clock=lambda: now[0])
+    lim.record("k"); lim.record("k")
+    assert "k" in lim._throttled and lim.blocked("k")
+    now[0] = 11
+    assert not lim.blocked("k") and "k" not in lim._throttled
 
 
 def test_limiter_sweeps_expired_windows_rarely_not_per_request():
@@ -303,8 +337,8 @@ def test_limiter_sweeps_expired_windows_rarely_not_per_request():
     for k in ("a", "b", "c"):
         lim.record(k)
     now[0] = 20                                   # all expired
-    lim.record("d")                               # sweep frees space
-    assert set(lim._hits) == {"d"}
+    lim.record("d")                               # one sweep frees the space
+    assert set(lim._active) == {"d"}
 
 
 def test_ipv6_clients_share_one_slash64_bucket():
@@ -315,3 +349,8 @@ def test_ipv6_clients_share_one_slash64_bucket():
     c = client_ip({}, ("2001:db8:1:3::1", 0), False)
     assert a == b and a != c and a.endswith("/64")
     assert client_ip({}, ("203.0.113.9", 0), False) == "203.0.113.9"
+    # IPv6 forms that embed an IPv4 client are that client, not a shared /64
+    assert client_ip({}, ("::ffff:203.0.113.9", 0), False) == "203.0.113.9"
+    assert client_ip({}, ("2002:cb00:7109::1", 0), False) == "203.0.113.9"   # 6to4
+    x = client_ip({}, ("::ffff:198.51.100.1", 0), False)
+    assert x != client_ip({}, ("::ffff:198.51.100.2", 0), False)              # distinct clients stay distinct

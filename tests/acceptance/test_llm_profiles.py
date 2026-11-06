@@ -51,6 +51,44 @@ def test_malformed_config_is_rejected(bad):
         load_profiles({"DHRA_LLM_MODELS": bad})
 
 
+def test_extra_body_fields_are_loaded_and_sent_but_cannot_override_core_fields():
+    import requests
+
+    item = {**OLLAMA, "extra": {"reasoning_effort": "none"}}
+    cfg = load_profiles({"DHRA_LLM_MODELS": json.dumps([item])})[0].config
+    assert cfg.extra == {"reasoning_effort": "none"}
+    sent = {}
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self): return {"choices": [{"message": {"content": "hi"}}]}
+
+    class _S(requests.Session):
+        def post(self, url, **kw):
+            sent.update(kw["json"]); return _R()
+
+    assert LLMClient(cfg, session=_S()).complete([{"role": "user", "content": "x"}]) == "hi"
+    assert sent["reasoning_effort"] == "none" and sent["model"] == "qwen3.5-nothink"
+    for bad in ({"model": "evil"}, {"messages": []}, {"max_tokens": 1}, ["x"]):
+        with pytest.raises(ValueError):
+            load_profiles({"DHRA_LLM_MODELS": json.dumps([{**OLLAMA, "extra": bad}])})
+
+
+def test_empty_answer_is_an_error_not_a_silent_blank():
+    import requests
+    from dhra.llm import LLMConfig, LLMError
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self): return {"choices": [{"message": {"content": "", "reasoning": "thinking..."}, "finish_reason": "length"}]}
+
+    class _S(requests.Session):
+        def post(self, url, **kw): return _R()
+
+    with pytest.raises(LLMError, match="empty answer"):
+        LLMClient(LLMConfig("http://x/v1", "k", "m"), session=_S()).complete([{"role": "user", "content": "x"}])
+
+
 def test_app_refuses_to_start_with_malformed_models(tmp_path, monkeypatch):
     monkeypatch.setenv("DHRA_LLM_MODELS", "not json")
     with pytest.raises(ValueError):

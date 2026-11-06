@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import requests
 
@@ -41,6 +41,10 @@ class LLMConfig:
     api_key: str
     model: str
     timeout: float = 60.0
+    # Extra request-body fields for this backend, e.g. {"reasoning_effort": "none"}
+    # to stop a thinking model (Qwen3.5 on Ollama) from spending its whole
+    # token budget on hidden reasoning and answering with nothing.
+    extra: dict = field(default_factory=dict)
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
@@ -60,6 +64,7 @@ class LLMConfig:
 
 
 _PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+_RESERVED_BODY_KEYS = frozenset({"model", "messages", "temperature", "max_tokens", "stream"})
 
 
 @dataclass(frozen=True)
@@ -120,8 +125,11 @@ def load_profiles(environ: dict[str, str] | None = None) -> list[LLMProfile]:
             timeout = float(item.get("timeout", 60.0))
         except (TypeError, ValueError) as exc:
             raise ValueError(f"DHRA_LLM_MODELS[{i}] ({pid}): timeout must be a number") from exc
+        extra = item.get("extra", {})
+        if not isinstance(extra, dict) or _RESERVED_BODY_KEYS & set(extra):
+            raise ValueError(f"DHRA_LLM_MODELS[{i}] ({pid}): extra must be an object without {sorted(_RESERVED_BODY_KEYS)}")
         seen.add(pid)
-        profiles.append(LLMProfile(pid, str(item.get("label") or model), LLMConfig(str(url).rstrip("/"), key, str(model), timeout)))
+        profiles.append(LLMProfile(pid, str(item.get("label") or model), LLMConfig(str(url).rstrip("/"), key, str(model), timeout, extra)))
     return profiles
 
 
@@ -146,6 +154,7 @@ class LLMClient:
                 f"{self.config.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.config.api_key}"},
                 json={
+                    **self.config.extra,
                     "model": self.config.model,
                     "messages": messages,
                     "temperature": temperature,
@@ -160,9 +169,18 @@ class LLMClient:
         except ValueError as exc:  # resp.json() on a non-JSON body (e.g. an HTML error/rate-limit page)
             raise LLMError(f"LLM backend returned a non-JSON response: {exc}") from exc
         try:
-            return data["choices"][0]["message"]["content"]
+            choice = data["choices"][0]
+            content = choice["message"]["content"]
         except (KeyError, IndexError) as exc:
             raise LLMError(f"unexpected response shape from LLM backend: {data!r}") from exc
+        message = choice["message"]
+        if not (content or "").strip() and (choice.get("finish_reason") == "length" or message.get("reasoning") or message.get("reasoning_content")):
+            # Signature of a thinking model whose whole token budget went to
+            # hidden reasoning: an empty answer that is a failure to report,
+            # not "the model proposed nothing" (a plain blank reply keeps
+            # that meaning for the callers that already handle it).
+            raise LLMError("LLM backend returned an empty answer (a thinking model may have used its whole token budget on reasoning)")
+        return content
 
 
 def log_and_complete(client: LLMClient, repo, *, purpose: str, messages: list[dict], task: str | None = None, **kwargs) -> str:

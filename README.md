@@ -517,6 +517,11 @@ DHRA_LLM_MODELS='[{"id":"qwen3.5-4b","label":"Qwen3.5 4B (local)",
 
 `api_key_env` (the *name* of an environment variable) is preferred over a
 literal `api_key`; local servers such as Ollama accept any placeholder key.
+`extra` adds fields to the request body: Qwen3.5 on Ollama otherwise spends
+its whole token budget on hidden reasoning and answers with nothing, and
+`"extra": {"reasoning_effort": "none"}` turns that off (measured: 4 s instead
+of 60 s and an empty reply). An empty reply of that kind is reported as an
+error instead of being shown as an answer.
 The choice is stored per browser as an id only, matched against this
 allowlist; addresses and keys never reach the page. The model that actually
 answered is recorded in the audit trail. A malformed value stops the app at

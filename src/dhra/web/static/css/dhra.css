@@ -530,3 +530,112 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   a.stat-tile:hover, .feature-card:hover { transform: translateY(-2px); }
   .feature-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
 }
+
+/* =====================================================================
+   v3 "modern manuscript" refresh. Layered on top of v2.1 as overrides so
+   every template keeps working. Patterns borrowed from modern app shells
+   (shadcn/Linear-style sidebar: grouped nav, line icons, soft active
+   pill; Zotero/Hypothesis-style calm paper surfaces) with the archive
+   identity kept through serif display type and a parchment accent.
+   Contrast tokens unchanged in meaning -- axe stays green.
+   ===================================================================== */
+:root {
+  --bg: #f7f5ef; --surface: #ffffff; --surface-2: #f1eee5; --border: #e6e2d6;
+  --accent: #14615b; --accent-soft: #e6f1ee;
+  --gold: #a8801c; --gold-soft: #f6edd3;
+  --radius: 10px; --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(30, 24, 8, .05), 0 0 0 1px rgba(30, 24, 8, .02);
+  --shadow-md: 0 4px 12px -2px rgba(30, 24, 8, .10), 0 1px 3px rgba(30, 24, 8, .06);
+  --shadow-lg: 0 18px 40px -20px rgba(30, 24, 8, .35);
+  --paper-grain: radial-gradient(circle at 1px 1px, rgba(30, 24, 8, .045) 1px, transparent 0);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121516; --surface: #1b1e20; --surface-2: #181b1d; --border: #2f3438;
+    --accent: #7cc4bb; --accent-soft: #1b2b2a;
+    --gold: #e0b95a; --gold-soft: #2b2515;
+    --paper-grain: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .035) 1px, transparent 0);
+  }
+}
+html { font-size: 17px; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body { background: var(--bg); background-image: var(--paper-grain); background-size: 22px 22px; }
+
+/* sidebar: quieter, with icon rail look */
+aside { background: color-mix(in srgb, var(--surface) 82%, var(--surface-2)); backdrop-filter: blur(8px); border-right: 1px solid var(--border); }
+.wordmark { font-size: 1.45rem; letter-spacing: .02em; margin-bottom: .1rem; }
+.wordmark img { width: 42px; height: 42px; border-radius: 11px; box-shadow: 0 4px 10px -3px rgba(15, 61, 58, .55); }
+.nav-section-title { font-size: .68rem; letter-spacing: .12em; opacity: .85; }
+aside nav a { border-radius: 9px; padding: .45rem .65rem; opacity: .85; font-weight: 500; font-size: .95rem; }
+aside nav a:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: none; }
+aside nav a.active { background: var(--accent); color: var(--accent-contrast); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--accent) 70%, transparent); font-weight: 600; }
+aside nav .icon { width: 1.25rem; height: 1.25rem; display: inline-flex; align-items: center; justify-content: center; opacity: .9; }
+aside nav .icon svg { display: block; }
+.lang-switch a.active { box-shadow: none; }
+
+/* main + headings */
+main { padding-top: 2rem; }
+h1 { font-family: var(--font-serif); font-weight: 600; font-size: 1.9rem; letter-spacing: -.01em; }
+h2 { font-size: .74rem; letter-spacing: .12em; }
+h2::before { width: .55rem; height: 2px; border-radius: 2px; background: var(--gold); vertical-align: middle; }
+.brand-tagline {
+  background: none; border: 1px solid var(--border); border-left: none; border-radius: 999px;
+  padding: .4rem 1rem .4rem .5rem; width: fit-content; max-width: 100%;
+  font-size: .95rem; font-weight: 500; color: var(--text-muted); box-shadow: var(--shadow-sm);
+  background: var(--surface);
+}
+.brand-tagline-icon { width: 28px; height: 28px; border-radius: 8px; }
+
+/* surfaces */
+.card, .stat-tile, .feature-card, .flow-pipeline, .provenance-graph .node {
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.card { padding: 1.2rem 1.4rem; }
+.card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.hero {
+  border: 1px solid var(--border); border-top: 1px solid var(--border); border-radius: calc(var(--radius-lg) + 4px);
+  background:
+    radial-gradient(40rem 18rem at 100% -30%, color-mix(in srgb, var(--gold) 20%, transparent), transparent 70%),
+    radial-gradient(44rem 20rem at -10% -40%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%),
+    var(--surface);
+  box-shadow: var(--shadow-md); overflow: hidden;
+}
+.welcome-hero { padding: 3rem 2.6rem; }
+.welcome-hero::after {
+  content: ''; position: absolute; right: -2.5rem; bottom: -3rem; width: 17rem; height: 17rem;
+  background: url('/static/logo.svg') center / contain no-repeat; opacity: .09; transform: rotate(-8deg); pointer-events: none;
+}
+.welcome-hero h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.12; letter-spacing: -.025em; }
+.welcome-hero > * { position: relative; z-index: 1; }
+.hero-step-num, .flow-num { background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000)); }
+.flow-pipeline { border-top: 1px solid var(--border); }
+.feature-icon { border-radius: 12px; background: var(--gold-soft); }
+.feature-card:hover { border-color: var(--gold); }
+a.stat-tile::before { background: linear-gradient(90deg, var(--gold), transparent 75%); }
+
+/* controls */
+button, input[type=submit], .btn {
+  border-radius: 999px; padding: .55rem 1.2rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+  box-shadow: 0 1px 2px rgba(20, 18, 10, .2), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+button.secondary, .btn.btn-secondary { background: var(--surface); box-shadow: var(--shadow-sm); }
+.auth-badge, .lang-switch { box-shadow: var(--shadow-sm); }
+textarea, input[type=text], input[type=password], input[type=email], input[type=search],
+input[type=number], input:not([type]), select, input[type=file] { border-radius: 12px; }
+.search-box input[type=text] { border-radius: 999px; padding-left: 1.2rem; box-shadow: var(--shadow-sm); }
+
+/* tables: rounded container feel */
+table { border-radius: var(--radius); overflow: hidden; }
+th { background: var(--surface-2); }
+.evidence-card blockquote { border-left: 3px solid var(--gold); padding-left: 1rem; }
+.narrative { border-radius: var(--radius-lg); }
+
+/* footer */
+.site-footer { background: var(--surface); }
+
+@media (max-width: 720px) {
+  aside { height: auto; position: static; backdrop-filter: none; }
+  .welcome-hero { padding: 2rem 1.3rem; }
+  .welcome-hero::after { width: 11rem; height: 11rem; }
+  aside nav a.active { box-shadow: none; }
+}

@@ -71,7 +71,7 @@ from dhra.literature_watch import (
     restore_candidate,
 )
 from dhra.model_registry import GatewayTranscriber, ModelGatewayError, load_registry, registry_path_from_env, require_gateway, usable
-from dhra.llm import LLMClient, LLMConfig, LLMError
+from dhra.llm import LLMClient, LLMError, LLMProfile, load_profiles
 from dhra.models import ExclusionReason, Locator
 from dhra.peer_review import review_paper
 from dhra.provenance import claim_provenance
@@ -130,6 +130,7 @@ EXCLUSION_DISPLAY_GROUPS: dict[str, tuple[ExclusionReason, ...]] = {
 _REASON_TO_GROUP = {reason: group for group, reasons in EXCLUSION_DISPLAY_GROUPS.items() for reason in reasons}
 
 LANGUAGE_COOKIE = "dhra_lang"
+LLM_COOKIE = "dhra_llm"
 
 
 def build_app(
@@ -146,6 +147,10 @@ def build_app(
         raise ValueError("DHRA_REQUIRE_AUTH needs accounts enabled (set --accounts-dir / DHRA_ACCOUNTS_DIR).")
     if security.require_auth and not session_secret:
         raise ValueError("DHRA_REQUIRE_AUTH needs a fixed DHRA_SESSION_SECRET (a random per-process secret would log everyone out on every restart).")
+    try:
+        load_profiles()
+    except ValueError as exc:
+        raise ValueError(f"invalid LLM configuration: {exc}") from exc
     # No interactive API docs / schema: they hand out a free map of every route.
     app = FastAPI(title="DHRA", description="Digital Humanities Research Assistant -- local evidence browser",
                   docs_url=None, redoc_url=None, openapi_url=None)
@@ -298,6 +303,8 @@ def build_app(
             "t": lambda key, **kw: translate(lang, key, **kw),
             "current_user": _current_user(request),
             "accounts_enabled": account_store is not None,
+            "llm_profiles": [(p.id, p.label) for p in _llm_profiles()],
+            "llm_selected": (_selected_profile(request).id if _selected_profile(request) else ""),
             "htr_models": usable(_model_registry(), "htr"),
             "llm_models": usable(_model_registry(), "llm"),
             **extra,
@@ -308,17 +315,28 @@ def build_app(
             raise HTTPException(status_code=404, detail="unknown language")
         return lang
 
+    def _safe_back(request: Request) -> str:
+        dest = "/"
+        ref = urlsplit(request.headers.get("referer") or "")
+        if ref.netloc and ref.netloc.lower() == request.headers.get("host", "").lower() and ref.path.startswith("/") and not ref.path.startswith("//"):
+            dest = ref.path + (f"?{ref.query}" if ref.query else "")
+        return dest
+
     @app.get("/lang/{code}")
     def set_language(code: str, request: Request) -> RedirectResponse:
         # Only ever bounce back to a path on this site: the Referer is chosen
         # by whichever page linked here, so redirecting to it verbatim
         # would be an open redirect.
-        dest = "/"
-        ref = urlsplit(request.headers.get("referer") or "")
-        if ref.netloc and ref.netloc.lower() == request.headers.get("host", "").lower() and ref.path.startswith("/") and not ref.path.startswith("//"):
-            dest = ref.path + (f"?{ref.query}" if ref.query else "")
-        resp = RedirectResponse(dest, status_code=303)
+        resp = RedirectResponse(_safe_back(request), status_code=303)
         resp.set_cookie(LANGUAGE_COOKIE, resolve_language(code), max_age=60 * 60 * 24 * 365, samesite="lax")
+        return resp
+
+    @app.post("/llm/select")
+    def select_llm(request: Request, profile: str = Form(...)) -> RedirectResponse:
+        if profile not in {p.id for p in _llm_profiles()}:
+            raise HTTPException(status_code=400, detail="unknown model")
+        resp = RedirectResponse(_safe_back(request), status_code=303)
+        resp.set_cookie(LLM_COOKIE, profile, max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax", secure=_cookie_secure(request))
         return resp
 
     # --- Signup / login / logout --------------------------------------------
@@ -477,11 +495,29 @@ def build_app(
         xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + '</urlset>'
         return Response(xml, media_type="application/xml")
 
-    def _llm_client_or_none() -> LLMClient | None:
+    def _llm_profiles() -> list[LLMProfile]:
+        """Configured models (DHRA_GLM_* as `default` + DHRA_LLM_MODELS).
+        A broken DHRA_LLM_MODELS must not take every page down at request
+        time: it is validated at startup (below) and degrades to "none"."""
         try:
-            return LLMClient(LLMConfig.from_env())
-        except LLMError:
-            return None
+            return load_profiles()
+        except ValueError:
+            return []
+
+    def _selected_profile(request: Request) -> LLMProfile | None:
+        """The cookie only carries an id; it is matched against the
+        configured allowlist, so a forged value just falls back to the first
+        model. Backend addresses and keys never leave the server."""
+        profiles = _llm_profiles()
+        wanted = request.cookies.get(LLM_COOKIE)
+        for profile in profiles:
+            if profile.id == wanted:
+                return profile
+        return profiles[0] if profiles else None
+
+    def _llm_client_or_none(request: Request) -> LLMClient | None:
+        profile = _selected_profile(request)
+        return LLMClient(profile.config) if profile is not None else None
 
     def _websearch_client_or_none() -> WebSearchClient | None:
         try:
@@ -496,7 +532,7 @@ def build_app(
 
     def _chat_page(request: Request, lang: str | None) -> HTMLResponse:
         return templates.TemplateResponse(
-            request, "chat.html", _ctx("chat", request, lang=lang, history=[], history_json="[]", llm_configured=_llm_client_or_none() is not None)
+            request, "chat.html", _ctx("chat", request, lang=lang, history=[], history_json="[]", llm_configured=_llm_client_or_none(request) is not None)
         )
 
     @app.get("/chat", response_class=HTMLResponse)
@@ -517,7 +553,7 @@ def build_app(
             history = json.loads(history_json)
         except json.JSONDecodeError:
             history = []
-        client = _llm_client_or_none()
+        client = _llm_client_or_none(request)
         model_error = None
         if llm_model_id:
             # A registry model was chosen: never answer with a different
@@ -948,7 +984,7 @@ def build_app(
                 "research_assistant",
                 request,
                 lang=lang,
-                llm_configured=_llm_client_or_none() is not None,
+                llm_configured=_llm_client_or_none(request) is not None,
                 research_drafts=list_drafts(repo, kinds=RESEARCH_DRAFT_KINDS),
             ),
         )
@@ -973,22 +1009,22 @@ def build_app(
             _ctx(
                 "teaching",
                 request,
-                llm_configured=_llm_client_or_none() is not None,
+                llm_configured=_llm_client_or_none(request) is not None,
                 websearch_configured=_websearch_client_or_none() is not None,
                 teaching_drafts=list_drafts(repo, kinds=TEACHING_DRAFT_KINDS),
             ),
         )
 
-    def _require_llm() -> LLMClient:
-        client = _llm_client_or_none()
+    def _require_llm(request: Request) -> LLMClient:
+        client = _llm_client_or_none(request)
         if client is None:
-            raise HTTPException(status_code=503, detail="No LLM backend configured -- set DHRA_GLM_BASE_URL and DHRA_GLM_API_KEY.")
+            raise HTTPException(status_code=503, detail="No LLM backend configured -- set DHRA_GLM_BASE_URL and DHRA_GLM_API_KEY (or DHRA_LLM_MODELS).")
         return client
 
     @app.post("/assistant/research-questions")
     def assistant_research_questions(request: Request, context_query: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             suggest_research_questions(repo, client, context_query=context_query, actor=_actor(request, actor))
         except ValueError as exc:
@@ -1000,7 +1036,7 @@ def build_app(
     @app.post("/assistant/disconfirm")
     def assistant_disconfirm(request: Request, claim_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             propose_and_run_disconfirmation(repo, client, claim_text=claim_text, actor=_actor(request, actor))
         except ValueError as exc:
@@ -1012,7 +1048,7 @@ def build_app(
     @app.post("/assistant/peer-review")
     def assistant_peer_review(request: Request, paper_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             review_paper(repo, client, paper_text=paper_text, actor=_actor(request, actor))
         except ValueError as exc:
@@ -1024,7 +1060,7 @@ def build_app(
     @app.post("/teaching/exam-questions")
     def teaching_exam_questions(request: Request, source_text: str = Form(...), n_questions: int = Form(5), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=_actor(request, actor))
         except LLMError as exc:
@@ -1034,7 +1070,7 @@ def build_app(
     @app.post("/teaching/rubric")
     def teaching_rubric(request: Request, paper_text: str = Form(...), rubric_text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=_actor(request, actor))
         except LLMError as exc:
@@ -1044,7 +1080,7 @@ def build_app(
     @app.post("/teaching/reading-list")
     def teaching_reading_list(request: Request, course_topic: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        client = _require_llm()
+        client = _require_llm(request)
         try:
             draft_reading_list(repo, client, course_topic=course_topic, actor=_actor(request, actor), websearch_client=_websearch_client_or_none())
         except LLMError as exc:

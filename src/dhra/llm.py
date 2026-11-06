@@ -23,7 +23,9 @@ approval step) still has to verify or approve.
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from dataclasses import dataclass
 
 import requests
@@ -55,6 +57,72 @@ class LLMConfig:
                 "no LLM backend is configured by default (see OPEN_QUESTIONS.md)."
             )
         return cls(base_url=base_url.rstrip("/"), api_key=api_key, model=model)
+
+
+_PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+
+
+@dataclass(frozen=True)
+class LLMProfile:
+    """One selectable model: a stable `id` (what the cookie/UI carries), a
+    human `label`, and the full backend config. Addresses and keys live only
+    here (from the environment) -- the UI only ever sees id and label."""
+
+    id: str
+    label: str
+    config: LLMConfig
+
+
+def load_profiles(environ: dict[str, str] | None = None) -> list[LLMProfile]:
+    """The classic DHRA_GLM_* settings (if complete) as profile `default`,
+    followed by every entry of DHRA_LLM_MODELS, a JSON list such as
+
+      [{"id": "qwen3.5-4b", "label": "Qwen3.5 4B (local)",
+        "base_url": "http://ollama:11434/v1", "model": "qwen3.5-nothink",
+        "api_key": "ollama", "timeout": 300}]
+
+    `api_key_env` (name of an environment variable) is preferred over a
+    literal `api_key`; keyless local servers can use any placeholder key.
+    Read per call (cheap), so a changed environment takes effect without a
+    rebuild. A malformed DHRA_LLM_MODELS raises ValueError: a typo in the
+    operator's config should be loud, not a silently missing model."""
+    env = os.environ if environ is None else environ
+    profiles: list[LLMProfile] = []
+    base_url, api_key = env.get("DHRA_GLM_BASE_URL"), env.get("DHRA_GLM_API_KEY")
+    if base_url and api_key:
+        model = env.get("DHRA_GLM_MODEL", "glm-4.6")
+        profiles.append(LLMProfile("default", model, LLMConfig(base_url.rstrip("/"), api_key, model)))
+    raw = (env.get("DHRA_LLM_MODELS") or "").strip()
+    if not raw:
+        return profiles
+    try:
+        items = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"DHRA_LLM_MODELS is not valid JSON: {exc}") from exc
+    if not isinstance(items, list):
+        raise ValueError("DHRA_LLM_MODELS must be a JSON list")
+    seen = {p.id for p in profiles}
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"DHRA_LLM_MODELS[{i}] must be an object")
+        pid = str(item.get("id", ""))
+        if not _PROFILE_ID_RE.match(pid):
+            raise ValueError(f"DHRA_LLM_MODELS[{i}]: id must match {_PROFILE_ID_RE.pattern}")
+        if pid in seen:
+            raise ValueError(f"DHRA_LLM_MODELS[{i}]: duplicate id {pid!r}")
+        url, model = item.get("base_url"), item.get("model")
+        if not url or not model:
+            raise ValueError(f"DHRA_LLM_MODELS[{i}] ({pid}): base_url and model are required")
+        key = env.get(item["api_key_env"], "") if item.get("api_key_env") else str(item.get("api_key", ""))
+        if not key:
+            raise ValueError(f"DHRA_LLM_MODELS[{i}] ({pid}): api_key or a set api_key_env is required")
+        try:
+            timeout = float(item.get("timeout", 60.0))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"DHRA_LLM_MODELS[{i}] ({pid}): timeout must be a number") from exc
+        seen.add(pid)
+        profiles.append(LLMProfile(pid, str(item.get("label") or model), LLMConfig(str(url).rstrip("/"), key, str(model), timeout)))
+    return profiles
 
 
 class LLMClient:

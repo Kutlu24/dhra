@@ -501,3 +501,25 @@ audit `actor` taken from the session, `Secure` session cookie over https,
 server-side logout, no `/docs`/`/openapi.json`, interpreter room/rate limits.
 Limiters are per process (run a single worker, or add proxy-level limits).
 Terminate TLS at the proxy and set a body-size limit there too.
+
+## Selectable language models
+
+Besides GLM (`DHRA_GLM_BASE_URL` / `_API_KEY` / `_MODEL`, shown as the
+`default` model), any OpenAI-compatible server can be offered in the sidebar
+picker (shown when two or more models are configured) via `DHRA_LLM_MODELS`,
+a JSON list:
+
+```
+DHRA_LLM_MODELS='[{"id":"qwen3.5-4b","label":"Qwen3.5 4B (local)",
+  "base_url":"http://ollama:11434/v1","model":"qwen3.5-nothink",
+  "api_key":"ollama","timeout":300}]'
+```
+
+`api_key_env` (the *name* of an environment variable) is preferred over a
+literal `api_key`; local servers such as Ollama accept any placeholder key.
+The choice is stored per browser as an id only, matched against this
+allowlist; addresses and keys never reach the page. The model that actually
+answered is recorded in the audit trail. A malformed value stops the app at
+startup instead of silently dropping a model. Small local models (2-4B) are
+noticeably weaker at research questions, rubrics and peer review than GLM;
+the evidence search and status codes do not depend on any model.

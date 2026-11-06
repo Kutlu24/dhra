@@ -6,14 +6,32 @@ records across sessions).
 """
 from __future__ import annotations
 
+import re
 import secrets
+import time
 from dataclasses import dataclass, field
 
 from fastapi import WebSocket
 
 
+MAX_ROOMS = 200            # process-wide: rooms are in memory, so cap them
+MAX_PARTICIPANTS = 50      # per room
+UNJOINED_ROOM_TTL = 600.0  # seconds a created-but-never-joined room is kept
+ROOM_ID_RE = re.compile(r"^[0-9a-f]{6,16}$")
+
+
+class RoomLimitError(Exception):
+    pass
+
+
+def valid_room_id(room_id: str) -> bool:
+    return bool(ROOM_ID_RE.match(room_id))
+
+
 def new_room_id() -> str:
-    return secrets.token_hex(3)  # 6 hex chars - short enough to read aloud/type, ~16M possible codes
+    # 10 hex chars (~1e12 codes): still typeable, no longer guessable by
+    # trying codes. (Legacy 6-char codes remain valid input.)
+    return secrets.token_hex(5)
 
 
 @dataclass
@@ -26,6 +44,7 @@ class Participant:
 class Room:
     room_id: str
     participants: dict[int, Participant] = field(default_factory=dict)
+    created_at: float = field(default_factory=time.monotonic)
 
     def other_languages(self, exclude_ws: WebSocket) -> set[str]:
         return {p.language for ws_id, p in self.participants.items() if p.websocket is not exclude_ws}
@@ -48,7 +67,18 @@ class RoomRegistry:
     def __init__(self) -> None:
         self._rooms: dict[str, Room] = {}
 
+    def _purge_stale(self) -> None:
+        cutoff = time.monotonic() - UNJOINED_ROOM_TTL
+        for rid in [rid for rid, r in self._rooms.items() if not r.participants and r.created_at < cutoff]:
+            del self._rooms[rid]
+
+    def _check_capacity(self) -> None:
+        self._purge_stale()
+        if len(self._rooms) >= MAX_ROOMS:
+            raise RoomLimitError("Too many active rooms; try again later.")
+
     def create(self) -> Room:
+        self._check_capacity()
         room_id = new_room_id()
         while room_id in self._rooms:
             room_id = new_room_id()
@@ -60,7 +90,11 @@ class RoomRegistry:
         return self._rooms.get(room_id)
 
     def get_or_create(self, room_id: str) -> Room:
-        return self._rooms.setdefault(room_id, Room(room_id=room_id))
+        room = self._rooms.get(room_id)
+        if room is None:
+            self._check_capacity()
+            room = self._rooms[room_id] = Room(room_id=room_id)
+        return room
 
     def drop_if_empty(self, room_id: str) -> None:
         room = self._rooms.get(room_id)

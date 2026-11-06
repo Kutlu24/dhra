@@ -39,9 +39,10 @@ from __future__ import annotations
 
 import json
 import secrets
+import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -79,6 +80,7 @@ from dhra.research_assistant import suggest_research_questions
 from dhra.status import Status
 from dhra.teaching import assess_paper_against_rubric, draft_exam_questions, draft_reading_list
 from dhra.web.i18n import LANGUAGE_LABELS, LANGUAGES, resolve_language, translate
+from dhra.web.security import AttemptLimiter, SecurityConfig, SecurityMiddleware, client_ip, is_https, user_cookie_value
 from dhra.web.session import SESSION_COOKIE, SESSION_MAX_AGE, make_serializer, session_cookie_value, user_id_from_cookie
 from dhra.trace import audit_narrative, trace_decisions, trace_raw, trace_summary
 from dhra.websearch import WebSearchClient, WebSearchConfig, WebSearchError
@@ -137,8 +139,16 @@ def build_app(
     demo_banner: str | None = None,
     accounts_dir: Path | None = None,
     session_secret: str | None = None,
+    security: SecurityConfig | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="DHRA", description="Digital Humanities Research Assistant -- local evidence browser")
+    security = security or SecurityConfig.from_env()
+    if security.require_auth and accounts_dir is None:
+        raise ValueError("DHRA_REQUIRE_AUTH needs accounts enabled (set --accounts-dir / DHRA_ACCOUNTS_DIR).")
+    if security.require_auth and not session_secret:
+        raise ValueError("DHRA_REQUIRE_AUTH needs a fixed DHRA_SESSION_SECRET (a random per-process secret would log everyone out on every restart).")
+    # No interactive API docs / schema: they hand out a free map of every route.
+    app = FastAPI(title="DHRA", description="Digital Humanities Research Assistant -- local evidence browser",
+                  docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.middleware("http")
     async def _security_headers(request: Request, call_next: Any) -> Response:
@@ -150,6 +160,7 @@ def build_app(
         return response
 
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    app.add_middleware(SecurityMiddleware, config=security, is_authenticated=lambda h: _is_authenticated(h))
     templates.env.globals["status_meaning"] = lambda s, lang: translate(lang, STATUS_MEANING_KEYS.get(Status(s), ""))
     templates.env.globals["status_tone"] = lambda s: "warn" if Status(s) in (Status.CONTESTED, Status.UNSUPPORTED, Status.NEGATIVE) else "ok"
     templates.env.globals["status_label"] = lambda s, lang: translate(lang, STATUS_LABEL_KEYS.get(Status(s), ""))
@@ -196,13 +207,38 @@ def build_app(
     _serializer = make_serializer(session_secret or secrets.token_urlsafe(32)) if account_store is not None else None
     _user_repos: dict[str, DHRARepo] = {}
 
-    def _current_user(request: Request) -> Account | None:
-        if account_store is None or _serializer is None:
+    _revoked: dict[str, float] = {}  # logged-out cookie values -> expiry (in-process)
+    _login_limiter_user = AttemptLimiter(5, 15 * 60)    # failures per username
+    _login_limiter_ip = AttemptLimiter(20, 15 * 60)     # failures per client address
+    _signup_limiter = AttemptLimiter(5, 60 * 60)        # sign-up attempts per client address
+
+    def _header_dict(request: Request) -> dict[str, str]:
+        return {k.lower(): v for k, v in request.headers.items()}
+
+    def _client_ip(request: Request) -> str:
+        return client_ip(_header_dict(request), (request.client.host, 0) if request.client else None, security.trust_proxy)
+
+    def _user_from_cookie(value: str | None) -> Account | None:
+        if account_store is None or _serializer is None or not value:
             return None
-        user_id = user_id_from_cookie(_serializer, request.cookies.get(SESSION_COOKIE))
+        if _revoked.get(value, 0) > time.time():
+            return None
+        user_id = user_id_from_cookie(_serializer, value)
         if user_id is None:
             return None
         return account_store.get_by_id(user_id)
+
+    def _current_user(request: Request) -> Account | None:
+        return _user_from_cookie(request.cookies.get(SESSION_COOKIE))
+
+    def _is_authenticated(headers: dict[str, str]) -> bool:
+        return _user_from_cookie(user_cookie_value(headers, SESSION_COOKIE)) is not None
+
+    def _actor(request: Request, supplied: str) -> str:
+        """The audit trail must name who really acted: a logged-in user's
+        username wins over whatever the form field says."""
+        user = _current_user(request)
+        return user.username if user is not None else supplied
 
     def _current_repo(request: Request) -> DHRARepo:
         """No accounts configured, or no valid session -> the shared
@@ -219,7 +255,12 @@ def build_app(
             _user_repos[account.user_id] = DHRARepo(account_store.user_store_path(account.user_id))  # type: ignore[union-attr]
         return _user_repos[account.user_id]
 
-    def _set_session_cookie(resp: RedirectResponse, account: Account) -> RedirectResponse:
+    def _cookie_secure(request: Request) -> bool:
+        if security.cookie_secure is not None:
+            return security.cookie_secure
+        return is_https(_header_dict(request), request.url.scheme, security.trust_proxy)
+
+    def _set_session_cookie(resp: RedirectResponse, account: Account, request: Request) -> RedirectResponse:
         assert _serializer is not None
         resp.set_cookie(
             SESSION_COOKIE,
@@ -227,6 +268,7 @@ def build_app(
             max_age=SESSION_MAX_AGE,
             httponly=True,
             samesite="lax",
+            secure=_cookie_secure(request),
         )
         return resp
 
@@ -270,12 +312,22 @@ def build_app(
 
     @app.get("/lang/{code}")
     def set_language(code: str, request: Request) -> RedirectResponse:
-        dest = request.headers.get("referer") or "/"
+        # Only ever bounce back to a path on this site: the Referer is chosen
+        # by whichever page linked here, so redirecting to it verbatim
+        # would be an open redirect.
+        dest = "/"
+        ref = urlsplit(request.headers.get("referer") or "")
+        if ref.netloc and ref.netloc.lower() == request.headers.get("host", "").lower() and ref.path.startswith("/") and not ref.path.startswith("//"):
+            dest = ref.path + (f"?{ref.query}" if ref.query else "")
         resp = RedirectResponse(dest, status_code=303)
         resp.set_cookie(LANGUAGE_COOKIE, resolve_language(code), max_age=60 * 60 * 24 * 365, samesite="lax")
         return resp
 
     # --- Signup / login / logout --------------------------------------------
+
+    def _require_signup_open() -> None:
+        if security.signup_closed:
+            raise HTTPException(status_code=403, detail="Sign-up is closed on this deployment; ask an administrator for an account.")
 
     def _require_accounts() -> AccountStore:
         if account_store is None:
@@ -285,6 +337,7 @@ def build_app(
     @app.get("/signup", response_class=HTMLResponse)
     def signup_form(request: Request) -> HTMLResponse:
         _require_accounts()
+        _require_signup_open()
         return templates.TemplateResponse(request, "signup.html", _ctx("", request, error=None))
 
     @app.post("/signup", response_model=None)
@@ -292,13 +345,18 @@ def build_app(
         request: Request, username: str = Form(...), password: str = Form(...), password_confirm: str = Form(...)
     ) -> HTMLResponse | RedirectResponse:
         store = _require_accounts()
+        _require_signup_open()
+        ip_key = _client_ip(request)
+        if _signup_limiter.blocked(ip_key):
+            return templates.TemplateResponse(request, "signup.html", _ctx("", request, error="Too many sign-up attempts. Please try again later."), status_code=429, headers={"Retry-After": str(_signup_limiter.retry_after(ip_key))})
+        _signup_limiter.record(ip_key)
         if password != password_confirm:
             return templates.TemplateResponse(request, "signup.html", _ctx("", request, error="Passwords don't match."))
         try:
             account = store.create_account(username, password)
         except AccountsError as exc:
             return templates.TemplateResponse(request, "signup.html", _ctx("", request, error=str(exc)))
-        return _set_session_cookie(RedirectResponse("/", status_code=303), account)
+        return _set_session_cookie(RedirectResponse("/", status_code=303), account, request)
 
     @app.get("/login", response_class=HTMLResponse)
     def login_form(request: Request) -> HTMLResponse:
@@ -308,16 +366,32 @@ def build_app(
     @app.post("/login", response_model=None)
     def login_submit(request: Request, username: str = Form(...), password: str = Form(...)) -> HTMLResponse | RedirectResponse:
         store = _require_accounts()
+        user_key, ip_key = f"user:{username.strip().lower()}", f"ip:{_client_ip(request)}"
+        if _login_limiter_user.blocked(user_key) or _login_limiter_ip.blocked(ip_key):
+            wait = max(_login_limiter_user.retry_after(user_key), _login_limiter_ip.retry_after(ip_key))
+            return templates.TemplateResponse(
+                request, "login.html", _ctx("", request, error="Too many failed attempts. Please wait a few minutes and try again."),
+                status_code=429, headers={"Retry-After": str(wait)},
+            )
         try:
             account = store.authenticate(username, password)
         except AccountsError as exc:
+            _login_limiter_user.record(user_key)
+            _login_limiter_ip.record(ip_key)
             return templates.TemplateResponse(request, "login.html", _ctx("", request, error=str(exc)))
-        return _set_session_cookie(RedirectResponse("/", status_code=303), account)
+        _login_limiter_user.reset(user_key)
+        return _set_session_cookie(RedirectResponse("/", status_code=303), account, request)
 
     @app.post("/logout")
     def logout(request: Request) -> RedirectResponse:
         resp = RedirectResponse("/", status_code=303)
-        resp.delete_cookie(SESSION_COOKIE)
+        cookie = request.cookies.get(SESSION_COOKIE)
+        if cookie:  # sessions are stateless: remember the logged-out value so it stops working server-side too
+            now = time.time()
+            for k in [k for k, exp in _revoked.items() if exp <= now]:
+                del _revoked[k]
+            _revoked[cookie] = now + SESSION_MAX_AGE
+        resp.delete_cookie(SESSION_COOKIE, secure=_cookie_secure(request), httponly=True, samesite="lax")
         return resp
 
     # --- Dashboard (was the empty state of search.html; search itself is
@@ -584,7 +658,7 @@ def build_app(
     @app.post("/annotate")
     def annotate(request: Request, target_type: str = Form(...), target_id: str = Form(...), text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:
         repo = _current_repo(request)
-        add_annotation(repo, target_type=target_type, target_id=target_id, text=text, actor=actor)
+        add_annotation(repo, target_type=target_type, target_id=target_id, text=text, actor=_actor(request, actor))
         if target_type == "item":
             projection = repo.projection()
             rep_id = projection.reps_by_item.get(target_id, [None])[0]
@@ -617,7 +691,7 @@ def build_app(
     @app.post("/exclusions/{item_id}/restore")
     def restore(request: Request, item_id: str, actor: str = Form("researcher")) -> RedirectResponse:
         repo = _current_repo(request)
-        repo.restore_item(item_id=item_id, actor=actor)
+        repo.restore_item(item_id=item_id, actor=_actor(request, actor))
         return RedirectResponse("/exclusions", status_code=303)
 
     # --- Literature watch (external, OpenAlex -- section 6 monitoring, ------
@@ -653,13 +727,13 @@ def build_app(
     @app.post("/updates/queries")
     def updates_add_query(request: Request, query_text: str = Form(...), actor: str = Form("researcher")) -> RedirectResponse:
         repo = _current_repo(request)
-        add_watch_query(repo, query_text=query_text, actor=actor)
+        add_watch_query(repo, query_text=query_text, actor=_actor(request, actor))
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/queries/{watch_id}/remove")
     def updates_remove_query(request: Request, watch_id: str, actor: str = Form("researcher")) -> RedirectResponse:
         repo = _current_repo(request)
-        remove_watch_query(repo, watch_id, actor=actor)
+        remove_watch_query(repo, watch_id, actor=_actor(request, actor))
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/check")
@@ -674,13 +748,13 @@ def build_app(
     @app.post("/updates/candidates/{work_id}/dismiss")
     def updates_dismiss(request: Request, work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
         repo = _current_repo(request)
-        dismiss_candidate(repo, work_id, actor=actor)
+        dismiss_candidate(repo, work_id, actor=_actor(request, actor))
         return RedirectResponse("/updates", status_code=303)
 
     @app.post("/updates/candidates/{work_id}/restore")
     def updates_restore(request: Request, work_id: str, actor: str = Form("researcher")) -> RedirectResponse:
         repo = _current_repo(request)
-        restore_candidate(repo, work_id, actor=actor)
+        restore_candidate(repo, work_id, actor=_actor(request, actor))
         return RedirectResponse("/updates", status_code=303)
 
     # --- Aggregate + bias (section 12: bias shown before aggregate data) ---
@@ -752,7 +826,7 @@ def build_app(
         negating_locs = _parse_locators(negating)
 
         if run_independence and supporting_locs:
-            repo.assess_claim_with_independence(claim_id=claim_id, claim_text=claim_text, supporting=supporting_locs, actor=actor)
+            repo.assess_claim_with_independence(claim_id=claim_id, claim_text=claim_text, supporting=supporting_locs, actor=_actor(request, actor))
         else:
             repo.assess_claim(
                 claim_id=claim_id,
@@ -918,7 +992,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            suggest_research_questions(repo, client, context_query=context_query, actor=actor)
+            suggest_research_questions(repo, client, context_query=context_query, actor=_actor(request, actor))
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LLMError as exc:
@@ -930,7 +1004,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            propose_and_run_disconfirmation(repo, client, claim_text=claim_text, actor=actor)
+            propose_and_run_disconfirmation(repo, client, claim_text=claim_text, actor=_actor(request, actor))
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LLMError as exc:
@@ -942,7 +1016,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            review_paper(repo, client, paper_text=paper_text, actor=actor)
+            review_paper(repo, client, paper_text=paper_text, actor=_actor(request, actor))
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LLMError as exc:
@@ -954,7 +1028,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=actor)
+            draft_exam_questions(repo, client, source_text=source_text, n_questions=n_questions, actor=_actor(request, actor))
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/teaching", status_code=303)
@@ -964,7 +1038,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=actor)
+            assess_paper_against_rubric(repo, client, paper_text=paper_text, rubric_text=rubric_text, actor=_actor(request, actor))
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/teaching", status_code=303)
@@ -974,7 +1048,7 @@ def build_app(
         repo = _current_repo(request)
         client = _require_llm()
         try:
-            draft_reading_list(repo, client, course_topic=course_topic, actor=actor, websearch_client=_websearch_client_or_none())
+            draft_reading_list(repo, client, course_topic=course_topic, actor=_actor(request, actor), websearch_client=_websearch_client_or_none())
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/teaching", status_code=303)

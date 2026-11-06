@@ -479,3 +479,24 @@ gateway's `/recognize` contract. Until then, choosing a registry model fails
 with an explicit message (ingest: HTTP 503; chat: evidence-only plus the
 reason) -- it never silently falls back to another engine, because the engine
 is recorded as provenance.
+
+## Internal deployment (university servers)
+
+The defaults keep the public demo working. For an internal install turn on:
+
+```
+DHRA_ACCOUNTS_DIR=/srv/dhra/accounts
+DHRA_SESSION_SECRET=<long random string>   # required with DHRA_REQUIRE_AUTH
+DHRA_REQUIRE_AUTH=1        # every page (incl. /interpreter) needs a login
+DHRA_SIGNUP=closed         # no self-service sign-up
+DHRA_TRUST_PROXY=1         # only behind your own reverse proxy (TLS)
+DHRA_ALLOWED_ORIGINS=https://dhra.example.org   # if the proxy changes the Host
+dhra user-add alice        # administrators create accounts (password is prompted)
+```
+
+Always on: request-body limit (`DHRA_MAX_UPLOAD_MB`, default 25; interpreter 10),
+same-origin check on every POST and WebSocket (CSRF), login/sign-up throttling,
+audit `actor` taken from the session, `Secure` session cookie over https,
+server-side logout, no `/docs`/`/openapi.json`, interpreter room/rate limits.
+Limiters are per process (run a single worker, or add proxy-level limits).
+Terminate TLS at the proxy and set a body-size limit there too.

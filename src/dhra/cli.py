@@ -258,6 +258,27 @@ def cmd_watch_dismiss(args: argparse.Namespace) -> None:
     print(f"dismissed {args.work_id}")
 
 
+def cmd_user_add(args: argparse.Namespace) -> None:
+    """Create an account without the public sign-up form (use with
+    DHRA_SIGNUP=closed). The password is prompted, never passed as an
+    argument (it would land in shell history and `ps`)."""
+    import getpass
+
+    from dhra.accounts import AccountsError, AccountStore
+
+    accounts_dir = args.accounts_dir or os.environ.get("DHRA_ACCOUNTS_DIR")
+    if not accounts_dir:
+        raise SystemExit("set --accounts-dir or DHRA_ACCOUNTS_DIR")
+    password = getpass.getpass("Password (min 8 characters): ")
+    if password != getpass.getpass("Repeat password: "):
+        raise SystemExit("passwords do not match")
+    try:
+        account = AccountStore(accounts_dir).create_account(args.username, password)
+    except AccountsError as exc:
+        raise SystemExit(str(exc))
+    print(f"created account {account.username!r} ({account.user_id})")
+
+
 def cmd_web(args: argparse.Namespace) -> None:
     import uvicorn
 
@@ -358,6 +379,11 @@ def build_parser() -> argparse.ArgumentParser:
     wp.add_argument("work_id")
     wp.add_argument("--actor", default="researcher")
     wp.set_defaults(func=cmd_watch_dismiss)
+
+    p = sub.add_parser("user-add", help="create an account (for closed sign-up deployments)")
+    p.add_argument("username")
+    p.add_argument("--accounts-dir", help="accounts directory (default: $DHRA_ACCOUNTS_DIR)")
+    p.set_defaults(func=cmd_user_add)
 
     p = sub.add_parser("web", help="launch the web UI")
     p.add_argument("--host", default="127.0.0.1")

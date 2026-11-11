@@ -27,6 +27,7 @@ from dhra.ulid import new_ulid
 
 _ACCOUNT_EVENT_TYPES = frozenset({"account.created"})
 _PBKDF2_ITERATIONS = 600_000
+_MAX_USERNAME, _MAX_PASSWORD = 64, 1024
 
 
 class AccountsError(Exception):
@@ -58,6 +59,9 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iterations_s))
     return hmac.compare_digest(digest.hex(), digest_hex)
+
+
+_DUMMY_HASH = hash_password(secrets.token_urlsafe(16))
 
 
 class AccountStore:
@@ -99,8 +103,12 @@ class AccountStore:
         username = username.strip()
         if not username:
             raise AccountsError("Username is required.")
+        if len(username) > _MAX_USERNAME or not username.isprintable():
+            raise AccountsError(f"Username must be at most {_MAX_USERNAME} visible characters.")
         if len(password) < 8:
             raise AccountsError("Password must be at least 8 characters.")
+        if len(password) > _MAX_PASSWORD:
+            raise AccountsError(f"Password must be at most {_MAX_PASSWORD} characters.")
         if self.get_by_username(username) is not None:
             raise AccountsError("That username is already taken.")
 
@@ -118,6 +126,11 @@ class AccountStore:
 
     def authenticate(self, username: str, password: str) -> Account:
         account = self.get_by_username(username)
-        if account is None or not verify_password(password, account.password_hash):
+        if len(password) > _MAX_PASSWORD:
+            password, account = "", None
+        # An unknown username costs the same hashing work as a wrong password: the answer time must not tell which
+        # usernames exist.
+        ok = verify_password(password, account.password_hash if account is not None else _DUMMY_HASH)
+        if account is None or not ok:
             raise AccountsError("Incorrect username or password.")
         return account

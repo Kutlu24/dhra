@@ -354,3 +354,73 @@ def test_ipv6_clients_share_one_slash64_bucket():
     assert client_ip({}, ("2002:cb00:7109::1", 0), False) == "203.0.113.9"   # 6to4
     x = client_ip({}, ("::ffff:198.51.100.1", 0), False)
     assert x != client_ip({}, ("::ffff:198.51.100.2", 0), False)              # distinct clients stay distinct
+
+
+# -- uploaded files are never run on this site's origin -----------------------
+
+XSS_TEI = b"""<?xml version="1.0"?><TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc><titleStmt><title>t</title></titleStmt></fileDesc></teiHeader>
+<text><body><p>hello <script xmlns="http://www.w3.org/1999/xhtml">alert(document.domain)</script></p></body></text></TEI>"""
+
+
+def _ingest(c, **files_or_data):
+    r = c.post("/ingest", follow_redirects=False, **files_or_data)
+    assert r.status_code == 303, r.text
+    return r.headers["location"].rsplit("/", 1)[-1]
+
+
+def test_uploaded_xml_pdf_and_text_are_downloads_not_pages(tmp_path):
+    c = TestClient(make(tmp_path, accounts=False))
+    for name, body in (("evil.xml", XSS_TEI), ("evil.txt", b"<script>alert(1)</script>")):
+        item = _ingest(c, data={"source_id": "s"}, files={"file": (name, body)})
+        r = c.get(f"/blob/{item}")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "application/octet-stream"          # a browser renders application/tei+xml and runs XHTML script in it
+        assert r.headers["content-disposition"].startswith("attachment")
+        assert r.headers["content-security-policy"] == "default-src 'none'; sandbox"
+        assert r.headers["x-content-type-options"] == "nosniff"
+
+
+def test_uploaded_image_is_shown_but_sandboxed(tmp_path):
+    import struct, zlib
+    chunk = lambda tag, data: struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+    png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 8, 8, 8, 0, 0, 0, 0))
+           + chunk(b"IDAT", zlib.compress(b"".join(b"\x00" + b"\xff" * 8 for _ in range(8)))) + chunk(b"IEND", b""))
+    c = TestClient(make(tmp_path, accounts=False))
+    item = _ingest(c, data={"source_id": "s"}, files={"file": ("page.png", png)})
+    r = c.get(f"/blob/{item}")
+    assert r.headers["content-type"] == "image/png" and "content-disposition" not in r.headers
+    assert r.headers["content-security-policy"] == "default-src 'none'; sandbox"
+
+
+def test_pages_carry_a_content_security_policy(tmp_path):
+    c = TestClient(make(tmp_path, accounts=False))
+    csp = c.get("/").headers["content-security-policy"]
+    for part in ("default-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'self'"):
+        assert part in csp
+
+
+# -- accounts -----------------------------------------------------------------
+
+def test_unknown_username_costs_the_same_hashing_as_a_wrong_password(tmp_path, monkeypatch):
+    from dhra import accounts
+    store = accounts.AccountStore(tmp_path / "acc")
+    store.create_account("alice", PW)
+    calls = []
+    real = accounts.verify_password
+    monkeypatch.setattr(accounts, "verify_password", lambda p, h: (calls.append(h), real(p, h))[1])
+    for name in ("alice", "nobody"):
+        with pytest.raises(accounts.AccountsError):
+            store.authenticate(name, "wrong-password")
+    assert len(calls) == 2 and all(h.startswith("pbkdf2_sha256$600000$") for h in calls)
+    assert store.authenticate("alice", PW).username == "alice"
+
+
+def test_username_and_password_limits(tmp_path):
+    from dhra import accounts
+    store = accounts.AccountStore(tmp_path / "acc")
+    for name, pw in (("a" * 65, PW), ("bad\nname", PW), ("bob", "x" * 1025)):
+        with pytest.raises(accounts.AccountsError):
+            store.create_account(name, pw)
+    store.create_account("bob", PW)
+    with pytest.raises(accounts.AccountsError):
+        store.authenticate("bob", PW + "x" * 2000)

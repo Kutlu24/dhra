@@ -133,6 +133,13 @@ LANGUAGE_COOKIE = "dhra_lang"
 LLM_COOKIE = "dhra_llm"
 
 
+_CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob: data:; "
+        "connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'")
+_INLINE_BLOB_TYPES = frozenset({"image/png", "image/jpeg", "image/tiff", "image/gif", "image/webp"})
+_BLOB_EXT = {"application/pdf": ".pdf", "application/tei+xml": ".xml", "text/plain": ".txt"}
+
+
 def build_app(
     repo: DHRARepo,
     *,
@@ -162,6 +169,10 @@ def build_app(
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # Only this site's own code, styles and connections (the fonts come from Google Fonts). Inline script/style stay
+        # allowed because the templates use them; what this stops is a planted external script, a form posting elsewhere,
+        # plugins, and a <base> that re-points every relative link.
+        response.headers.setdefault("Content-Security-Policy", _CSP)
         return response
 
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -687,7 +698,14 @@ def build_app(
         if item is None:
             raise HTTPException(status_code=404, detail="no such item")
         data = repo.blobs.get(item.blob_sha256)
-        return Response(content=data, media_type=item.media_type)
+        # Uploaded bytes are untrusted. Only raster images are shown in the page; everything else (TEI/XML, which a
+        # browser would render and whose XHTML <script> it would RUN on this site's origin, PDF, text) is a download,
+        # and nothing served from here may run script or load anything, whatever type it claims.
+        inline = item.media_type in _INLINE_BLOB_TYPES
+        headers = {"Content-Security-Policy": "default-src 'none'; sandbox", "X-Content-Type-Options": "nosniff"}
+        if not inline:
+            headers["Content-Disposition"] = f'attachment; filename="{item_id}{_BLOB_EXT.get(item.media_type, ".bin")}"'
+        return Response(content=data, media_type=item.media_type if inline else "application/octet-stream", headers=headers)
 
     @app.post("/annotate")
     def annotate(request: Request, target_type: str = Form(...), target_id: str = Form(...), text: str = Form(...), actor: str = Form(...)) -> RedirectResponse:

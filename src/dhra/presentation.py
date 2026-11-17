@@ -66,6 +66,10 @@ _SYSTEM_PROMPT = (
 )
 
 
+MAX_TOPIC_CHARS = 500
+MAX_FALLBACK_WORDS = 8
+
+
 class PresentationError(Exception):
     pass
 
@@ -74,7 +78,8 @@ def _gather_evidence(repo: DHRARepo, topic: str, *, max_passages: int, task: str
     """Whole topic first; if that literal phrase finds nothing, fall back
     to its individual words so a natural-language topic still retrieves."""
     found: dict[tuple[str, str, int, int], Passage] = {}
-    queries = [topic] + [w for w in re.findall(r"\w+", topic) if len(w) > 3 and w != topic]
+    words = list(dict.fromkeys(w for w in re.findall(r"\w+", topic) if len(w) > 3 and w != topic))
+    queries = [topic] + words[:MAX_FALLBACK_WORDS]
     for q in queries:
         for p in evidence_search(repo, q, task=task).evidence:
             loc = p.locator
@@ -125,6 +130,9 @@ def generate_outline(
 ) -> tuple[dict, list[Passage]]:
     if lang not in LANGUAGES:
         raise PresentationError(f"unsupported language {lang!r}")
+    topic = topic.strip()
+    if not topic or len(topic) > MAX_TOPIC_CHARS:
+        raise PresentationError(f"the topic must be 1-{MAX_TOPIC_CHARS} characters")
     n_slides = max(1, min(int(n_slides), 20))
     passages = _gather_evidence(repo, topic, max_passages=max_passages, task=task)
     if not passages:

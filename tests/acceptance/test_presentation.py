@@ -98,3 +98,10 @@ def test_web_route_returns_a_pptx_download(repo, monkeypatch):
     assert r.headers["content-disposition"].endswith('-zh.pptx"')
     assert len(Presentation(io.BytesIO(r.content)).slides) == 3
     assert c.post("/presentation", data={"topic": "zzzunmatched", "pres_lang": "en"}).status_code == 400
+
+
+def test_overlong_topic_is_rejected_before_any_search_or_model_call(repo):
+    client, session = _client(json.dumps(OUTLINE))
+    with pytest.raises(PresentationError):
+        make_presentation(repo, client, topic="Tokat " * 200, lang="en")
+    assert session.calls == []

@@ -218,9 +218,11 @@ def build_pptx(outline: dict, passages: list[Excerpt], *, lang: str, topic: str,
                 cs = rPr.makeelement(qn("a:cs"), {"typeface": "Arial"})
                 rPr.append(cs)
 
-    def set_text(shape, text: str, size: int, bold: bool = False) -> None:
-        # the default template is 4:3; re-fit the placeholder to the 16:9 slide
-        shape.left, shape.width = 600000, 10992000
+    def set_text(shape, text: str, size: int, bold: bool = False, *, top: int = 400000, height: int = 1100000) -> None:
+        # the default template is 4:3; re-fit the placeholder to the 16:9
+        # slide. All four values must be set, or python-pptx leaves the
+        # unset ones at 0 and the text collapses onto the slide edge.
+        shape.left, shape.top, shape.width, shape.height = 600000, top, 10992000, height
         tf = shape.text_frame
         tf.word_wrap = True
         tf.text = text
@@ -229,9 +231,9 @@ def build_pptx(outline: dict, passages: list[Excerpt], *, lang: str, topic: str,
 
     # title slide
     s = prs.slides.add_slide(prs.slide_layouts[0])
-    set_text(s.shapes.title, outline["title"] or topic, 40, True)
+    set_text(s.shapes.title, outline["title"] or topic, 40, True, top=1800000, height=1500000)
     sub = s.placeholders[1]
-    sub.left, sub.width = 600000, 10992000
+    sub.left, sub.top, sub.width, sub.height = 600000, 3500000, 10992000, 1800000
     sub.text_frame.text = (outline["subtitle"] + "\n" if outline["subtitle"] else "") + L.draft_note
     sub.text_frame.word_wrap = True
     for par in sub.text_frame.paragraphs:

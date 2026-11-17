@@ -59,7 +59,9 @@ def test_every_language_builds_a_valid_deck(repo, lang):
     assert len(prs.slides) == 3  # title + 1 content + 1 sources
     assert LANGUAGES[lang].name in session.calls[0]["messages"][0]["content"]
     sources_text = " ".join(sh.text_frame.text for sh in prs.slides[2].shapes if sh.has_text_frame)
-    assert "Tokat was repaired" in sources_text or "Tokat" in sources_text  # verbatim excerpt + locator
+    assert "The bridge at Tokat was repaired in 1849 after a storm." in sources_text  # whole sentence, verbatim, not just the matched word
+    prompt = session.calls[0]["messages"][1]["content"]
+    assert "The bridge at Tokat was repaired in 1849 after a storm." in prompt  # the model sees the sentence
 
 
 def test_arabic_is_right_to_left(repo):

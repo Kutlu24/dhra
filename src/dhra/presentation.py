@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from dhra.evidence import search as evidence_search
 from dhra.llm import LLMClient, LLMError, log_and_complete
-from dhra.models import Passage
+from dhra.models import Locator, Passage
 from dhra.repo import DHRARepo
 
 
@@ -74,7 +74,33 @@ class PresentationError(Exception):
     pass
 
 
-def _gather_evidence(repo: DHRARepo, topic: str, *, max_passages: int, task: str | None) -> list[Passage]:
+@dataclass(frozen=True)
+class Excerpt:
+    """A search hit widened to its surrounding sentence. `dhra.evidence`
+    returns only the literally matched term (e.g. "Tokat"), which is
+    useless as slide material; `locator` stays the exact match, `text` is
+    the sentence it sits in."""
+
+    locator: Locator
+    text: str
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?。！？؟])\s+|\n+")
+MAX_EXCERPT_CHARS = 400
+
+
+def _sentence_around(full: str, start: int, end: int) -> tuple[int, str]:
+    lo, hi = 0, len(full)
+    for m in _SENTENCE_END.finditer(full):
+        if m.end() <= start:
+            lo = m.end()
+        elif m.start() >= end:
+            hi = m.start()
+            break
+    return lo, full[lo:hi].strip()[:MAX_EXCERPT_CHARS]
+
+
+def _gather_evidence(repo: DHRARepo, topic: str, *, max_passages: int, task: str | None) -> list[Excerpt]:
     """Whole topic first; if that literal phrase finds nothing, fall back
     to its individual words so a natural-language topic still retrieves."""
     found: dict[tuple[str, str, int, int], Passage] = {}
@@ -86,7 +112,16 @@ def _gather_evidence(repo: DHRARepo, topic: str, *, max_passages: int, task: str
             found.setdefault((loc.item_id, loc.rep_id, loc.start, loc.end), p)
         if len(found) >= max_passages:
             break
-    return list(found.values())[:max_passages]
+    reps = repo.projection().representations
+    excerpts: dict[tuple[str, str, int], Excerpt] = {}
+    for p in found.values():
+        rep = reps.get(p.locator.rep_id)
+        if rep is None:
+            continue
+        lo, sentence = _sentence_around(rep.text, p.locator.start, p.locator.end)
+        if sentence:
+            excerpts.setdefault((p.locator.item_id, p.locator.rep_id, lo), Excerpt(p.locator, sentence))
+    return list(excerpts.values())[:max_passages]
 
 
 def _parse_outline(raw: str) -> dict:
@@ -127,7 +162,7 @@ def generate_outline(
     n_slides: int = 6,
     max_passages: int = 10,
     task: str | None = None,
-) -> tuple[dict, list[Passage]]:
+) -> tuple[dict, list[Excerpt]]:
     if lang not in LANGUAGES:
         raise PresentationError(f"unsupported language {lang!r}")
     topic = topic.strip()
@@ -155,7 +190,7 @@ def generate_outline(
     return outline, passages
 
 
-def build_pptx(outline: dict, passages: list[Passage], *, lang: str, topic: str, corpus_version: str = "") -> bytes:
+def build_pptx(outline: dict, passages: list[Excerpt], *, lang: str, topic: str, corpus_version: str = "") -> bytes:
     from pptx import Presentation
     from pptx.oxml.ns import qn
     from pptx.util import Pt

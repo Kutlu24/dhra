@@ -71,6 +71,7 @@ from dhra.literature_watch import (
     restore_candidate,
 )
 from dhra.model_registry import GatewayTranscriber, ModelGatewayError, load_registry, registry_path_from_env, require_gateway, usable
+from dhra.presentation import LANGUAGES as PRESENTATION_LANGUAGES, PresentationError, make_presentation
 from dhra.llm import LLMClient, LLMError, LLMProfile, load_profiles
 from dhra.models import ExclusionReason, Locator
 from dhra.peer_review import review_paper
@@ -1104,5 +1105,34 @@ def build_app(
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         return RedirectResponse("/teaching", status_code=303)
+
+    @app.get("/presentation", response_class=HTMLResponse)
+    def presentation_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "presentation.html",
+            _ctx(
+                "presentation",
+                request,
+                llm_configured=_llm_client_or_none(request) is not None,
+                pres_languages=list(PRESENTATION_LANGUAGES.values()),
+            ),
+        )
+
+    @app.post("/presentation")
+    def presentation_make(request: Request, topic: str = Form(...), pres_lang: str = Form("en"), n_slides: int = Form(6)) -> Response:
+        repo = _current_repo(request)
+        client = _require_llm(request)
+        try:
+            data = make_presentation(repo, client, topic=topic, lang=pres_lang, n_slides=n_slides)
+        except PresentationError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        return Response(
+            content=data,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers={"Content-Disposition": f'attachment; filename="dhra-presentation-{pres_lang}.pptx"'},
+        )
 
     return app

@@ -448,6 +448,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exclusions.view_history": "View exclusion history &rarr;",
         # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
         "assistant.title_v2": "Research Assistant",
+        "presentation.title": "Presentation",
+        "presentation.lede": "Build a slide deck (.pptx) from your corpus in another language. Slides come only from retrieved excerpts; the last slides list them verbatim with locators.",
+        "presentation.topic": "Topic",
+        "presentation.lang": "Presentation language",
+        "presentation.n": "Content slides",
+        "presentation.button": "Create .pptx",
         "teaching.title": "Teaching",
         "teaching.lede": "The model only ever proposes &mdash; every result below is a reviewable draft, never applied automatically.",
         # --- demo banner (visual redesign, copy stays operator-controlled) ------------------
@@ -1020,6 +1026,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exclusions.col_reason": "Grund",
         # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
         "assistant.title_v2": "Forschungsassistent",
+        "presentation.title": "Präsentation",
+        "presentation.lede": "Erstellt aus Ihrem Korpus eine Präsentation (.pptx) in einer anderen Sprache. Die Folien stützen sich nur auf gefundene Auszüge; die letzten Folien listen diese wörtlich mit Fundstellen auf.",
+        "presentation.topic": "Thema",
+        "presentation.lang": "Sprache der Präsentation",
+        "presentation.n": "Inhaltsfolien",
+        "presentation.button": ".pptx erstellen",
         "teaching.title": "Lehre",
         "teaching.lede": "Das Modell schlägt nur vor &mdash; jedes Ergebnis unten ist ein zu prüfender Entwurf, nie automatisch übernommen.",
         # --- demo banner (visual redesign, copy stays operator-controlled) ------------------
@@ -1607,6 +1619,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "exclusions.col_reason": "motif",
         # --- assistant.html / teaching.html (Research/Teaching split) -----------------------
         "assistant.title_v2": "Assistant de recherche",
+        "presentation.title": "Présentation",
+        "presentation.lede": "Crée une présentation (.pptx) à partir de votre corpus dans une autre langue. Les diapositives ne reposent que sur les extraits trouvés ; les dernières les listent textuellement avec leurs localisateurs.",
+        "presentation.topic": "Sujet",
+        "presentation.lang": "Langue de la présentation",
+        "presentation.n": "Diapositives de contenu",
+        "presentation.button": "Créer le .pptx",
         "teaching.title": "Enseignement",
         "teaching.lede": "Le modèle ne fait que proposer &mdash; chaque résultat ci-dessous est un brouillon à examiner, jamais appliqué automatiquement.",
         # --- demo banner (visual redesign, copy stays operator-controlled) ------------------

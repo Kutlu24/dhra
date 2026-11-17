@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ t('presentation.title') }} -- DHRA{% endblock %}
+{% block content %}
+<h1>{{ t('presentation.title') }}</h1>
+<p class="lede">{{ t('presentation.lede') }}</p>
+
+{% if not llm_configured %}
+<div class="warning">{{ t('assistant.not_configured') | safe }}</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/presentation">
+    <p><label>{{ t('presentation.topic') }}<br><input type="text" name="topic" required></label></p>
+    <p><label>{{ t('presentation.lang') }}<br>
+      <select name="pres_lang">
+        {% for l in pres_languages %}<option value="{{ l.code }}">{{ l.native }} ({{ l.name }})</option>{% endfor %}
+      </select></label></p>
+    <p><label>{{ t('presentation.n') }}<br><input type="number" name="n_slides" value="6" min="1" max="20" required></label></p>
+    <button type="submit" {{ 'disabled' if not llm_configured }}>{{ t('presentation.button') }}</button>
+  </form>
+</div>
+{% endblock %}
